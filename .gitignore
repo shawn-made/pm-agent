@@ -38,6 +38,11 @@ Thumbs.db
 # spaCy models (downloaded at install)
 # en_core_web_sm is installed via pip, not stored in repo
 
+# Test / coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
 # Logs
 *.log
 
