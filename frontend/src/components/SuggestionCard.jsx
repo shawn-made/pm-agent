@@ -2,7 +2,7 @@
  * Displays a single LLM-generated suggestion card with expand/collapse, copy, and apply actions.
  */
 import { useState } from 'react'
-import { useToast } from './Toast'
+import { useToast } from './ToastContext'
 
 const TYPE_COLORS = {
   'RAID Log': 'bg-amber-50 text-amber-700 border-amber-200',

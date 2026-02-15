@@ -2,7 +2,8 @@
 
 import os
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from app.services.llm_client import LLMClient, LLMError, Provider, _retry_with_backoff
 
@@ -31,11 +32,7 @@ class GeminiClient(LLMClient):
                 "Set GOOGLE_AI_API_KEY in .env or provide via Settings."
             )
 
-        genai.configure(api_key=self.api_key)
-        self._model = genai.GenerativeModel(
-            model_name=self.model,
-            system_instruction=None,  # Set per-call
-        )
+        self._client = genai.Client(api_key=self.api_key)
 
     async def call(
         self,
@@ -46,15 +43,14 @@ class GeminiClient(LLMClient):
         """Send a prompt to Gemini and return the response text."""
 
         async def _do_call() -> str:
-            # Create model with system instruction for this call
-            model = genai.GenerativeModel(
-                model_name=self.model,
-                system_instruction=system_prompt,
-                generation_config=genai.types.GenerationConfig(
+            response = await self._client.aio.models.generate_content(
+                model=self.model,
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
                     max_output_tokens=max_tokens,
                 ),
             )
-            response = await model.generate_content_async(user_prompt)
             return response.text
 
         return await _retry_with_backoff(_do_call)

@@ -4,6 +4,7 @@ import pytest
 from app.services.artifact_manager import (
     ArtifactType,
     _artifact_filename,
+    _safe_filename,
     get_or_create_artifact,
     list_project_artifacts,
     load_template,
@@ -45,6 +46,20 @@ class TestTemplates:
         assert "Decisions" in template
 
 
+class TestSafeFilename:
+    def test_clean_name_unchanged(self):
+        assert _safe_filename("my-project_1") == "my-project_1"
+
+    def test_path_traversal_sanitized(self):
+        assert _safe_filename("../../etc/passwd") == "______etc_passwd"
+
+    def test_spaces_sanitized(self):
+        assert _safe_filename("my project") == "my_project"
+
+    def test_special_chars_sanitized(self):
+        assert _safe_filename("test@#$%") == "test____"
+
+
 class TestArtifactFilename:
     def test_raid_log_filename(self):
         result = _artifact_filename("default", ArtifactType.RAID_LOG)
@@ -57,6 +72,11 @@ class TestArtifactFilename:
     def test_meeting_notes_filename(self):
         result = _artifact_filename("default", ArtifactType.MEETING_NOTES)
         assert result == "default_meeting-notes.md"
+
+    def test_traversal_in_project_id_sanitized(self):
+        result = _artifact_filename("../../etc", ArtifactType.RAID_LOG)
+        assert ".." not in result
+        assert "/" not in result
 
 
 class TestGetOrCreateArtifact:

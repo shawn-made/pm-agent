@@ -1,17 +1,8 @@
 /**
- * Toast notification system using React context for app-wide success/error/info messages.
+ * Toast notification provider — renders toast stack and provides context for app-wide messages.
  */
-import { useState, useCallback, createContext, useContext } from 'react'
-
-const ToastContext = createContext(null)
-
-/**
- * Hook to access toast methods (success, error, info) from any component.
- * @returns {{success: function, error: function, info: function}} Toast trigger methods
- */
-export function useToast() {
-  return useContext(ToastContext)
-}
+import { useState, useCallback } from 'react'
+import ToastContext from './ToastContext'
 
 /**
  * Wraps the app to provide toast notification context. Renders toast stack in bottom-right.

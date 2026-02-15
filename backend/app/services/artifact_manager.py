@@ -63,14 +63,22 @@ def load_template(artifact_type: ArtifactType) -> str:
     return template_path.read_text()
 
 
+def _safe_filename(name: str) -> str:
+    """Sanitize a string for use in a filename (prevent path traversal)."""
+    import re
+
+    return re.sub(r"[^a-zA-Z0-9_-]", "_", name)
+
+
 def _artifact_filename(project_id: str, artifact_type: ArtifactType) -> str:
     """Generate a consistent filename for an artifact.
 
     Format: {project_id}_{type_slug}.md
     Example: default_raid-log.md
     """
+    safe_id = _safe_filename(project_id)
     slug = artifact_type.value.lower().replace(" ", "-")
-    return f"{project_id}_{slug}.md"
+    return f"{safe_id}_{slug}.md"
 
 
 async def get_or_create_artifact(
@@ -135,7 +143,10 @@ async def read_artifact_content(artifact_id: str) -> str | None:
     if not artifact:
         return None
 
-    file_path = Path(artifact.file_path)
+    file_path = Path(artifact.file_path).resolve()
+    if not str(file_path).startswith(str(ARTIFACTS_DIR.resolve())):
+        return None  # Path traversal attempt
+
     if not file_path.exists():
         return None
 
@@ -158,7 +169,10 @@ async def write_artifact_content(artifact_id: str, content: str) -> bool:
     if not artifact:
         return False
 
-    file_path = Path(artifact.file_path)
+    file_path = Path(artifact.file_path).resolve()
+    if not str(file_path).startswith(str(ARTIFACTS_DIR.resolve())):
+        return False  # Path traversal attempt
+
     file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_text(content)
 

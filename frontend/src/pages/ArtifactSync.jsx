@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import TextInput from '../components/TextInput'
 import SuggestionCard from '../components/SuggestionCard'
-import { useToast } from '../components/Toast'
+import { useToast } from '../components/ToastContext'
 import { artifactSync, applySuggestionByType } from '../services/api'
 
 /** Artifact Sync page — orchestrates text input, LLM analysis, and suggestion display. */

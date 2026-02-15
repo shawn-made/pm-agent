@@ -250,23 +250,20 @@ class TestGeminiClient:
 
         client = GeminiClient()
 
-        # Mock the Gemini API response
+        # Mock the new google-genai async response
         mock_response = MagicMock()
         mock_response.text = "Gemini response text."
 
-        with patch("google.generativeai.GenerativeModel") as MockModel:
-            mock_model_instance = MagicMock()
-            mock_model_instance.generate_content_async = AsyncMock(
-                return_value=mock_response
-            )
-            MockModel.return_value = mock_model_instance
+        mock_generate = AsyncMock(return_value=mock_response)
+        client._client.aio.models.generate_content = mock_generate
 
-            result = await client.call(
-                system_prompt="You are a PM assistant.",
-                user_prompt="Summarize these notes.",
-            )
+        result = await client.call(
+            system_prompt="You are a PM assistant.",
+            user_prompt="Summarize these notes.",
+        )
 
-            assert result == "Gemini response text."
+        assert result == "Gemini response text."
+        mock_generate.assert_called_once()
 
     @patch.dict("os.environ", {"GOOGLE_AI_API_KEY": "test-key"})
     def test_estimate_tokens(self):
