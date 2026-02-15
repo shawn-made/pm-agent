@@ -34,6 +34,11 @@ async def init_db():
     finally:
         await db.close()
 
+    # Ensure default project exists for MVP (single-project mode)
+    from app.services.crud import ensure_default_project
+
+    await ensure_default_project()
+
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS projects (

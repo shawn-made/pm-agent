@@ -7,11 +7,11 @@
 
 | Group | Tasks | Done | Status |
 |-------|-------|------|--------|
-| Infrastructure | 1-4 | 0/4 | Not started |
-| Privacy & LLM | 5-8 | 0/4 | Not started |
-| Backend Logic | 9-12 | 0/4 | Not started |
-| Frontend | 13-17 | 0/5 | Not started |
-| Integration & Polish | 18-20 | 0/3 | Not started |
+| Infrastructure | 1-4 | 4/4 | Complete |
+| Privacy & LLM | 5-8 | 4/4 | Complete |
+| Backend Logic | 9-12 | 4/4 | Complete |
+| Frontend | 13-17 | 5/5 | Complete |
+| Integration & Polish | 18-20 | 2.5/3 | Awaiting live testing |
 
 ---
 
@@ -26,178 +26,192 @@
 **Status**: Complete
 
 ### Task 2: SQLite Database Setup
-- [ ] Schema with all tables: projects, artifacts, artifact_versions, sessions, pii_vault, settings
-- [ ] project_id on all tables (multi-project ready)
-- [ ] Connection module (async with aiosqlite)
-- [ ] Init script (create tables on first run)
-- [ ] Basic CRUD queries
-**Status**: Not started
+- [x] Schema with all tables: projects, artifacts, artifact_versions, sessions, pii_vault, settings
+- [x] project_id on all tables (multi-project ready)
+- [x] Connection module (async with aiosqlite)
+- [x] Init script (create tables on first run)
+- [x] Basic CRUD queries (25 functions in services/crud.py + Pydantic models in models/schemas.py)
+**Status**: Complete
 
 ### Task 3: Privacy Proxy — Regex PII Detection
-- [ ] Email pattern detection
-- [ ] Phone number pattern detection
-- [ ] URL pattern detection
-- [ ] Custom sensitive terms matching (from settings)
-- [ ] Unit tests with sample text
-**Status**: Not started
+- [x] Email pattern detection
+- [x] Phone number pattern detection
+- [x] URL pattern detection
+- [x] Custom sensitive terms matching (from settings)
+- [x] Unit tests with sample text (21 tests)
+**Status**: Complete
 
 ### Task 4: Privacy Proxy — spaCy NER Integration
-- [ ] Load en_core_web_sm model
-- [ ] PERSON entity detection
-- [ ] ORG entity detection
-- [ ] GPE (location) entity detection
-- [ ] Confidence scoring (flag low confidence < 70%)
-- [ ] Unit tests
-**Status**: Not started
+- [x] Load en_core_web_sm model (lazy-loaded)
+- [x] PERSON entity detection
+- [x] ORG entity detection
+- [x] GPE (location) entity detection
+- [x] Confidence scoring (flag low confidence < 70%)
+- [x] Unit tests (18 tests including combined pipeline)
+**Status**: Complete
 
 ---
 
 ## Privacy & LLM (Tasks 5-8)
 
 ### Task 5: Privacy Proxy — Vault & Anonymize/Reidentify
-- [ ] Token vault (store/retrieve mappings in SQLite pii_vault table)
-- [ ] anonymize(text) function — combines regex + NER, replaces with tokens (<PERSON_1>, etc.)
-- [ ] reidentify(text) function — replaces tokens back to originals
-- [ ] Audit log writing (append to ~/VPMA/privacy/audit_log.jsonl)
-- [ ] Global vault scope (not project-specific)
-- [ ] Unit tests for round-trip anonymize → reidentify
-**Status**: Not started
+- [x] Token vault (store/retrieve mappings in SQLite pii_vault table)
+- [x] anonymize(text) function — combines regex + NER, replaces with tokens (<PERSON_1>, etc.)
+- [x] reidentify(text) function — replaces tokens back to originals
+- [x] Audit log writing (append to ~/VPMA/privacy/audit_log.jsonl)
+- [x] Global vault scope (not project-specific)
+- [x] Unit tests for round-trip anonymize → reidentify (18 tests)
+**Status**: Complete
 
 ### Task 6: LLM Client — Base Abstract Interface
-- [ ] Base class with call() method (system_prompt, user_prompt, max_tokens) → str
-- [ ] Provider enum (CLAUDE, GEMINI, OLLAMA)
-- [ ] Client factory: create_client(provider) → LLMClient
-- [ ] Error handling (retry with exponential backoff, 3 attempts)
-- [ ] Token counting stub
-**Status**: Not started
+- [x] Base class with call() method (system_prompt, user_prompt, max_tokens) → str
+- [x] Provider enum (CLAUDE, GEMINI, OLLAMA)
+- [x] Client factory: create_client(provider) → LLMClient
+- [x] Error handling (retry with exponential backoff, 3 attempts)
+- [x] Token counting stub
+**Status**: Complete
 
 ### Task 7: LLM Client — Claude Adapter
-- [ ] AnthropicClient implementing base interface
-- [ ] API key from .env (ANTHROPIC_API_KEY)
-- [ ] Model selection (default: claude-sonnet-4-5-20250929)
-- [ ] Error handling for API failures
-- [ ] Unit test (mock API call)
-**Status**: Not started
+- [x] ClaudeClient implementing base interface
+- [x] API key from .env (ANTHROPIC_API_KEY)
+- [x] Model selection (default: claude-sonnet-4-5-20250929)
+- [x] Error handling for API failures
+- [x] Unit tests (mock API call, 8 tests)
+**Status**: Complete
 
 ### Task 8: LLM Client — Gemini Adapter
-- [ ] GeminiClient implementing base interface
-- [ ] API key from .env (GOOGLE_AI_API_KEY)
-- [ ] Model selection (default: gemini-2.0-flash)
-- [ ] Error handling for API failures
-- [ ] Unit test (mock API call)
-**Status**: Not started
+- [x] GeminiClient implementing base interface
+- [x] API key from .env (GOOGLE_AI_API_KEY)
+- [x] Model selection (default: gemini-2.0-flash)
+- [x] Error handling for API failures
+- [x] Unit tests (mock API call, 7 tests)
+**Status**: Complete
 
 ---
 
 ## Backend Logic (Tasks 9-12)
 
 ### Task 9: Artifact Manager — Types & Templates
-- [ ] Artifact type definitions (RAID Log, Status Report, Meeting Notes)
-- [ ] Markdown template for each type
-- [ ] Template loading from backend/app/prompts/templates/
-- [ ] Artifact CRUD (create, read, update via markdown files in ~/VPMA/artifacts/)
-- [ ] Metadata tracking in SQLite artifacts table
-**Status**: Not started
+- [x] Artifact type definitions (RAID Log, Status Report, Meeting Notes)
+- [x] Markdown template for each type
+- [x] Template loading from backend/app/prompts/templates/
+- [x] Artifact CRUD (create, read, update via markdown files in ~/VPMA/artifacts/)
+- [x] Metadata tracking in SQLite artifacts table
+- [x] Unit tests (18 tests)
+**Status**: Complete
 
 ### Task 10: Artifact Sync — Core Backend Logic
-- [ ] Input → Privacy Proxy anonymize → LLM call → parse response → suggestions
-- [ ] Input type classification (text vs transcript — extensible)
-- [ ] Delta extraction (what changed, what's new)
-- [ ] Suggestion model (artifact_type, change_type, proposed_text, confidence)
-- [ ] Session logging (write to SQLite sessions table)
-**Status**: Not started
+- [x] Input → Privacy Proxy anonymize → LLM call → parse response → suggestions
+- [x] Input type classification (text vs transcript — extensible)
+- [x] Delta extraction (what changed, what's new)
+- [x] Suggestion model (artifact_type, change_type, proposed_text, confidence)
+- [x] Session logging (write to SQLite sessions table)
+**Status**: Complete
 
 ### Task 11: Artifact Sync — System Prompts
-- [ ] System prompt for artifact detection ("which artifacts need updates?")
-- [ ] System prompt for delta extraction ("what specific changes?")
-- [ ] Structured JSON output format for suggestions
-- [ ] Few-shot examples for each artifact type
-- [ ] Prompt testing with sample meeting notes
-**Status**: Not started
+- [x] System prompt for artifact detection ("which artifacts need updates?")
+- [x] System prompt for delta extraction ("what specific changes?")
+- [x] Structured JSON output format for suggestions
+- [x] Few-shot examples for each artifact type
+- [x] Input type classification prompt
+- [x] Unit tests for parsing and classification (15 tests)
+**Status**: Complete
 
 ### Task 12: FastAPI Endpoints
-- [ ] POST /api/artifact-sync (main flow: text → suggestions)
-- [ ] GET /api/settings (retrieve current settings)
-- [ ] PUT /api/settings (update settings — API keys, LLM provider, sensitive terms)
-- [ ] GET /api/health (backend status check)
-- [ ] POST /api/artifacts/{id}/apply (apply a suggestion to local storage)
-- [ ] Request/response Pydantic models
-- [ ] CORS configuration for localhost:3000
-**Status**: Not started
+- [x] POST /api/artifact-sync (main flow: text → suggestions)
+- [x] GET /api/settings (retrieve current settings)
+- [x] PUT /api/settings (update settings — API keys, LLM provider, sensitive terms)
+- [x] GET /api/health (backend status check)
+- [x] POST /api/artifacts/{id}/apply (apply a suggestion to local storage)
+- [x] Request/response Pydantic models
+- [x] CORS configuration for localhost:3000
+- [x] API endpoint tests (9 tests)
+**Status**: Complete
 
 ---
 
 ## Frontend (Tasks 13-17)
 
 ### Task 13: React App Shell
-- [ ] Two-tab navigation (Artifact Sync, Settings)
-- [ ] Layout component with header (VPMA branding)
-- [ ] React Router setup (/ → Artifact Sync, /settings → Settings)
-- [ ] Tailwind CSS base styles
-- [ ] API base URL from environment
-**Status**: Not started
+- [x] Two-tab navigation (Artifact Sync, Settings)
+- [x] Layout component with header (VPMA branding)
+- [x] React Router setup (/ → Artifact Sync, /settings → Settings)
+- [x] Tailwind CSS base styles
+- [x] API base URL from environment (Vite proxy to localhost:8000)
+**Status**: Complete
 
 ### Task 14: Text Input Component
-- [ ] Large text area with placeholder ("Paste meeting notes, transcripts, or project updates...")
-- [ ] Submit button with loading state
-- [ ] Character count display
-- [ ] Clear button
-- [ ] Auto-resize text area
-**Status**: Not started
+- [x] Large text area with placeholder ("Paste meeting notes, transcripts, or project updates...")
+- [x] Submit button with loading state
+- [x] Character count display
+- [x] Clear button
+- [x] Auto-resize text area
+**Status**: Complete
 
 ### Task 15: Suggestion Cards Component
-- [ ] Card layout per suggestion (artifact name, change type, proposed text)
-- [ ] Expandable preview (click to show full text)
-- [ ] Copy-to-clipboard button (primary action)
-- [ ] Apply button (stores in VPMA database)
-- [ ] Visual feedback on copy/apply (toast or checkmark)
-- [ ] Empty state ("No suggestions yet")
-**Status**: Not started
+- [x] Card layout per suggestion (artifact name, change type, proposed text)
+- [x] Expandable preview (click to show full text)
+- [x] Copy-to-clipboard button (primary action)
+- [x] Apply button (stores in VPMA database)
+- [x] Visual feedback on copy/apply (toast or checkmark)
+- [x] Empty state ("No suggestions yet")
+**Status**: Complete
 
 ### Task 16: Basic Settings Page
-- [ ] API key inputs (Claude, Gemini) with show/hide toggle
-- [ ] LLM provider radio buttons (Claude / Gemini)
-- [ ] Custom sensitive terms textarea (comma-separated or newline-separated)
-- [ ] Save button with success feedback
-- [ ] Load current settings on page mount
-**Status**: Not started
+- [x] API key inputs (Claude, Gemini) with show/hide toggle
+- [x] LLM provider radio buttons (Claude / Gemini)
+- [x] Custom sensitive terms textarea (comma-separated or newline-separated)
+- [x] Save button with success feedback
+- [x] Load current settings on page mount
+**Status**: Complete
 
 ### Task 17: Error Handling & States
-- [ ] API error display (connection failed, LLM error, etc.)
-- [ ] Loading spinner during LLM calls
-- [ ] Empty states for each page
-- [ ] Toast/notification system for actions (copied, saved, error)
-- [ ] Backend health check on app load
-**Status**: Not started
+- [x] API error display (connection failed, LLM error, etc.)
+- [x] Loading spinner during LLM calls
+- [x] Empty states for each page
+- [x] Toast/notification system for actions (copied, saved, error)
+- [x] Backend health check on app load
+**Status**: Complete
 
 ---
 
 ## Integration & Polish (Tasks 18-20)
 
 ### Task 18: End-to-End Integration Test
-- [ ] Full flow: paste text → anonymize → LLM → reidentify → display → copy
-- [ ] Test with 3+ real-world meeting notes samples
-- [ ] Verify PII anonymization (no real names in LLM requests)
-- [ ] Verify copy-to-clipboard works
-- [ ] Verify apply writes to ~/VPMA/artifacts/
-- [ ] Test Claude ⟷ Gemini toggle
-**Status**: Not started
+- [x] Full flow: paste text → anonymize → LLM → reidentify → display → copy
+- [x] Test with 3+ real-world meeting notes samples (meeting notes, status update, transcript)
+- [x] Verify PII anonymization (no real names in LLM requests)
+- [x] Verify copy-to-clipboard works (frontend wired up)
+- [x] Verify apply writes to ~/VPMA/artifacts/ (new /api/artifacts/apply endpoint)
+- [x] Test Claude ⟷ Gemini toggle
+- [x] 22 integration tests covering: full pipeline, PII round-trip, apply, provider toggle, error handling
+- [x] Bug fix: phone regex missed opening parenthesis in (555) 123-4567
+- [x] Bug fix: Apply button was not wired up — added convenience endpoint + frontend integration
+**Status**: Complete
 
 ### Task 19: Prompt Quality Tuning
-- [ ] Test with 5+ varied meeting note styles
-- [ ] Evaluate suggestion relevance (are the right artifacts identified?)
-- [ ] Evaluate proposed text quality (useful updates?)
-- [ ] Refine system prompts based on results
-- [ ] Document what works and what doesn't
-**Status**: Not started
+- [x] Refine system prompts based on analysis (section names, format rules, 3rd example)
+- [x] Wire input_type classification into main LLM prompt (was classified but not used)
+- [x] Create 7 diverse test samples with expected outputs (backend/tests/test_samples.py)
+- [x] Add case-insensitive artifact type matching in apply endpoint
+- [x] Code review: verified integration pipeline, no critical bugs found
+- [ ] Run evaluation script against live backend with API key
+- [ ] Evaluate suggestion relevance with 5+ samples (user testing)
+- [ ] Evaluate proposed text quality (user assessment)
+**Status**: Prompt refinement complete, awaiting live testing
 
 ### Task 20: Styling & Polish
-- [ ] Consistent Tailwind styling across all components
-- [ ] Responsive layout (works on laptop screen)
-- [ ] Loading states feel smooth
-- [ ] Error messages are helpful
-- [ ] Overall UX feels clean (Google-minimalist philosophy)
-**Status**: Not started
+- [x] Consistent Tailwind styling across all components
+- [x] Responsive layout (works on laptop screen)
+- [x] Loading states feel smooth
+- [x] Error messages are helpful
+- [x] Overall UX feels clean (Google-minimalist philosophy)
+- [x] Subtle gray-50 background with white cards for depth
+- [x] Footer with version number
+- [x] Meta bar: input type badge + green shield icon for PII count
+- [x] Settings form wrapped in white card
+- [x] Fix: replace() → replaceAll() for input type display
+**Status**: Complete
 
 ---
 
