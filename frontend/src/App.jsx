@@ -1,3 +1,6 @@
+/**
+ * Root application component — provides layout, navigation, toast context, and backend health check.
+ */
 import { useState, useEffect } from 'react'
 import { Routes, Route, NavLink } from 'react-router-dom'
 import { ToastProvider } from './components/Toast.jsx'
@@ -5,6 +8,7 @@ import ArtifactSync from './pages/ArtifactSync.jsx'
 import Settings from './pages/Settings.jsx'
 import { healthCheck } from './services/api'
 
+/** App shell with header, two-tab navigation, and footer. Checks backend health on mount. */
 function App() {
   const [backendStatus, setBackendStatus] = useState('checking') // 'checking', 'ok', 'error'
 

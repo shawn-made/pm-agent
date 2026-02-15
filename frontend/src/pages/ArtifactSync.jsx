@@ -1,9 +1,13 @@
+/**
+ * Main Artifact Sync page — accepts user text, runs the LLM pipeline, and displays suggestion cards.
+ */
 import { useState } from 'react'
 import TextInput from '../components/TextInput'
 import SuggestionCard from '../components/SuggestionCard'
 import { useToast } from '../components/Toast'
 import { artifactSync, applySuggestionByType } from '../services/api'
 
+/** Artifact Sync page — orchestrates text input, LLM analysis, and suggestion display. */
 export default function ArtifactSync() {
   const [suggestions, setSuggestions] = useState([])
   const [isLoading, setIsLoading] = useState(false)

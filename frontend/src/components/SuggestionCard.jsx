@@ -1,3 +1,6 @@
+/**
+ * Displays a single LLM-generated suggestion card with expand/collapse, copy, and apply actions.
+ */
 import { useState } from 'react'
 import { useToast } from './Toast'
 
@@ -12,6 +15,17 @@ const CHANGE_LABELS = {
   'update': 'Update',
 }
 
+/**
+ * @param {Object} props
+ * @param {Object} props.suggestion - Suggestion object from the artifact sync pipeline
+ * @param {string} props.suggestion.artifact_type - 'RAID Log', 'Status Report', or 'Meeting Notes'
+ * @param {string} props.suggestion.change_type - 'add' or 'update'
+ * @param {string} props.suggestion.section - Target section within the artifact
+ * @param {string} props.suggestion.proposed_text - The suggested content to add/update
+ * @param {number} props.suggestion.confidence - Confidence score (0.0-1.0)
+ * @param {string} props.suggestion.reasoning - Why this suggestion was generated
+ * @param {function} props.onApply - Callback when user clicks Apply (receives suggestion)
+ */
 export default function SuggestionCard({ suggestion, onApply }) {
   const [expanded, setExpanded] = useState(false)
   const [applied, setApplied] = useState(false)

@@ -1,7 +1,11 @@
+/**
+ * Settings page for configuring LLM provider, API keys, and custom sensitive terms.
+ */
 import { useState, useEffect } from 'react'
 import { useToast } from '../components/Toast'
 import { getSettings, updateSettings } from '../services/api'
 
+/** Settings page — loads current config on mount, saves changes via PUT /api/settings. */
 export default function Settings() {
   const [llmProvider, setLlmProvider] = useState('claude')
   const [anthropicKey, setAnthropicKey] = useState('')

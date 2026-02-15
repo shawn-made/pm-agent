@@ -1,5 +1,13 @@
+/**
+ * Auto-resizing text area with submit, clear, and character count for user input.
+ */
 import { useState, useRef, useEffect } from 'react'
 
+/**
+ * @param {Object} props
+ * @param {function} props.onSubmit - Called with the text string when the user submits
+ * @param {boolean} props.isLoading - Disables input and shows spinner when true
+ */
 export default function TextInput({ onSubmit, isLoading }) {
   const [text, setText] = useState('')
   const textareaRef = useRef(null)
