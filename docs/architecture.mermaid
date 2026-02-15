@@ -1,0 +1,184 @@
+%% VPMA Architecture Diagram
+%% Render at: https://mermaid.live or in GitHub/Notion/VS Code
+%% Export as: SVG, PNG, or PDF from Mermaid Live Editor
+
+%% ============================================================
+%% DIAGRAM 1: System Architecture (High Level)
+%% ============================================================
+
+graph TB
+    subgraph User["User (Browser)"]
+        UI["React + Tailwind CSS<br/>localhost:3000"]
+    end
+
+    subgraph Backend["FastAPI Backend (localhost:8000)"]
+        API["API Routes<br/>/api/artifact-sync<br/>/api/settings<br/>/api/health"]
+        PP["Privacy Proxy<br/>anonymize() / reidentify()"]
+        LLM["LLM Client Factory<br/>create_client(provider)"]
+        AS["Artifact Sync<br/>Input classification<br/>Delta extraction"]
+        AM["Artifact Manager<br/>CRUD + Templates"]
+    end
+
+    subgraph Detection["PII Detection Pipeline"]
+        RX["Layer 1: Regex<br/>Email, Phone, URL"]
+        NER["Layer 2: spaCy NER<br/>PERSON, ORG, GPE"]
+        CT["Layer 3: Custom Terms<br/>User-defined"]
+        DD["Deduplication<br/>Merge overlapping spans"]
+    end
+
+    subgraph Storage["Local Storage (~/VPMA/)"]
+        DB[("SQLite<br/>vpma.db<br/>Metadata + PII Vault")]
+        MD["Markdown Files<br/>artifacts/*.md<br/>RAID, Status, Notes"]
+        AL["Audit Log<br/>privacy/audit_log.jsonl"]
+    end
+
+    subgraph AI["AI Providers (Remote)"]
+        Claude["Claude API<br/>Anthropic"]
+        Gemini["Gemini API<br/>Google"]
+        Ollama["Ollama<br/>Local (Phase 2)"]
+    end
+
+    UI -->|"HTTP POST"| API
+    API --> AS
+    AS --> PP
+    PP --> RX
+    PP --> NER
+    PP --> CT
+    RX --> DD
+    NER --> DD
+    CT --> DD
+    DD -->|"Anonymized text"| LLM
+    LLM -->|"Setting: provider"| Claude
+    LLM -->|"Setting: provider"| Gemini
+    LLM -.->|"Phase 2"| Ollama
+    Claude -->|"Suggestions"| PP
+    Gemini -->|"Suggestions"| PP
+    PP -->|"Re-identified"| AS
+    AS --> AM
+    AM --> MD
+    AM --> DB
+    PP --> DB
+    PP --> AL
+    API -->|"JSON response"| UI
+
+%% ============================================================
+%% DIAGRAM 2: Data Flow (Sequence)
+%% ============================================================
+
+sequenceDiagram
+    participant U as User (Browser)
+    participant F as Frontend (React)
+    participant A as API (FastAPI)
+    participant P as Privacy Proxy
+    participant V as PII Vault (SQLite)
+    participant L as LLM Client
+    participant AI as Claude/Gemini
+
+    U->>F: Paste meeting notes
+    F->>A: POST /api/artifact-sync
+    A->>P: anonymize(text)
+    P->>P: Regex detection (email, phone, URL)
+    P->>P: spaCy NER (PERSON, ORG)
+    P->>V: Lookup/store PII tokens
+    P-->>A: Anonymized text + token map
+    A->>L: call(system_prompt, anonymized_text)
+    L->>AI: API request (no real names)
+    AI-->>L: JSON suggestions
+    L-->>A: Parsed suggestions
+    A->>P: reidentify(suggestions)
+    P->>V: Lookup tokens → real names
+    P-->>A: De-anonymized suggestions
+    A-->>F: JSON response (suggestion cards)
+    F-->>U: Display cards (copy/apply)
+
+%% ============================================================
+%% DIAGRAM 3: Database Schema (ERD)
+%% ============================================================
+
+erDiagram
+    PROJECTS {
+        text id PK
+        text name
+        text description
+        text created_at
+        text updated_at
+    }
+
+    ARTIFACTS {
+        text id PK
+        text project_id FK
+        text artifact_type
+        text title
+        text file_path
+        text created_at
+        text updated_at
+    }
+
+    ARTIFACT_VERSIONS {
+        text id PK
+        text artifact_id FK
+        text content_snapshot
+        text change_summary
+        text session_id FK
+        text created_at
+    }
+
+    SESSIONS {
+        text id PK
+        text project_id FK
+        text input_text_hash
+        text input_type
+        integer entity_count
+        text llm_provider
+        text created_at
+    }
+
+    PII_VAULT {
+        text token PK
+        text original_value
+        text entity_type
+        text created_at
+    }
+
+    SETTINGS {
+        text key PK
+        text value
+        text updated_at
+    }
+
+    PROJECTS ||--o{ ARTIFACTS : contains
+    PROJECTS ||--o{ SESSIONS : tracks
+    ARTIFACTS ||--o{ ARTIFACT_VERSIONS : versions
+    SESSIONS ||--o{ ARTIFACT_VERSIONS : produces
+
+%% ============================================================
+%% DIAGRAM 4: Phase Roadmap (Gantt)
+%% ============================================================
+
+gantt
+    title VPMA Development Phases
+    dateFormat YYYY-MM-DD
+
+    section Phase 0 - Foundation MVP
+        Project Scaffolding & DB    :done, p0a, 2026-01-15, 7d
+        Privacy Proxy & LLM Client  :done, p0b, after p0a, 7d
+        Backend Logic & API         :done, p0c, after p0b, 7d
+        Frontend & Polish           :done, p0d, after p0c, 7d
+
+    section Phase 1 - Core Experience
+        Artifact Version History    :p1a, after p0d, 14d
+        Cross-Tab Sync              :p1b, after p1a, 14d
+        UX Improvements             :p1c, after p1b, 14d
+
+    section Phase 2 - Intelligence
+        Ollama Integration          :p2a, after p1c, 14d
+        Deep Strategy Analysis      :p2b, after p2a, 21d
+        Multi-Project Support       :p2c, after p2b, 21d
+
+    section Phase 3 - Proactive
+        Daily Planner               :p3a, after p2c, 21d
+        Project Initiation Wizard   :p3b, after p3a, 21d
+
+    section Phase 4 - Commercial
+        Security & Auth             :p4a, after p3b, 28d
+        Integrations                :p4b, after p4a, 28d
