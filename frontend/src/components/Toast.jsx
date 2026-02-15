@@ -1,7 +1,7 @@
 /**
  * Toast notification system using React context for app-wide success/error/info messages.
  */
-import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+import { useState, useCallback, createContext, useContext } from 'react'
 
 const ToastContext = createContext(null)
 
