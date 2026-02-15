@@ -1,6 +1,5 @@
 """VPMA Database — SQLite connection and initialization."""
 
-import os
 from pathlib import Path
 
 import aiosqlite

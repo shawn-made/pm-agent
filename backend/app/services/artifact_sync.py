@@ -12,7 +12,6 @@ Flow:
 
 import json
 import logging
-from typing import Optional
 
 from app.models.schemas import (
     ArtifactSyncResponse,

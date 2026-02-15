@@ -10,7 +10,7 @@ from app.services.artifact_manager import (
     write_artifact_content,
 )
 from app.services.artifact_sync import run_artifact_sync
-from app.services.crud import get_all_settings, get_setting, upsert_setting
+from app.services.crud import get_all_settings, upsert_setting
 from app.services.llm_client import LLMError
 
 router = APIRouter()

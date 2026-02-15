@@ -17,7 +17,6 @@ from app.models.schemas import (
 )
 from app.services.database import get_db
 
-
 # ============================================================
 # PROJECTS
 # ============================================================

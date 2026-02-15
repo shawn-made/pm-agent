@@ -3,7 +3,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from app.services.llm_client import (
     LLMClient,
     LLMError,
@@ -11,7 +10,6 @@ from app.services.llm_client import (
     _retry_with_backoff,
     create_client,
 )
-
 
 # ============================================================
 # TASK 6: BASE ABSTRACT INTERFACE
@@ -130,7 +128,7 @@ class TestClaudeClient:
 
     @patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"})
     def test_default_model(self):
-        from app.services.llm_claude import ClaudeClient, DEFAULT_MODEL
+        from app.services.llm_claude import DEFAULT_MODEL, ClaudeClient
 
         client = ClaudeClient()
         assert client.model == DEFAULT_MODEL

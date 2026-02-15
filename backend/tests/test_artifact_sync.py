@@ -1,12 +1,10 @@
 """Tests for VPMA Artifact Sync — Pipeline and prompt parsing (Tasks 10-11)."""
 
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from app.services.artifact_sync import _parse_suggestions, classify_input, run_artifact_sync
-
 
 # ============================================================
 # SUGGESTION PARSING

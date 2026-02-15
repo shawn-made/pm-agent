@@ -1,12 +1,8 @@
 """Test fixtures — use a temporary SQLite database for each test."""
 
-import tempfile
-from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 import pytest_asyncio
-
 from app.services import database
 
 

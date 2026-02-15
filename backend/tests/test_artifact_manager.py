@@ -1,9 +1,7 @@
 """Tests for VPMA Artifact Manager — Types, templates, file operations (Task 9)."""
 
 import pytest
-
 from app.services.artifact_manager import (
-    ARTIFACTS_DIR,
     ArtifactType,
     _artifact_filename,
     get_or_create_artifact,

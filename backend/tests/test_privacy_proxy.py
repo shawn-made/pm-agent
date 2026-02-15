@@ -3,10 +3,7 @@
 import json
 
 import pytest
-
 from app.services.privacy_proxy import (
-    AUDIT_LOG_PATH,
-    DetectedEntity,
     LOW_CONFIDENCE_THRESHOLD,
     anonymize,
     detect_custom_terms,
@@ -15,7 +12,6 @@ from app.services.privacy_proxy import (
     detect_regex,
     reidentify,
 )
-
 
 # ============================================================
 # TASK 3: REGEX PII DETECTION

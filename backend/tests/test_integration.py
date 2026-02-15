@@ -9,11 +9,9 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from httpx import ASGITransport, AsyncClient
-
 from app.main import app
 from app.services.artifact_manager import ArtifactType, get_or_create_artifact
-
+from httpx import ASGITransport, AsyncClient
 
 # ============================================================
 # Fixtures
@@ -231,7 +229,6 @@ class TestFullPipeline:
 
         # After reidentification, no raw tokens should remain
         for s in suggestions:
-            text = s["proposed_text"] + " " + s["reasoning"]
             # Tokens like <PERSON_1> should be replaced (if they existed in the vault)
             # The mock LLM response uses tokens that may or may not be in the vault,
             # so we just verify the pipeline ran without errors

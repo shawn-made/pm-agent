@@ -1,7 +1,6 @@
 """Tests for VPMA CRUD operations."""
 
 import pytest
-
 from app.models.schemas import (
     ArtifactCreate,
     ArtifactVersionCreate,
@@ -32,7 +31,6 @@ from app.services.crud import (
     update_artifact_timestamp,
     upsert_setting,
 )
-
 
 # ============================================================
 # PROJECTS
