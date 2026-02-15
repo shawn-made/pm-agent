@@ -66,3 +66,66 @@ Building the Foundation MVP:
 - Keep the LLM client abstract (no provider-specific code in business logic)
 - Artifact content lives in `~/VPMA/artifacts/` as Markdown files, not in SQLite
 - SQLite stores metadata only (timestamps, references, sessions, PII vault)
+
+## Quick Start
+
+```bash
+# Clone and install backend
+cd backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python -m spacy download en_core_web_sm
+
+# Configure environment
+cp .env.example .env  # then add your API keys
+
+# Run backend
+uvicorn app.main:app --reload  # → http://localhost:8000
+
+# Install and run frontend (separate terminal)
+cd frontend
+npm install
+npm run dev  # → http://localhost:3000
+```
+
+## Debugging
+
+```bash
+# Run backend tests (174 tests)
+cd backend && source venv/bin/activate && python -m pytest tests/ -v
+
+# Run backend tests with coverage
+cd backend && python -m pytest tests/ -v --cov=app --cov-report=term-missing
+
+# Run frontend tests (57 tests)
+cd frontend && npm test
+
+# Lint backend
+cd backend && ruff check .
+
+# Lint frontend
+cd frontend && npm run lint
+
+# Check SQLite database
+sqlite3 ~/VPMA/vpma.db ".tables"
+sqlite3 ~/VPMA/vpma.db "SELECT * FROM settings;"
+
+# Inspect PII vault
+sqlite3 ~/VPMA/vpma.db "SELECT token, entity_type FROM pii_vault LIMIT 20;"
+
+# Check audit log
+cat ~/VPMA/privacy/audit_log.jsonl | tail -5
+
+# View API docs
+open http://localhost:8000/docs
+```
+
+## Testing Rules
+
+- Always run tests after changes. Always lint. Always write tests for new features.
+- Backend: `cd backend && python -m pytest tests/ -v`
+- Frontend: `cd frontend && npm test`
+- Lint backend: `cd backend && ruff check .`
+- Lint frontend: `cd frontend && npm run lint`
+- Fix lint issues: `cd backend && ruff check . --fix`
