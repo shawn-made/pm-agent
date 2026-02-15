@@ -3,5 +3,40 @@
     "allow": [
       "WebFetch(domain:blog.devgenius.io)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_FILE_PATHS\" | grep -q '\\.py$'; then cd /Users/shawnphillips/Projects/PM\\ Agent/backend && source venv/bin/activate && ruff check $CLAUDE_FILE_PATHS 2>&1 || true; fi",
+            "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_FILE_PATHS\" | grep -qE '\\.(jsx?|js)$'; then cd /Users/shawnphillips/Projects/PM\\ Agent/frontend && npx eslint $CLAUDE_FILE_PATHS 2>&1 || true; fi",
+            "timeout": 15000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/shawnphillips/Projects/PM\\ Agent/backend && source venv/bin/activate && python -m pytest tests/ -q --tb=line 2>&1 | tail -5",
+            "timeout": 60000
+          },
+          {
+            "type": "command",
+            "command": "export PATH=\"/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH\" && cd /Users/shawnphillips/Projects/PM\\ Agent/frontend && npx vitest run 2>&1 | tail -5",
+            "timeout": 60000
+          }
+        ]
+      }
+    ]
   }
 }
