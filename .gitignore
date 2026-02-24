@@ -46,4 +46,5 @@ htmlcov/
 # Logs
 *.log
 
-# VPMA user data (lives in ~/VPMA/, not in repo)
+# VPMA runtime data (db, artifacts, logs)
+data/

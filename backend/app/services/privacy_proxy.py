@@ -29,8 +29,10 @@ LOW_CONFIDENCE_THRESHOLD = 0.70
 # Token format: <TYPE_N> e.g., <PERSON_1>, <EMAIL_2>
 TOKEN_PATTERN = re.compile(r"<(PERSON|ORG|GPE|PRODUCT|EMAIL|PHONE|URL|CUSTOM)_(\d+)>")
 
-# Audit log location
-AUDIT_LOG_PATH = Path.home() / "VPMA" / "privacy" / "audit_log.jsonl"
+# Audit log location — co-located with the rest of the project data
+from app.services.database import VPMA_DIR
+
+AUDIT_LOG_PATH = VPMA_DIR / "privacy" / "audit_log.jsonl"
 
 
 def _get_nlp() -> spacy.language.Language:

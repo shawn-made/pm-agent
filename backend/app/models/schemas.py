@@ -30,7 +30,7 @@ class ArtifactCreate(BaseModel):
     artifact_type: str = Field(
         ..., description="Artifact type: 'RAID Log', 'Status Report', or 'Meeting Notes'"
     )
-    file_path: str = Field(..., description="Path to the Markdown file in ~/VPMA/artifacts/")
+    file_path: str = Field(..., description="Path to the Markdown file in data/artifacts/")
 
 
 class Artifact(BaseModel):
@@ -39,7 +39,7 @@ class Artifact(BaseModel):
     artifact_type: str = Field(
         ..., description="Artifact type: 'RAID Log', 'Status Report', or 'Meeting Notes'"
     )
-    file_path: str = Field(..., description="Path to the Markdown file in ~/VPMA/artifacts/")
+    file_path: str = Field(..., description="Path to the Markdown file in data/artifacts/")
     last_updated: datetime = Field(..., description="Last modification timestamp")
 
 

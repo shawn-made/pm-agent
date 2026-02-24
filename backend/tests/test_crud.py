@@ -103,7 +103,7 @@ async def test_create_and_get_artifact():
             artifact_id="art-1",
             project_id="default",
             artifact_type="RAID Log",
-            file_path="~/VPMA/artifacts/raid_log.md",
+            file_path="data/artifacts/raid_log.md",
         )
     )
     assert artifact.artifact_id == "art-1"
@@ -111,7 +111,7 @@ async def test_create_and_get_artifact():
 
     fetched = await get_artifact("art-1")
     assert fetched is not None
-    assert fetched.file_path == "~/VPMA/artifacts/raid_log.md"
+    assert fetched.file_path == "data/artifacts/raid_log.md"
 
 
 @pytest.mark.asyncio

@@ -42,8 +42,11 @@ TASKS.md                # RALPH task tracking
 
 5. **Input Type Detection**: Backend classifies input type (text, transcript) via pipeline. Extensible for images later.
 
+6. **Architecture Insights from Real PM Workflow**: Read `docs/VPMA_ARCHITECTURE_INSIGHTS.md` for 7 validated design patterns (return path, staleness detection, nav vs. session separation, action item routing, weekly cadence, audience views, cross-tool orchestration). Consult when designing new features or planning future phases.
+
 ## Development Workflow
 
+- Read `~/Projects/Cross Project Docs/PROCESS_PLAYBOOK.md` before starting — it contains cross-project process rules
 - Use RALPH loop technique: prompt → review → test → refine
 - Check `TASKS.md` for current task and progress
 - Reference `prd.md` for detailed requirements (Section 7 Phase 0 for MVP scope)
@@ -66,6 +69,31 @@ Building the Foundation MVP:
 - Keep the LLM client abstract (no provider-specific code in business logic)
 - Artifact content lives in `~/VPMA/artifacts/` as Markdown files, not in SQLite
 - SQLite stores metadata only (timestamps, references, sessions, PII vault)
+
+## Generality & Privacy Rules
+
+VPMA is a **general-purpose PM tool**. The shipped product (source code, prompts, tests, UI) must never contain references to the developer's personal projects, career history, or specific clients.
+
+### Hard Rules (enforced now)
+- **No personal references in code/app**: Never include real company names, client names, project names, or people's names in source code, prompts, test data, or UI. Use clearly fictional placeholders (Acme Corp, Project Falcon, etc.).
+- **No industry-specific bias**: Features, examples, and prompts should work across all industries (tech, construction, healthcare, government, etc.). Avoid skewing toward any single domain.
+- **Generic examples only**: All prompt examples, test fixtures, and UI placeholder text must use fictional names and scenarios that any PM could relate to.
+- **No personal constraints in architecture**: When implementing features, design for general use. If a decision is being shaped by a personal constraint (specific hardware, budget tier, single-user assumption), flag it so it doesn't become baked-in technical debt. The question to ask: "Would this implementation work for someone with different hardware/budget/team size?"
+
+### Personal Fingerprints (acceptable in planning docs, clean up before external release)
+Planning docs (prd.md, QUESTIONS_LOG.md, TASKS.md, VPMA_ARCHITECTURE_INSIGHTS.md) contain references to the developer's hardware (M4 MacBook Air 24GB), skill level, subscription budget, and personal workflow patterns. These are practical for current development and acceptable in private planning artifacts. They should be generalized before any external sharing or open-sourcing.
+
+## Session Close Protocol
+
+Before ending any session that modified code or docs:
+
+1. Update `TASKS.md` — mark completed tasks, note progress on in-flight tasks
+2. If any non-obvious decisions were made, log them in `DECISIONS.md`
+3. If new questions arose, add to `QUESTIONS_LOG.md`
+4. Run tests and lint — confirm passing before closing
+5. Note in a brief comment to the user: what was done, what's next, any blockers
+
+---
 
 ## Quick Start
 

@@ -4,8 +4,9 @@ from pathlib import Path
 
 import aiosqlite
 
-# Database lives in ~/VPMA/ (user data directory, not in repo)
-VPMA_DIR = Path.home() / "VPMA"
+# Database lives in <project_root>/data/ (kept out of git via .gitignore)
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]  # backend/app/services → project root
+VPMA_DIR = _PROJECT_ROOT / "data"
 DB_PATH = VPMA_DIR / "vpma.db"
 
 
