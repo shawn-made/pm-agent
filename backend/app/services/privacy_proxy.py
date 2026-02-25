@@ -12,10 +12,11 @@ import json
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Optional
 
 import spacy
+
+from app.services.database import VPMA_DIR
 
 # Load spaCy model once at module level
 _nlp: Optional[spacy.language.Language] = None
@@ -23,15 +24,33 @@ _nlp: Optional[spacy.language.Language] = None
 # Entity types we extract from spaCy NER
 SPACY_ENTITY_LABELS = {"PERSON", "ORG", "GPE", "PRODUCT"}
 
-# Confidence threshold below which we flag detections
-LOW_CONFIDENCE_THRESHOLD = 0.70
+# Entities below this confidence are filtered out (not anonymized)
+MIN_CONFIDENCE_THRESHOLD = 0.75
+
+# Minimum entity text length — skip very short detections (e.g., "I.")
+MIN_ENTITY_LENGTH = 2
+
+# Words that spaCy en_core_web_sm commonly misclassifies as named entities
+# in conversational text (transcripts, meeting notes).  Case-insensitive.
+NER_STOPLIST = frozenset({
+    # Interjections / conversational words misclassified as PERSON
+    "hey", "hi", "hmm", "hm", "oh", "yeah", "yep", "nope", "jeez",
+    "ok", "okay", "sure", "thanks", "bye", "hello", "wow", "oops",
+    "ugh", "um", "uh", "ah", "standup",
+    # Common words misclassified as ORG
+    "sms", "ui", "ux", "api", "qa", "hr", "it", "ai", "ml",
+    "pm", "am", "eta", "eod", "eow", "asap", "tbd", "tba",
+    "congratulations", "congrats",
+    # Common words misclassified as GPE
+    "colleague", "remote", "hybrid", "onsite",
+    # Common words misclassified as PRODUCT
+    "reschedule", "discovery", "standup", "retro", "sprint",
+})
 
 # Token format: <TYPE_N> e.g., <PERSON_1>, <EMAIL_2>
 TOKEN_PATTERN = re.compile(r"<(PERSON|ORG|GPE|PRODUCT|EMAIL|PHONE|URL|CUSTOM)_(\d+)>")
 
 # Audit log location — co-located with the rest of the project data
-from app.services.database import VPMA_DIR
-
 AUDIT_LOG_PATH = VPMA_DIR / "privacy" / "audit_log.jsonl"
 
 
@@ -148,7 +167,13 @@ def detect_custom_terms(text: str, custom_terms: list[str]) -> list[DetectedEnti
 
 
 def detect_ner(text: str) -> list[DetectedEntity]:
-    """Detect PII using spaCy Named Entity Recognition."""
+    """Detect PII using spaCy Named Entity Recognition.
+
+    Applies three filters to reduce false positives:
+    1. Minimum entity length (skip very short spans like "I.")
+    2. Stoplist of common words that en_core_web_sm misclassifies
+    3. Confidence threshold — skip low-confidence detections
+    """
     nlp = _get_nlp()
     doc = nlp(text)
     entities = []
@@ -156,10 +181,21 @@ def detect_ner(text: str) -> list[DetectedEntity]:
         if ent.label_ not in SPACY_ENTITY_LABELS:
             continue
 
-        # spaCy doesn't expose per-entity confidence directly,
-        # so we use the KB ID score if available, otherwise estimate
-        # based on entity characteristics
+        stripped = ent.text.strip()
+
+        # Filter: minimum length
+        if len(stripped) < MIN_ENTITY_LENGTH:
+            continue
+
+        # Filter: stoplist (case-insensitive)
+        if stripped.lower() in NER_STOPLIST:
+            continue
+
         confidence = _estimate_ner_confidence(ent)
+
+        # Filter: confidence threshold
+        if confidence < MIN_CONFIDENCE_THRESHOLD:
+            continue
 
         entities.append(
             DetectedEntity(

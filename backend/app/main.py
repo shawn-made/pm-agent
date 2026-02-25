@@ -10,8 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router
 from app.services.database import init_db
 
-# Load environment variables from project root .env
-load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
+# Load environment variables from backend/.env
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 
 @asynccontextmanager

@@ -9,8 +9,10 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from app.api.routes import _insert_into_section
 from app.main import app
 from app.services.artifact_manager import ArtifactType, get_or_create_artifact
+from app.services.artifact_sync import _parse_analysis
 from httpx import ASGITransport, AsyncClient
 
 # ============================================================
@@ -127,6 +129,47 @@ STATUS_UPDATE_LLM_RESPONSE = _make_llm_response([
         "reasoning": "Blockers identified from status update."
     },
 ])
+
+
+def _make_analysis_response(items: list[dict], summary: str = "Overall assessment.") -> str:
+    """Helper to format analysis as LLM would return it."""
+    return json.dumps({"summary": summary, "items": items}, indent=2)
+
+
+# A realistic LLM analysis response
+ANALYZE_LLM_RESPONSE = _make_analysis_response(
+    summary="The status update covers accomplishments well but lacks detail on blockers and has no risk mitigation plan.",
+    items=[
+        {
+            "category": "strength",
+            "title": "Clear accomplishments listed",
+            "detail": "The API integration and v2.3 deployment are described with enough context to understand their significance.",
+            "priority": "low",
+            "artifact_type": "Status Report",
+        },
+        {
+            "category": "gap",
+            "title": "Missing blocker details",
+            "detail": "The security review blocker mentions <PERSON_1> but doesn't specify what's needed, the deadline, or escalation path.",
+            "priority": "high",
+            "artifact_type": "Status Report",
+        },
+        {
+            "category": "recommendation",
+            "title": "Add risk mitigation for CI/CD",
+            "detail": "The CI/CD pipeline failures are noted but there's no mitigation plan. Add: who is investigating, what the root cause hypothesis is, and the target resolution date.",
+            "priority": "medium",
+            "artifact_type": "RAID Log",
+        },
+        {
+            "category": "observation",
+            "title": "No upcoming section",
+            "detail": "The update lists next steps but doesn't frame them as prioritized upcoming work. Consider structuring with priority order.",
+            "priority": "low",
+            "artifact_type": "Status Report",
+        },
+    ],
+)
 
 
 def _mock_llm_call(classification_response="meeting_notes", sync_response=MEETING_NOTES_LLM_RESPONSE):
@@ -351,7 +394,7 @@ class TestApplySuggestion:
             {
                 "artifact_type": "Status Report",
                 "change_type": "add",
-                "section": "Blockers",
+                "section": "Blockers / Risks",
                 "proposed_text": "- Security review pending",
                 "confidence": 0.85,
                 "reasoning": "Blocker identified."
@@ -406,6 +449,81 @@ class TestApplySuggestion:
         assert data["status"] == "applied"
         assert data["artifact_type"] == "Meeting Notes"
         assert data["artifact_id"]  # Should have created one
+
+    @pytest.mark.asyncio
+    async def test_apply_dedup_guard(self, async_client, tmp_database):
+        """Applying the same suggestion twice skips the second as duplicate."""
+        artifact = await get_or_create_artifact("default", ArtifactType.RAID_LOG)
+
+        suggestion = {
+            "artifact_type": "RAID Log",
+            "change_type": "add",
+            "section": "Risks",
+            "proposed_text": "| R-NEW | Server capacity risk | High | High | Scale infra | DevOps | Open |",
+            "confidence": 0.9,
+            "reasoning": "Risk identified.",
+        }
+
+        async with async_client as client:
+            # First apply — should succeed
+            r1 = await client.post(f"/api/artifacts/{artifact.artifact_id}/apply", json=suggestion)
+            assert r1.json()["status"] == "applied"
+
+            # Second apply — should be duplicate
+            r2 = await client.post(f"/api/artifacts/{artifact.artifact_id}/apply", json=suggestion)
+            assert r2.json()["status"] == "duplicate"
+
+        # Content should contain the text exactly once
+        content = Path(artifact.file_path).read_text()
+        assert content.count("Server capacity risk") == 1
+
+    @pytest.mark.asyncio
+    async def test_apply_inserts_into_correct_section(self, async_client, tmp_database):
+        """Suggestion text should appear inside its target section, not at end of file."""
+        artifact = await get_or_create_artifact("default", ArtifactType.RAID_LOG)
+
+        suggestion = {
+            "artifact_type": "RAID Log",
+            "change_type": "add",
+            "section": "Issues",
+            "proposed_text": "| I-NEW | Build failures on CI | High | DevOps | 2024-04-01 | Open |",
+            "confidence": 0.9,
+            "reasoning": "Issue from status update.",
+        }
+
+        async with async_client as client:
+            response = await client.post(
+                f"/api/artifacts/{artifact.artifact_id}/apply", json=suggestion
+            )
+        assert response.status_code == 200
+
+        content = Path(artifact.file_path).read_text()
+        issues_pos = content.index("## Issues")
+        text_pos = content.index("Build failures on CI")
+        deps_pos = content.index("## Dependencies")
+
+        # Text should be between ## Issues and ## Dependencies
+        assert text_pos > issues_pos
+        assert text_pos < deps_pos
+
+    @pytest.mark.asyncio
+    async def test_apply_by_type_dedup_guard(self, async_client):
+        """The /artifacts/apply convenience endpoint also skips duplicates."""
+        suggestion = {
+            "artifact_type": "Meeting Notes",
+            "change_type": "add",
+            "section": "Action Items",
+            "proposed_text": "| Follow up with vendor | Mike | Friday | Open |",
+            "confidence": 0.9,
+            "reasoning": "Action item.",
+        }
+
+        async with async_client as client:
+            r1 = await client.post("/api/artifacts/apply?project_id=default", json=suggestion)
+            assert r1.json()["status"] == "applied"
+
+            r2 = await client.post("/api/artifacts/apply?project_id=default", json=suggestion)
+            assert r2.json()["status"] == "duplicate"
 
     @pytest.mark.asyncio
     async def test_apply_by_type_unknown_type_returns_400(self, async_client):
@@ -686,3 +804,300 @@ class TestPrivacyRoundTrip:
             proposed = data["suggestions"][0]["proposed_text"]
             assert "(555) 123-4567" in proposed
             assert "<PHONE_" not in proposed
+
+
+# ============================================================
+# Section-Aware Insert Unit Tests
+# ============================================================
+
+
+class TestInsertIntoSection:
+    """Unit tests for the _insert_into_section helper."""
+
+    RAID_LOG_TEMPLATE = (
+        "# RAID Log\n\n"
+        "## Risks\n\n"
+        "| ID | Description | Likelihood | Impact | Mitigation | Owner | Status |\n"
+        "|----|-------------|------------|--------|------------|-------|--------|\n\n"
+        "## Assumptions\n\n"
+        "| ID | Description | Validation Date | Status |\n"
+        "|----|-------------|-----------------|--------|\n\n"
+        "## Issues\n\n"
+        "| ID | Description | Priority | Owner | Due Date | Status |\n"
+        "|----|-------------|----------|-------|----------|--------|\n\n"
+        "## Dependencies\n\n"
+        "| ID | Description | Dependent On | Expected Date | Status |\n"
+        "|----|-------------|-------------|---------------|--------|\n"
+    )
+
+    def test_inserts_into_first_section(self):
+        row = "| R-NEW | Server risk | High | High | Scale | DevOps | Open |"
+        result = _insert_into_section(self.RAID_LOG_TEMPLATE, "Risks", row)
+        risks_pos = result.index("## Risks")
+        row_pos = result.index("Server risk")
+        assumptions_pos = result.index("## Assumptions")
+        assert risks_pos < row_pos < assumptions_pos
+
+    def test_inserts_into_middle_section(self):
+        row = "| I-NEW | CI broken | High | DevOps | 2024-04-01 | Open |"
+        result = _insert_into_section(self.RAID_LOG_TEMPLATE, "Issues", row)
+        issues_pos = result.index("## Issues")
+        row_pos = result.index("CI broken")
+        deps_pos = result.index("## Dependencies")
+        assert issues_pos < row_pos < deps_pos
+
+    def test_inserts_into_last_section(self):
+        row = "| D-NEW | Vendor API | External | March | Pending |"
+        result = _insert_into_section(self.RAID_LOG_TEMPLATE, "Dependencies", row)
+        deps_pos = result.index("## Dependencies")
+        row_pos = result.index("Vendor API")
+        assert row_pos > deps_pos
+
+    def test_fallback_append_when_section_not_found(self):
+        row = "- Some text"
+        result = _insert_into_section(self.RAID_LOG_TEMPLATE, "Nonexistent", row)
+        # Should be appended at end
+        assert result.rstrip().endswith(row)
+
+    def test_case_insensitive_section_match(self):
+        row = "| R-NEW | Test risk | Low | Low | Monitor | PM | Open |"
+        result = _insert_into_section(self.RAID_LOG_TEMPLATE, "risks", row)
+        risks_pos = result.index("## Risks")
+        row_pos = result.index("Test risk")
+        assumptions_pos = result.index("## Assumptions")
+        assert risks_pos < row_pos < assumptions_pos
+
+    def test_multiple_inserts_same_section(self):
+        row1 = "| R-NEW | First risk | High | High | Fix | DevOps | Open |"
+        row2 = "| R-NEW | Second risk | Low | Medium | Monitor | PM | Open |"
+        result = _insert_into_section(self.RAID_LOG_TEMPLATE, "Risks", row1)
+        result = _insert_into_section(result, "Risks", row2)
+        # Both should be between ## Risks and ## Assumptions
+        risks_pos = result.index("## Risks")
+        row1_pos = result.index("First risk")
+        row2_pos = result.index("Second risk")
+        assumptions_pos = result.index("## Assumptions")
+        assert risks_pos < row1_pos < assumptions_pos
+        assert risks_pos < row2_pos < assumptions_pos
+
+
+# ============================================================
+# Analyze & Advise Mode Tests
+# ============================================================
+
+
+class TestAnalyzeMode:
+    """Test the Analyze & Advise mode of artifact sync."""
+
+    @pytest.mark.asyncio
+    async def test_analyze_mode_returns_analysis_items(self, async_client):
+        """Analyze mode returns analysis items, not suggestions."""
+        mock_client = _mock_llm_call(
+            classification_response="status_update",
+            sync_response=ANALYZE_LLM_RESPONSE,
+        )
+
+        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+            async with async_client as client:
+                response = await client.post(
+                    "/api/artifact-sync",
+                    json={"text": STATUS_UPDATE_WITH_PII, "mode": "analyze"},
+                )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should have analysis items, not suggestions
+        assert len(data["analysis"]) == 4
+        assert data["analysis_summary"] is not None
+        assert data["suggestions"] == []
+        assert data["mode"] == "analyze"
+
+        # Verify analysis item structure
+        for item in data["analysis"]:
+            assert "category" in item
+            assert "title" in item
+            assert "detail" in item
+            assert "priority" in item
+            assert item["category"] in ("strength", "observation", "gap", "recommendation")
+
+    @pytest.mark.asyncio
+    async def test_analyze_mode_pii_anonymized(self, async_client):
+        """PII is anonymized before LLM in analyze mode."""
+        mock_client = _mock_llm_call(
+            classification_response="status_update",
+            sync_response=ANALYZE_LLM_RESPONSE,
+        )
+
+        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+            async with async_client as client:
+                await client.post(
+                    "/api/artifact-sync",
+                    json={"text": STATUS_UPDATE_WITH_PII, "mode": "analyze"},
+                )
+
+        # The sync call (second call) should NOT contain real PII
+        sync_call_args = mock_client.call.call_args_list[1]
+        llm_input = sync_call_args.kwargs.get("user_prompt") or sync_call_args[1].get("user_prompt", "")
+        if not llm_input and len(sync_call_args.args) > 1:
+            llm_input = sync_call_args.args[1]
+
+        assert "Lisa Anderson" not in llm_input
+        assert "lisa.anderson@example.com" not in llm_input
+
+    @pytest.mark.asyncio
+    async def test_analyze_mode_pii_reidentified(self, async_client):
+        """PII tokens in analysis items are replaced back with real values."""
+        mock_client = _mock_llm_call(
+            classification_response="status_update",
+            sync_response=ANALYZE_LLM_RESPONSE,
+        )
+
+        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+            async with async_client as client:
+                response = await client.post(
+                    "/api/artifact-sync",
+                    json={"text": STATUS_UPDATE_WITH_PII, "mode": "analyze"},
+                )
+
+        data = response.json()
+        # Verify analysis items have non-empty content (reidentification ran)
+        for item in data["analysis"]:
+            assert item["title"]
+            assert item["detail"]
+
+    @pytest.mark.asyncio
+    async def test_extract_mode_unchanged_when_omitted(self, async_client):
+        """Omitting mode defaults to extract (backward compatible)."""
+        mock_client = _mock_llm_call()
+
+        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+            async with async_client as client:
+                response = await client.post(
+                    "/api/artifact-sync",
+                    json={"text": MEETING_NOTES_WITH_PII},
+                )
+
+        data = response.json()
+        assert data["mode"] == "extract"
+        assert len(data["suggestions"]) == 4
+        assert data["analysis"] == []
+        assert data["analysis_summary"] is None
+
+    @pytest.mark.asyncio
+    async def test_invalid_mode_falls_back_to_extract(self, async_client):
+        """Unknown mode values fall back to extract."""
+        mock_client = _mock_llm_call()
+
+        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+            async with async_client as client:
+                response = await client.post(
+                    "/api/artifact-sync",
+                    json={"text": MEETING_NOTES_WITH_PII, "mode": "unknown_mode"},
+                )
+
+        data = response.json()
+        assert data["mode"] == "extract"
+        assert len(data["suggestions"]) == 4
+
+    @pytest.mark.asyncio
+    async def test_analyze_mode_session_logged(self, async_client):
+        """Session is logged for analyze mode."""
+        mock_client = _mock_llm_call(
+            classification_response="status_update",
+            sync_response=ANALYZE_LLM_RESPONSE,
+        )
+
+        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+            async with async_client as client:
+                response = await client.post(
+                    "/api/artifact-sync",
+                    json={"text": STATUS_UPDATE_WITH_PII, "mode": "analyze"},
+                )
+
+        data = response.json()
+        assert data["session_id"]  # Non-empty session ID
+
+    @pytest.mark.asyncio
+    async def test_analyze_mode_malformed_response(self, async_client):
+        """Malformed LLM response in analyze mode returns empty analysis."""
+        mock_client = _mock_llm_call(
+            classification_response="general_text",
+            sync_response="This is not valid JSON!",
+        )
+
+        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+            async with async_client as client:
+                response = await client.post(
+                    "/api/artifact-sync",
+                    json={"text": "Some text to analyze.", "mode": "analyze"},
+                )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["analysis"] == []
+        assert data["analysis_summary"] is None
+
+
+# ============================================================
+# _parse_analysis Unit Tests
+# ============================================================
+
+
+class TestParseAnalysis:
+    """Unit tests for the _parse_analysis helper."""
+
+    def test_valid_json(self):
+        response = json.dumps({
+            "summary": "Good document overall.",
+            "items": [
+                {
+                    "category": "strength",
+                    "title": "Clear structure",
+                    "detail": "The document is well organized.",
+                    "priority": "low",
+                },
+            ],
+        })
+        items, summary = _parse_analysis(response)
+        assert len(items) == 1
+        assert summary == "Good document overall."
+        assert items[0].category == "strength"
+        assert items[0].title == "Clear structure"
+
+    def test_json_with_code_fences(self):
+        response = '```json\n{"summary": "Test.", "items": [{"category": "gap", "title": "Missing info", "detail": "Details needed.", "priority": "high"}]}\n```'
+        items, summary = _parse_analysis(response)
+        assert len(items) == 1
+        assert summary == "Test."
+
+    def test_malformed_json(self):
+        items, summary = _parse_analysis("Not JSON at all")
+        assert items == []
+        assert summary is None
+
+    def test_missing_items_key(self):
+        response = json.dumps({"summary": "Just a summary."})
+        items, summary = _parse_analysis(response)
+        assert items == []
+        assert summary == "Just a summary."
+
+    def test_partial_items(self):
+        """Items with missing required fields are skipped."""
+        response = json.dumps({
+            "summary": "Mixed quality.",
+            "items": [
+                {"category": "strength", "title": "Good", "detail": "Solid work.", "priority": "low"},
+                {"title": "Missing category"},  # Missing required 'category' and 'detail'
+                {"category": "gap", "title": "Issue", "detail": "Problem here.", "priority": "high"},
+            ],
+        })
+        items, summary = _parse_analysis(response)
+        assert len(items) == 2
+        assert items[0].title == "Good"
+        assert items[1].title == "Issue"
+
+    def test_no_json_object(self):
+        items, summary = _parse_analysis("[1, 2, 3]")
+        assert items == []
+        assert summary is None

@@ -4,7 +4,7 @@ import json
 
 import pytest
 from app.services.privacy_proxy import (
-    LOW_CONFIDENCE_THRESHOLD,
+    MIN_CONFIDENCE_THRESHOLD,
     anonymize,
     detect_custom_terms,
     detect_ner,
@@ -197,7 +197,7 @@ class TestNERConfidence:
         persons = [e for e in entities if e.entity_type == "PERSON"]
         if persons:
             # Multi-word name should have high confidence
-            assert persons[0].confidence >= LOW_CONFIDENCE_THRESHOLD
+            assert persons[0].confidence >= MIN_CONFIDENCE_THRESHOLD
 
     def test_confidence_is_between_0_and_1(self):
         entities = detect_ner(

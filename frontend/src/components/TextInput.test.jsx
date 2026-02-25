@@ -4,12 +4,14 @@ import TextInput from './TextInput'
 
 describe('TextInput', () => {
   let onSubmit
+  let onModeChange
 
   beforeEach(() => {
     onSubmit = vi.fn()
+    onModeChange = vi.fn()
   })
 
-  it('renders textarea with placeholder', () => {
+  it('renders textarea with extract mode placeholder by default', () => {
     render(<TextInput onSubmit={onSubmit} isLoading={false} />)
     expect(
       screen.getByPlaceholderText('Paste meeting notes, transcripts, or project updates...')
@@ -58,7 +60,9 @@ describe('TextInput', () => {
       'Paste meeting notes, transcripts, or project updates...'
     )
     fireEvent.change(textarea, { target: { value: 'meeting notes' } })
-    fireEvent.click(screen.getByText('Analyze'))
+    // Submit button says "Extract" in default mode (no toggle shown)
+    const submitBtn = screen.getByRole('button', { name: 'Extract' })
+    fireEvent.click(submitBtn)
     expect(onSubmit).toHaveBeenCalledWith('meeting notes')
   })
 
@@ -68,12 +72,18 @@ describe('TextInput', () => {
       'Paste meeting notes, transcripts, or project updates...'
     )
     fireEvent.change(textarea, { target: { value: '   ' } })
-    fireEvent.click(screen.getByText('Analyze'))
+    const submitBtn = screen.getByRole('button', { name: 'Extract' })
+    fireEvent.click(submitBtn)
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
-  it('shows Analyzing... during loading', () => {
-    render(<TextInput onSubmit={onSubmit} isLoading={true} />)
+  it('shows Extracting... during loading in extract mode', () => {
+    render(<TextInput onSubmit={onSubmit} isLoading={true} mode="extract" onModeChange={onModeChange} />)
+    expect(screen.getByText('Extracting...')).toBeInTheDocument()
+  })
+
+  it('shows Analyzing... during loading in analyze mode', () => {
+    render(<TextInput onSubmit={onSubmit} isLoading={true} mode="analyze" onModeChange={onModeChange} />)
     expect(screen.getByText('Analyzing...')).toBeInTheDocument()
   })
 
@@ -83,5 +93,49 @@ describe('TextInput', () => {
       'Paste meeting notes, transcripts, or project updates...'
     )
     expect(textarea).toBeDisabled()
+  })
+
+  // --- Mode toggle tests ---
+
+  it('renders mode toggle when onModeChange provided', () => {
+    render(<TextInput onSubmit={onSubmit} isLoading={false} mode="extract" onModeChange={onModeChange} />)
+    // Should have both toggle buttons (type="button") plus the submit button
+    const extractButtons = screen.getAllByText('Extract')
+    expect(extractButtons).toHaveLength(2) // toggle + submit
+    const analyzeToggle = screen.getAllByText('Analyze')
+    expect(analyzeToggle.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('does not render mode toggle when onModeChange is not provided', () => {
+    render(<TextInput onSubmit={onSubmit} isLoading={false} />)
+    // Only the submit button should have "Extract" text
+    const extractElements = screen.getAllByText('Extract')
+    expect(extractElements).toHaveLength(1) // just the submit button
+  })
+
+  it('calls onModeChange when clicking Analyze toggle', () => {
+    render(<TextInput onSubmit={onSubmit} isLoading={false} mode="extract" onModeChange={onModeChange} />)
+    // Find the toggle button (type="button"), not the submit
+    const analyzeButtons = screen.getAllByText('Analyze')
+    const toggleBtn = analyzeButtons.find((b) => b.getAttribute('type') === 'button')
+    fireEvent.click(toggleBtn)
+    expect(onModeChange).toHaveBeenCalledWith('analyze')
+  })
+
+  it('shows analyze placeholder when mode is analyze', () => {
+    render(<TextInput onSubmit={onSubmit} isLoading={false} mode="analyze" onModeChange={onModeChange} />)
+    expect(
+      screen.getByPlaceholderText('Paste a draft document for review...')
+    ).toBeInTheDocument()
+  })
+
+  it('submit button shows Analyze in analyze mode', () => {
+    render(<TextInput onSubmit={onSubmit} isLoading={false} mode="analyze" onModeChange={onModeChange} />)
+    // Both the toggle and submit say "Analyze" — verify a submit-type button exists
+    const allButtons = screen.getAllByRole('button')
+    const submitButtons = allButtons.filter(
+      (b) => b.getAttribute('type') === 'submit' && b.textContent === 'Analyze'
+    )
+    expect(submitButtons).toHaveLength(1)
   })
 })

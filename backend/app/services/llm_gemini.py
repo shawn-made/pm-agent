@@ -8,7 +8,7 @@ from google.genai import types
 from app.services.llm_client import LLMClient, LLMError, Provider, _retry_with_backoff
 
 # Default model — Flash for fast, affordable responses
-DEFAULT_MODEL = "gemini-2.0-flash"
+DEFAULT_MODEL = "gemini-2.5-flash"
 
 
 class GeminiClient(LLMClient):
@@ -38,19 +38,24 @@ class GeminiClient(LLMClient):
         self,
         system_prompt: str,
         user_prompt: str,
-        max_tokens: int = 4096,
+        max_tokens: int = 16384,
     ) -> str:
         """Send a prompt to Gemini and return the response text."""
 
         async def _do_call() -> str:
+            config = types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                max_output_tokens=max_tokens,
+                # Cap thinking budget so it doesn't eat the output token limit
+                thinking_config=types.ThinkingConfig(thinking_budget=2048),
+            )
             response = await self._client.aio.models.generate_content(
                 model=self.model,
                 contents=user_prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    max_output_tokens=max_tokens,
-                ),
+                config=config,
             )
+            if response.text is None:
+                raise LLMError("Gemini returned empty response (model may have used all tokens for thinking)")
             return response.text
 
         return await _retry_with_backoff(_do_call)

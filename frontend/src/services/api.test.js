@@ -38,7 +38,7 @@ describe('healthCheck', () => {
 })
 
 describe('artifactSync', () => {
-  it('posts text and returns suggestions', async () => {
+  it('posts text and returns suggestions (defaults to extract mode)', async () => {
     const response = { suggestions: [], input_type: 'text', session_id: 's1', pii_detected: 0 }
     mockFetch(response)
     const result = await artifactSync('hello world')
@@ -46,7 +46,7 @@ describe('artifactSync', () => {
     expect(fetch).toHaveBeenCalledWith('/api/artifact-sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: 'hello world', project_id: 'default' }),
+      body: JSON.stringify({ text: 'hello world', project_id: 'default', mode: 'extract' }),
     })
   })
 
@@ -54,7 +54,15 @@ describe('artifactSync', () => {
     mockFetch({ suggestions: [] })
     await artifactSync('text', 'proj-1')
     expect(fetch).toHaveBeenCalledWith('/api/artifact-sync', expect.objectContaining({
-      body: JSON.stringify({ text: 'text', project_id: 'proj-1' }),
+      body: JSON.stringify({ text: 'text', project_id: 'proj-1', mode: 'extract' }),
+    }))
+  })
+
+  it('sends analyze mode when specified', async () => {
+    mockFetch({ analysis: [], analysis_summary: null })
+    await artifactSync('draft text', 'default', 'analyze')
+    expect(fetch).toHaveBeenCalledWith('/api/artifact-sync', expect.objectContaining({
+      body: JSON.stringify({ text: 'draft text', project_id: 'default', mode: 'analyze' }),
     }))
   })
 

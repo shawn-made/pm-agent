@@ -1,44 +1,83 @@
 /**
- * Main Artifact Sync page — accepts user text, runs the LLM pipeline, and displays suggestion cards.
+ * Main Artifact Sync page — accepts user text, runs the LLM pipeline,
+ * and displays either suggestion cards (Extract mode) or analysis feedback (Analyze mode).
  */
 import { useState } from 'react'
 import TextInput from '../components/TextInput'
 import SuggestionCard from '../components/SuggestionCard'
+import DocumentDraftCard from '../components/DocumentDraftCard'
+import AnalysisCard from '../components/AnalysisCard'
 import { useToast } from '../components/ToastContext'
 import { artifactSync, applySuggestionByType } from '../services/api'
 
-/** Artifact Sync page — orchestrates text input, LLM analysis, and suggestion display. */
+const SUBTITLES = {
+  extract: 'Paste meeting notes, transcripts, or project updates. VPMA will suggest updates to your PM artifacts.',
+  analyze: 'Paste a draft or document. VPMA will give you feedback, observations, and recommendations.',
+}
+
+/** Artifact Sync page — orchestrates text input, LLM analysis, and suggestion/analysis display. */
 export default function ArtifactSync() {
+  const [mode, setMode] = useState('extract')
   const [suggestions, setSuggestions] = useState([])
+  const [analysis, setAnalysis] = useState(null) // { summary, items }
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [meta, setMeta] = useState(null) // input_type, pii_detected, session_id
+  const [meta, setMeta] = useState(null) // input_type, pii_detected, session_id, mode
   const toast = useToast()
 
   async function handleApply(suggestion) {
     await applySuggestionByType(suggestion)
   }
 
+  async function handleApplyAll(suggestionsToApply) {
+    for (const suggestion of suggestionsToApply) {
+      await applySuggestionByType(suggestion)
+    }
+  }
+
+  function handleModeChange(newMode) {
+    setMode(newMode)
+    setSuggestions([])
+    setAnalysis(null)
+    setError(null)
+    setMeta(null)
+  }
+
   async function handleSubmit(text) {
     setIsLoading(true)
     setError(null)
     setSuggestions([])
+    setAnalysis(null)
     setMeta(null)
 
     try {
-      const result = await artifactSync(text)
-      setSuggestions(result.suggestions)
+      const result = await artifactSync(text, 'default', mode)
+
+      if (result.mode === 'analyze') {
+        setAnalysis({
+          summary: result.analysis_summary,
+          items: result.analysis || [],
+        })
+        if (!result.analysis || result.analysis.length === 0) {
+          toast.info('No analysis generated for this text')
+        } else {
+          toast.success(`Generated ${result.analysis.length} observation${result.analysis.length > 1 ? 's' : ''}`)
+        }
+      } else {
+        setSuggestions(result.suggestions)
+        if (result.suggestions.length === 0) {
+          toast.info('No artifact updates found in this text')
+        } else {
+          toast.success(`Found ${result.suggestions.length} suggestion${result.suggestions.length > 1 ? 's' : ''}`)
+        }
+      }
+
       setMeta({
         inputType: result.input_type,
         piiDetected: result.pii_detected,
         sessionId: result.session_id,
+        mode: result.mode,
       })
-
-      if (result.suggestions.length === 0) {
-        toast.info('No artifact updates found in this text')
-      } else {
-        toast.success(`Found ${result.suggestions.length} suggestion${result.suggestions.length > 1 ? 's' : ''}`)
-      }
     } catch (err) {
       setError(err.message)
       toast.error('Analysis failed')
@@ -52,11 +91,11 @@ export default function ArtifactSync() {
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-1">Artifact Sync</h2>
         <p className="text-sm text-gray-500">
-          Paste meeting notes, transcripts, or project updates. VPMA will suggest updates to your PM artifacts.
+          {SUBTITLES[mode] || SUBTITLES.extract}
         </p>
       </div>
 
-      <TextInput onSubmit={handleSubmit} isLoading={isLoading} />
+      <TextInput onSubmit={handleSubmit} isLoading={isLoading} mode={mode} onModeChange={handleModeChange} />
 
       {/* Error display */}
       {error && (
@@ -71,6 +110,11 @@ export default function ArtifactSync() {
           <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
             {meta.inputType.replaceAll('_', ' ')}
           </span>
+          {meta.mode && (
+            <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
+              {meta.mode === 'analyze' ? 'analyze' : 'extract'}
+            </span>
+          )}
           {meta.piiDetected > 0 && (
             <span className="flex items-center gap-1 text-green-600">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -85,20 +129,53 @@ export default function ArtifactSync() {
         </div>
       )}
 
-      {/* Suggestions */}
-      {suggestions.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-gray-700">
-            Suggestions ({suggestions.length})
-          </h3>
-          {suggestions.map((s, i) => (
-            <SuggestionCard key={i} suggestion={s} onApply={handleApply} />
-          ))}
-        </div>
+      {/* Extract mode: Suggestions grouped by artifact type */}
+      {mode === 'extract' && suggestions.length > 0 && (() => {
+        const groups = {}
+        const order = ['RAID Log', 'Status Report', 'Meeting Notes']
+        suggestions.forEach((s) => {
+          const type = s.artifact_type
+          if (!groups[type]) groups[type] = []
+          groups[type].push(s)
+        })
+        const sortedTypes = Object.keys(groups).sort(
+          (a, b) => (order.indexOf(a) === -1 ? 999 : order.indexOf(a))
+                   - (order.indexOf(b) === -1 ? 999 : order.indexOf(b))
+        )
+        return (
+          <div className="space-y-6">
+            <h3 className="text-sm font-medium text-gray-700">
+              Suggestions ({suggestions.length})
+            </h3>
+            {sortedTypes.map((type) => (
+              <div key={type} className="space-y-3">
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100 pb-1">
+                  {type} ({groups[type].length})
+                </h4>
+                {type === 'RAID Log' ? (
+                  groups[type].map((s, i) => (
+                    <SuggestionCard key={`${type}-${i}`} suggestion={s} onApply={handleApply} />
+                  ))
+                ) : (
+                  <DocumentDraftCard
+                    artifactType={type}
+                    suggestions={groups[type]}
+                    onApplyAll={handleApplyAll}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
+      {/* Analyze mode: Analysis feedback */}
+      {mode === 'analyze' && analysis && analysis.items.length > 0 && (
+        <AnalysisCard summary={analysis.summary} items={analysis.items} />
       )}
 
       {/* Empty state */}
-      {!isLoading && !error && suggestions.length === 0 && !meta && (
+      {!isLoading && !error && suggestions.length === 0 && !analysis && !meta && (
         <div className="text-center py-12">
           <div className="text-gray-300 text-4xl mb-3">&#9998;</div>
           <p className="text-sm text-gray-400">No suggestions yet. Paste some text above to get started.</p>

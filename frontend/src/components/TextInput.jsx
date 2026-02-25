@@ -1,14 +1,21 @@
 /**
- * Auto-resizing text area with submit, clear, and character count for user input.
+ * Auto-resizing text area with submit, clear, mode toggle, and character count for user input.
  */
 import { useState, useRef, useEffect } from 'react'
+
+const PLACEHOLDERS = {
+  extract: 'Paste meeting notes, transcripts, or project updates...',
+  analyze: 'Paste a draft document for review...',
+}
 
 /**
  * @param {Object} props
  * @param {function} props.onSubmit - Called with the text string when the user submits
  * @param {boolean} props.isLoading - Disables input and shows spinner when true
+ * @param {string} props.mode - 'extract' or 'analyze'
+ * @param {function} props.onModeChange - Called with new mode string
  */
-export default function TextInput({ onSubmit, isLoading }) {
+export default function TextInput({ onSubmit, isLoading, mode = 'extract', onModeChange }) {
   const [text, setText] = useState('')
   const textareaRef = useRef(null)
 
@@ -39,7 +46,7 @@ export default function TextInput({ onSubmit, isLoading }) {
           ref={textareaRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Paste meeting notes, transcripts, or project updates..."
+          placeholder={PLACEHOLDERS[mode] || PLACEHOLDERS.extract}
           disabled={isLoading}
           rows={6}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-sm leading-relaxed disabled:bg-gray-50 disabled:text-gray-400"
@@ -47,9 +54,39 @@ export default function TextInput({ onSubmit, isLoading }) {
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-xs text-gray-400">
-          {text.length.toLocaleString()} characters
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-gray-400">
+            {text.length.toLocaleString()} characters
+          </span>
+
+          {/* Mode toggle */}
+          {onModeChange && (
+            <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
+              <button
+                type="button"
+                onClick={() => onModeChange('extract')}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                  mode === 'extract'
+                    ? 'bg-gray-900 text-white shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Extract
+              </button>
+              <button
+                type="button"
+                onClick={() => onModeChange('analyze')}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                  mode === 'analyze'
+                    ? 'bg-gray-900 text-white shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Analyze
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="flex gap-2">
           {text.length > 0 && (
@@ -73,9 +110,9 @@ export default function TextInput({ onSubmit, isLoading }) {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                Analyzing...
+                {mode === 'analyze' ? 'Analyzing...' : 'Extracting...'}
               </span>
-            ) : 'Analyze'}
+            ) : mode === 'analyze' ? 'Analyze' : 'Extract'}
           </button>
         </div>
       </div>

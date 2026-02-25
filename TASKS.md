@@ -11,7 +11,7 @@
 | Privacy & LLM | 5-8 | 4/4 | Complete |
 | Backend Logic | 9-12 | 4/4 | Complete |
 | Frontend | 13-17 | 5/5 | Complete |
-| Integration & Polish | 18-20 | 2.5/3 | Awaiting live testing |
+| Integration & Polish | 18-20 | 2.5/3 | Live testing round 2 |
 
 ---
 
@@ -195,10 +195,27 @@
 - [x] Create 7 diverse test samples with expected outputs (backend/tests/test_samples.py)
 - [x] Add case-insensitive artifact type matching in apply endpoint
 - [x] Code review: verified integration pipeline, no critical bugs found
-- [ ] Run evaluation script against live backend with API key
-- [ ] Evaluate suggestion relevance with 5+ samples (user testing)
+- [x] First live test: 86K transcript → 55 suggestions → artifacts populated
+- [x] Bug fix: Gemini 2.5 Flash thinking tokens consumed max_output_tokens → increased to 16384, capped thinking_budget at 2048
+- [x] Bug fix: classify_input returned None with low max_tokens → increased to 256, added None guard
+- [x] Bug fix: Apply endpoint had no dedup guard → added duplicate detection
+- [x] Bug fix: Apply endpoint appended to end-of-file → now inserts into correct ## section
+- [x] Artifacts reset for clean re-testing
+- [x] Bug fix: spaCy NER false positives — added confidence threshold (0.75), min entity length (2), and stoplist of ~40 common misclassified words
+- [x] PII vault cleared (136 stale false-positive entries removed)
+- [x] Frontend: Suggestions now grouped by artifact type (RAID Log / Status Report / Meeting Notes)
+- [x] Test isolation fix: conftest now patches ARTIFACTS_DIR to temp directory
+- [x] Prompt rewrite: self-contained suggestions (replaced "concise" with standalone test, anti-vagueness rules, Bad vs Good examples, enriched all examples, reasoning → project impact)
+- [x] Prompt fix: reasoning anti-pattern — added explicit anti-pattern for quality self-description ("specific next steps with named individuals"), Bad/Good reasoning examples, fixed 4 weak example reasoning values
+- [x] UX: Document draft view — Meeting Notes and Status Report now render as assembled document drafts with "Copy All" / "Apply All"; RAID Log keeps individual cards (D11)
+- [x] Intent mode toggle: Extract & Route + Analyze & Advise (D12)
+  - Backend: `AnalysisItem` model, `ANALYZE_ADVISE_SYSTEM_PROMPT`, `_parse_analysis()`, mode branch in pipeline
+  - Frontend: Mode toggle in TextInput, new AnalysisCard component, conditional rendering in ArtifactSync
+  - Tests: 13 new backend tests (201 total), 10 new/updated frontend tests (76 total)
+- [x] Bug fix: Mode-toggle crash — stale state not cleared on mode switch. Added `handleModeChange` handler + mode guards on render conditions (77 frontend tests)
+- [ ] Evaluate suggestion relevance with 3+ diverse samples (user testing)
 - [ ] Evaluate proposed text quality (user assessment)
-**Status**: Prompt refinement complete, awaiting live testing
+**Status**: Mode-toggle fix complete, ready for testing round 4
 
 ### Task 20: Styling & Polish
 - [x] Consistent Tailwind styling across all components

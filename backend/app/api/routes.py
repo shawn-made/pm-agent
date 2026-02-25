@@ -1,5 +1,7 @@
 """VPMA API Routes."""
 
+import re
+
 from fastapi import APIRouter, HTTPException
 
 from app.models.schemas import ArtifactSyncRequest, ArtifactSyncResponse, Suggestion
@@ -14,6 +16,34 @@ from app.services.crud import get_all_settings, upsert_setting
 from app.services.llm_client import LLMError
 
 router = APIRouter()
+
+
+def _insert_into_section(content: str, section: str, proposed_text: str) -> str:
+    """Insert proposed_text into the correct ## section of a markdown artifact.
+
+    Finds the ``## section`` heading and appends the text at the end of that
+    section (before the next ``## `` heading).  Falls back to end-of-file
+    append if the section heading isn't found.
+    """
+    pattern = re.compile(r"^## " + re.escape(section) + r"\s*$", re.MULTILINE | re.IGNORECASE)
+    match = pattern.search(content)
+
+    if not match:
+        # Section not found — fallback to end-of-file append
+        return content.rstrip() + "\n\n" + proposed_text + "\n"
+
+    # Find the next ## heading after our section
+    rest = content[match.end():]
+    next_heading = re.search(r"^## ", rest, re.MULTILINE)
+
+    if next_heading:
+        insert_pos = match.end() + next_heading.start()
+        before = content[:insert_pos].rstrip()
+        after = content[insert_pos:]
+        return before + "\n\n" + proposed_text + "\n\n" + after
+    else:
+        # Last section — append at end
+        return content.rstrip() + "\n\n" + proposed_text + "\n"
 
 
 @router.get("/health")
@@ -41,6 +71,7 @@ async def artifact_sync(request: ArtifactSyncRequest):
         result = await run_artifact_sync(
             text=request.text,
             project_id=request.project_id,
+            mode=request.mode,
         )
         return result
     except LLMError as e:
@@ -56,16 +87,18 @@ async def artifact_sync(request: ArtifactSyncRequest):
 async def apply_suggestion(artifact_id: str, suggestion: Suggestion):
     """Apply a suggestion to an artifact stored in ~/VPMA/artifacts/.
 
-    Reads the current artifact content, appends the suggestion's proposed text
-    to the appropriate section, and writes back.
+    Reads the current artifact content, inserts the suggestion's proposed text
+    into the matching ``## section``, and writes back.  Skips duplicates.
     """
     content = await read_artifact_content(artifact_id)
     if content is None:
         raise HTTPException(status_code=404, detail="Artifact not found")
 
-    # Append the proposed text to the end of the artifact
-    # (In a more sophisticated version, we'd insert into the correct section)
-    updated = content.rstrip() + "\n\n" + suggestion.proposed_text + "\n"
+    # Dedup guard — skip if this exact text is already in the artifact
+    if suggestion.proposed_text.strip() in content:
+        return {"status": "duplicate", "artifact_id": artifact_id}
+
+    updated = _insert_into_section(content, suggestion.section, suggestion.proposed_text)
 
     success = await write_artifact_content(artifact_id, updated)
     if not success:
@@ -80,7 +113,8 @@ async def apply_suggestion_by_type(suggestion: Suggestion, project_id: str = "de
 
     This is the convenience endpoint used by the frontend. It resolves the
     artifact_type to a file on disk, creating it from a template if it doesn't
-    exist yet, then appends the suggestion text.
+    exist yet, then inserts the suggestion into the correct section.
+    Skips duplicates.
     """
     type_map = {
         "raid log": ArtifactType.RAID_LOG,
@@ -97,7 +131,11 @@ async def apply_suggestion_by_type(suggestion: Suggestion, project_id: str = "de
     if content is None:
         raise HTTPException(status_code=500, detail="Failed to read artifact after creation")
 
-    updated = content.rstrip() + "\n\n" + suggestion.proposed_text + "\n"
+    # Dedup guard — skip if this exact text is already in the artifact
+    if suggestion.proposed_text.strip() in content:
+        return {"status": "duplicate", "artifact_id": artifact.artifact_id, "artifact_type": suggestion.artifact_type}
+
+    updated = _insert_into_section(content, suggestion.section, suggestion.proposed_text)
 
     success = await write_artifact_content(artifact.artifact_id, updated)
     if not success:

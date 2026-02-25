@@ -130,6 +130,20 @@ class Suggestion(BaseModel):
     reasoning: str = Field(..., description="Explanation of why this suggestion was generated")
 
 
+class AnalysisItem(BaseModel):
+    """A single observation or recommendation from Analyze & Advise mode."""
+
+    category: str = Field(
+        ..., description="'observation', 'recommendation', 'gap', or 'strength'"
+    )
+    title: str = Field(..., description="Brief headline for this item")
+    detail: str = Field(..., description="Full explanation with context")
+    priority: str = Field("medium", description="'high', 'medium', or 'low'")
+    artifact_type: Optional[str] = Field(
+        None, description="Which artifact this relates to, if applicable"
+    )
+
+
 class ArtifactSyncRequest(BaseModel):
     """Request body for the artifact sync endpoint."""
 
@@ -137,13 +151,23 @@ class ArtifactSyncRequest(BaseModel):
         ..., description="Raw user input (meeting notes, transcript, or project update)"
     )
     project_id: str = Field("default", description="Project scope for the sync operation")
+    mode: str = Field(
+        "extract",
+        description="'extract' for Extract & Route, 'analyze' for Analyze & Advise",
+    )
 
 
 class ArtifactSyncResponse(BaseModel):
     """Response from the artifact sync endpoint."""
 
     suggestions: list[Suggestion] = Field(
-        ..., description="List of suggested artifact updates"
+        default_factory=list, description="List of suggested artifact updates (extract mode)"
+    )
+    analysis: list[AnalysisItem] = Field(
+        default_factory=list, description="List of analysis items (analyze mode)"
+    )
+    analysis_summary: Optional[str] = Field(
+        None, description="Brief overall assessment (analyze mode only)"
     )
     input_type: str = Field(
         ...,
@@ -154,3 +178,4 @@ class ArtifactSyncResponse(BaseModel):
     pii_detected: int = Field(
         ..., description="Number of PII entities found and anonymized in the input"
     )
+    mode: str = Field("extract", description="Which mode was used")

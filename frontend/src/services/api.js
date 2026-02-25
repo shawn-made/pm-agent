@@ -21,11 +21,11 @@ export async function healthCheck() {
  * @param {string} [projectId='default'] - Project scope for the sync
  * @returns {Promise<{suggestions: Array, input_type: string, session_id: string, pii_detected: number}>}
  */
-export async function artifactSync(text, projectId = 'default') {
+export async function artifactSync(text, projectId = 'default', mode = 'extract') {
   const res = await fetch(`${API_BASE}/artifact-sync`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, project_id: projectId }),
+    body: JSON.stringify({ text, project_id: projectId, mode }),
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
