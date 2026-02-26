@@ -245,7 +245,7 @@ Started with three use cases (A: PM Interface Layer, B: Full Comms Platform, C: 
   - How to handle contradictions across files (e.g., different status for the same risk)?
   - Does import create a draft LPD for human review, or does it auto-populate sections?
 - **Phase consideration**: Phase 1A — needed for the developer's own PM Sandbox cutover and for any PM adopting VPMA mid-project.
-- **Status**: Open
+- **Status**: **Resolved** — See D18. One LLM call per file, draft for human review, contradictions flagged not auto-resolved. Extracts all 6 entity types.
 
 ### Q19: LPD section structure — fixed or emergent?
 - **Context**: The LPD (QUESTIONS_LOG Q7) needs internal sections. Two approaches:
@@ -257,7 +257,7 @@ Started with three use cases (A: PM Interface Layer, B: Full Comms Platform, C: 
   - Does the LLM get the full LPD or just relevant sections per query?
   - What's the max practical LPD size before context window limits bite?
 - **Phase consideration**: Phase 1A design decision — must be answered before building.
-- **Status**: Open
+- **Status**: **Resolved** — See D16. Fixed template with 7 sections. Section-based DB storage (not single file) for granular staleness + selective context injection. Token budget: ~4000 tokens max (Project Map ~2500 + Recent Context ~1500). Full Project Map always sent; Recent Context fills remaining budget.
 
 ### Q20: PM Sandbox cutover checklist — when is it actually done?
 - **Context**: D15 defines cutover at end of Phase 1A. But what specifically must be true?
@@ -268,7 +268,7 @@ Started with three use cases (A: PM Interface Layer, B: Full Comms Platform, C: 
   - [ ] "Log Session" bridge works (paste Claude Code conclusions → updates LPD)
   - [ ] One full week of daily PM work done entirely through VPMA + Claude Code hybrid
   - [ ] No information loss compared to PM Sandbox workflow (spot-check against recent sessions)
-- **Status**: Open — formalize when Phase 1A task planning begins
+- **Status**: **Resolved** — Formalized as Task 30 acceptance criteria in TASKS.md. All 6 candidate criteria adopted.
 
 ---
 

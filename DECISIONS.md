@@ -1,7 +1,7 @@
 # VPMA — Decisions Log
 
 **Last Updated**: 2026-02-25
-**Current As Of**: 2026-02-25 (Phase 1A strategic planning session)
+**Current As Of**: 2026-02-25 (Phase 1A task breakdown complete, D16-D18 added)
 
 ---
 
@@ -145,3 +145,26 @@ Path B (brain dump mode) was rejected because even with it, deep strategic conve
 - Cross-artifact synthesis → Covered by LPD + context injection
 
 **Market validation**: Height's $18.3M failure validates building foundation before full experience. The progression model (personal → expert PMs → orgs) means Stage 2 users won't have Claude Code, so the API-first LPD design ensures chat can be added later as an incremental feature, not an architectural rework. The cutover point (end of 1A, not end of chat) means PM Sandbox can be retired sooner than originally assumed.
+
+### D16: LPD Section-Based Database Storage (Not Single File)
+**Date**: 2026-02-25 (Phase 1A planning, resolves Q19) | **Status**: Active
+
+**Decision**: Store LPD sections as individual database rows in `lpd_sections` table, not as a single Markdown file. Each section has independent `updated_at` and `verified_at` timestamps. A Markdown file is rendered as a write-through cache for human readability, but the database is the source of truth.
+
+**Rationale**: Section-based storage enables: (1) independent staleness tracking per section (Pattern 2), (2) selective context injection — send only relevant sections to LLM within token budget, (3) granular updates without overwriting the full document, (4) future section-level versioning. This differs from Phase 0's artifact pattern (file as source of truth) because the LPD needs richer metadata per section.
+
+**LPD sections (fixed template)**: Overview, Stakeholders, Timeline & Milestones, Risks, Decisions, Open Questions, Recent Context. First 6 form the stable "Project Map" (Pattern 3). Recent Context is temporal and bounded (~1500 tokens, auto-pruned).
+
+### D17: LPD as Separate System from Artifacts
+**Date**: 2026-02-25 (Phase 1A planning) | **Status**: Active
+
+**Decision**: The LPD gets its own manager (`lpd_manager.py`), data model (`lpd_sections` table), and service layer — completely separate from the Phase 0 artifact system (`artifact_manager.py`, `artifacts` table). The LPD is NOT a new `ArtifactType`.
+
+**Rationale**: The LPD and artifacts serve fundamentally different purposes. Artifacts (RAID Log, Status Report, Meeting Notes) are structured outputs for specific audiences — one per type per project. The LPD is a persistent knowledge base that accumulates across sessions and feeds context into all LLM calls. Conflating them would force the artifact system to support features it wasn't designed for (section-level staleness, context injection, session summaries). Keeping them separate maintains Phase 0's clean artifact system while adding the new capability.
+
+### D18: Intake Strategy — Per-File Processing with Draft Review
+**Date**: 2026-02-25 (Phase 1A planning, resolves Q18) | **Status**: Active
+
+**Decision**: Process each intake file individually (one LLM call per file), present all extractions as a draft for human review before committing to the LPD. Contradictions across files are flagged, not silently resolved.
+
+**Rationale**: Per-file processing is simpler, more reliable, and allows progress reporting per file. Draft review before commit prevents bad extractions from polluting the LPD. Flagging contradictions (rather than auto-resolving) respects the PM's judgment — the system surfaces conflicts, the human decides.

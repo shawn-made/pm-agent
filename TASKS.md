@@ -244,24 +244,211 @@
 
 ---
 
-## Phase 1A: Context Foundation (Strategic Planning)
+## Phase 1A: Context Foundation
 
-**Status**: Planned — decisions made (D14, D15), task breakdown not yet started
+**Status**: Task breakdown complete, ready for implementation
+**Plan file**: `.claude/plans/stateful-sparking-biscuit.md` (full implementation details)
+**Design decisions**: Q18 (one LLM call per file, draft for review), Q19 (fixed template, section-based DB), Q20 (formalized in Task 30)
 
-Phase 1 has been reframed into 1A (Context Foundation) and 1B (Feature Expansion). Phase 1A is the prerequisite.
+Phase 1 reframed into 1A (Context Foundation) and 1B (Feature Expansion). Phase 1A is the prerequisite.
 
-**Scope** (from D14):
-- Living Project Document (LPD) — persistent project knowledge base per project
-- Return path — applied suggestions update LPD, not just artifact files
-- Context injection — LLM calls automatically receive relevant LPD context
-- In-flight project intake — bulk import existing PM markdown files to seed LPD
-- "Log Session" bridge — paste conclusions from deep Claude Code sessions → LPD updates
+### Progress
 
-**Transition plan** (from D15):
-- Cutover from PM Sandbox at end of Phase 1A
-- Hybrid workflow during transition: VPMA (structured work) + Claude Code (deep strategy)
-- Design constraint: LPD fully usable through VPMA API (no external file access required)
+| Group | Tasks | Done | Status |
+|-------|-------|------|--------|
+| Infrastructure | 21-22 | 0/2 | Not started |
+| Core LPD Operations | 23-25 | 0/3 | Not started |
+| Advanced Features | 26-28 | 0/3 | Not started |
+| Frontend | 29 | 0/1 | Not started |
+| Integration | 30 | 0/1 | Not started |
 
-**Open design questions**: Q18 (intake parsing), Q19 (LPD section structure), Q20 (cutover checklist)
+### Dependency Graph
+```
+Task 21 → Task 22 → Task 23 → Task 24 → Task 25
+                       ↓                    ↓
+                     Task 26    Task 27    Task 28
+                       ↓          ↓          ↓
+                            Task 29
+                              ↓
+                           Task 30
+```
 
-**Next step**: Phase 0 Go/No-Go sign-off, then Phase 1A task breakdown
+---
+
+### GROUP 1: INFRASTRUCTURE
+
+### Task 21: LPD Data Model & Schema
+**Complexity**: S | **Sessions**: 1 | **Dependencies**: None
+
+- [ ] Add `lpd_sections` table (section_id, project_id, section_name, content, section_order, updated_at, verified_at)
+- [ ] Add `lpd_session_summaries` table (summary_id, project_id, session_id, summary_text, entities_extracted, created_at)
+- [ ] Add Pydantic models: LPDSection, LPDSectionCreate, LPDSessionSummary, LPDSessionSummaryCreate
+- [ ] Add LPD template file: `backend/app/prompts/templates/lpd.md`
+- [ ] Define LPD_SECTIONS constant (7 fixed sections with display order)
+- [ ] Tests: table creation, model validation, template loading (~10 tests)
+
+**Files**: `database.py`, `schemas.py`, `templates/lpd.md`
+**Done when**: Tables created by `init_db()`, models validate, template loads, tests pass.
+
+### Task 22: LPD CRUD Operations
+**Complexity**: S | **Sessions**: 1 | **Dependencies**: Task 21
+
+- [ ] `create_lpd_section()`, `get_lpd_sections()`, `get_lpd_section()`
+- [ ] `update_lpd_section_content()`, `verify_lpd_section()`, `lpd_exists()`
+- [ ] `create_lpd_session_summary()`, `get_recent_session_summaries()`, `get_session_summary_count()`
+- [ ] Tests: all CRUD operations, edge cases (~15 tests)
+
+**Files**: `crud.py`
+**Done when**: All CRUD functions work, edge cases covered, tests pass.
+
+---
+
+### GROUP 2: CORE LPD OPERATIONS
+
+### Task 23: LPD Manager Service
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: Tasks 21, 22
+
+New file: `backend/app/services/lpd_manager.py`
+
+- [ ] `initialize_lpd(project_id)` — create all 7 sections from template (idempotent)
+- [ ] `get_full_lpd(project_id)` → dict of section_name → content
+- [ ] `render_lpd_markdown(project_id)` → full Markdown document
+- [ ] `update_section(project_id, section_name, content)` — replace section content
+- [ ] `append_to_section(project_id, section_name, text)` — add to existing content
+- [ ] `log_session_summary(project_id, session_id, summary, entities)` — record + rebuild Recent Context
+- [ ] `get_context_for_injection(project_id, max_tokens=4000)` — assemble context for LLM
+- [ ] `get_section_staleness(project_id)` — staleness info per section
+- [ ] Markdown file sync (write-through cache to `data/artifacts/{project_id}_lpd.md`)
+- [ ] Tests: initialize, get, render, update, append, session summary, context assembly, staleness (~20 tests)
+
+**Design note**: LPD is NOT a new ArtifactType. Separate manager and data model.
+**Done when**: All functions work, token budget enforced, Markdown rendering valid, tests pass.
+
+### Task 24: Context Injection Engine
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: Task 23
+
+- [ ] Add context injection step to `run_artifact_sync()` pipeline
+- [ ] Fetch LPD context via `get_context_for_injection()`, anonymize through privacy proxy
+- [ ] Prepend anonymized LPD context to user prompt as `## Project Context`
+- [ ] Update system prompts: instruct LLM to use project context, avoid duplicates, flag contradictions
+- [ ] Backward compatible: no behavior change when LPD doesn't exist
+- [ ] Tests: with/without LPD, token budget, privacy proxy on LPD context (~12 tests)
+
+**Files**: `artifact_sync.py`, `prompts/artifact_sync.py`
+**Done when**: LLM calls receive project context, privacy proxy applied, backward compatible, tests pass.
+
+### Task 25: Return Path
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: Tasks 23, 24
+
+- [ ] Modify `apply_suggestion_by_type()`: after artifact write, call `update_lpd_from_suggestion()`
+- [ ] Section mapping: RAID/Risks→"risks", Decisions→"decisions", Action Items→"open_questions", Accomplishments→"overview", Blockers→"risks"
+- [ ] Add session summary generation to `run_artifact_sync()` (template-based, no extra LLM call)
+- [ ] Recent Context pruning when section exceeds ~1500 tokens
+- [ ] No behavior change when LPD doesn't exist
+- [ ] Tests: apply triggers LPD update, section mapping, session summaries, pruning (~15 tests)
+
+**Files**: `routes.py`, `artifact_sync.py`, `lpd_manager.py`
+**Done when**: Apply updates artifact AND LPD, session summaries accumulate, tests pass.
+
+---
+
+### GROUP 3: ADVANCED FEATURES
+
+### Task 26: In-Flight Project Intake
+**Complexity**: L | **Sessions**: 2-3 | **Dependencies**: Task 23
+
+New files: `backend/app/services/intake.py`, `backend/app/prompts/lpd_prompts.py`
+
+- [ ] `process_intake_file(content, filename, project_id, client)` — one LLM call per file
+- [ ] `generate_intake_draft(files, project_id)` → draft with proposed additions + conflicts
+- [ ] `apply_intake_draft(project_id, draft, approved_sections)` — commit to LPD
+- [ ] `INTAKE_EXTRACTION_PROMPT` — extract stakeholders, risks, decisions, actions, questions, timeline
+- [ ] API endpoints: `POST /lpd/{project_id}/intake/preview`, `POST /lpd/{project_id}/intake/apply`
+- [ ] Pydantic request/response models for intake
+- [ ] Privacy proxy applied to all content before LLM
+- [ ] Tests: single file, multi-file, conflict detection, draft apply, privacy (~20 tests)
+
+**Done when**: Upload/paste files → draft preview with conflicts → apply to LPD, tests pass.
+
+### Task 27: Log Session Bridge
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: Task 25
+
+- [ ] Add `mode="log_session"` to artifact sync pipeline
+- [ ] `LOG_SESSION_SYSTEM_PROMPT` in `lpd_prompts.py` — extract decisions, risks, actions, status changes
+- [ ] `_parse_log_session()` parser — returns session_summary + lpd_updates + artifact_suggestions
+- [ ] LPD updates applied directly; artifact suggestions shown for review
+- [ ] Update ArtifactSyncResponse with `lpd_updates` and `session_summary` fields
+- [ ] Tests: parsing, LPD updates, privacy proxy, backward compatibility (~15 tests)
+
+**Files**: `artifact_sync.py`, `lpd_prompts.py`, `schemas.py`
+**Done when**: Paste session conclusions → LPD updated + artifact suggestions displayed, tests pass.
+
+### Task 28: Prompt Refinement
+**Complexity**: S | **Sessions**: 1 | **Dependencies**: Tasks 24, 26, 27
+
+- [ ] Create test samples for context injection, intake, and log session prompts
+- [ ] Refine prompts based on testing with realistic content
+- [ ] Add dedup instructions (don't re-suggest existing items when LPD context present)
+- [ ] Document prompt design decisions
+- [ ] Tests: ~5 regression test cases
+
+**Done when**: All prompt types produce useful results with real-world content.
+
+---
+
+### GROUP 4: FRONTEND
+
+### Task 29: Frontend Changes
+**Complexity**: L | **Sessions**: 2-3 | **Dependencies**: Tasks 23, 25, 26, 27
+
+- [ ] ProjectContext provider — replace hardcoded 'default' with `useProject().projectId`
+- [ ] Project Doc page (`pages/ProjectDoc.jsx`) — LPD viewer, staleness indicators, inline editing, Copy All
+- [ ] Intake page (`pages/Intake.jsx`) — paste/upload files, draft preview with conflicts, apply
+- [ ] Log Session mode — third toggle in TextInput, display summary + LPD updates + suggestions
+- [ ] Navigation — add "Project Doc" tab; Intake accessible from Project Doc page
+- [ ] API client — `getLPDSections()`, `updateLPDSection()`, `getLPDStaleness()`, `intakePreview()`, `intakeApply()`
+- [ ] LPD API endpoints — `GET/PUT /lpd/{project_id}/sections`, `POST /lpd/{project_id}/initialize`, `GET /lpd/{project_id}/staleness`
+- [ ] Tests: ~35 new tests (frontend + backend route tests)
+
+**New files**: `ProjectContext.js`, `ProjectDoc.jsx`, `Intake.jsx` + tests
+**Modified**: `App.jsx`, `api.js`, `TextInput.jsx`, `ArtifactSync.jsx`, `routes.py`
+**Done when**: All pages functional, existing tests pass, new tests pass.
+
+---
+
+### GROUP 5: INTEGRATION
+
+### Task 30: E2E Integration & Cutover Validation
+**Complexity**: L | **Sessions**: 2-3 | **Dependencies**: All
+
+- [ ] E2E with real LLM: create project → init LPD → 3+ sessions → verify context accumulates
+- [ ] Intake testing with sample PM files
+- [ ] Regression: all Phase 0 tests still pass
+- [ ] Performance: artifact sync with context injection < 60s
+- [ ] Bug fixing (estimate 1-2 sessions)
+- [ ] Version bump to 0.2.0
+
+**Cutover criteria (Q20)**:
+- [ ] LPD accumulates context across sessions
+- [ ] Intake imports files successfully
+- [ ] Context injection works (LLM references project context)
+- [ ] Log Session bridge works
+- [ ] One full week of daily PM work through VPMA + Claude Code hybrid
+- [ ] No information loss vs. PM Sandbox workflow
+
+**Done when**: All criteria met, version 0.2.0, docs updated.
+
+---
+
+### Phase 1A Summary
+
+| Metric | Target |
+|--------|--------|
+| Tasks | 10 (Tasks 21-30) |
+| Sessions | 13-20 |
+| New tests | ~162 |
+| Total tests | ~393 (231 existing + 162 new) |
+| New files | 12 (6 backend, 6 frontend) |
+| Modified files | 12 (8 backend, 4 frontend) |
+| New API endpoints | 8 |
+| New DB tables | 2 |
