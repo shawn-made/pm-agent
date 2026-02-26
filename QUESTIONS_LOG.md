@@ -73,7 +73,7 @@ Track questions, answers, and lessons learned throughout development.
 - **Options**: PM Interface Layer, Full Comms Platform, or Outsourcing-Only
 - **Why it matters**: Determines scope, architecture complexity, and go-to-market strategy
 - **Source**: Personal Assistant brain dump (2026-02-20)
-- **Status**: Open — substantially explored in Session 4 brainstorm, not finalized
+- **Status**: Open — substantially explored in Session 4 brainstorm, further validated in Phase 1A planning session (2026-02-25). Path A decision (D15) aligns with Use Case A (PM Interface Layer) for Stage 1 with plugin model evolution. Not formally closed — revisit after using VPMA with LPD against real project data.
 
 #### Session 4 Brainstorm Evolution (2026-02-23)
 The original A/B/C framing evolved through iterative discussion and pressure testing:
@@ -179,7 +179,7 @@ This progression naturally serves adjacent markets at each stage: personal produ
 - **Options**: (A) Keep them separate — PA as a personal tool, VPMA as a PM tool. (B) VPMA becomes a platform with "workspaces" — one for PM work, one for personal life. Same privacy proxy, brain dump engine, LPD concept. (C) PA stays markdown-only and feeds product insights to VPMA.
 - **Why it matters**: If they converge, one codebase serves both. If they diverge, PA needs its own app architecture. Decision affects scope, timeline, and the "build PA into app" goal.
 - **Source**: Personal Assistant Session 4 brainstorm (2026-02-23)
-- **Status**: Open
+- **Status**: Open — Phase 1A planning (D14, D15) doesn't close this but does affect it: the LPD concept and API-first design constraint would support workspace-based convergence (Option B) if chosen later. The "Log Session" bridge pattern could apply to PA sessions too. Revisit after LPD is built and tested.
 
 ---
 
@@ -230,6 +230,70 @@ Started with three use cases (A: PM Interface Layer, B: Full Comms Platform, C: 
 
 ### User Note
 > "I don't expect to make final decisions today but do like to work through all of this to log my ideas, check in on them over time, and set my overall course."
+
+---
+
+## 2026-02-25 — Phase 1A Strategic Planning Questions
+
+*Source: Strategic planning session analyzing PM Sandbox → VPMA transition path. See DECISIONS.md D14, D15 for the decisions made.*
+
+### Q18: In-flight project intake — how should VPMA parse existing markdown files?
+- **Context**: Phase 1A includes bulk import of existing PM files (PM Sandbox markdown, meeting notes, etc.) to seed the LPD. This is a one-time per-project operation.
+- **Open questions**:
+  - What's the parsing strategy? One LLM call per file, or batch?
+  - What entities to extract: stakeholders, risks, decisions, action items, open questions, timeline milestones?
+  - How to handle contradictions across files (e.g., different status for the same risk)?
+  - Does import create a draft LPD for human review, or does it auto-populate sections?
+- **Phase consideration**: Phase 1A — needed for the developer's own PM Sandbox cutover and for any PM adopting VPMA mid-project.
+- **Status**: Open
+
+### Q19: LPD section structure — fixed or emergent?
+- **Context**: The LPD (QUESTIONS_LOG Q7) needs internal sections. Two approaches:
+  - **Fixed template**: Predefined sections (Stakeholders, Timeline, Risks, Decisions, Open Questions, Recent Updates) that always exist
+  - **Emergent**: LLM organizes sections organically based on content, new sections appear as needed
+- **Architecture Insights connection**: Pattern 3 suggests separating Project Map (stable) from Session Log (temporal). The LPD could embody the Project Map, with a separate session log file.
+- **Open questions**:
+  - How does context injection work? Section-level relevance scoring? Token budget allocation?
+  - Does the LLM get the full LPD or just relevant sections per query?
+  - What's the max practical LPD size before context window limits bite?
+- **Phase consideration**: Phase 1A design decision — must be answered before building.
+- **Status**: Open
+
+### Q20: PM Sandbox cutover checklist — when is it actually done?
+- **Context**: D15 defines cutover at end of Phase 1A. But what specifically must be true?
+- **Candidate criteria**:
+  - [ ] LPD exists and accumulates context across sessions
+  - [ ] In-flight project intake has imported existing PM Sandbox files
+  - [ ] Context injection works (LLM calls receive relevant LPD context)
+  - [ ] "Log Session" bridge works (paste Claude Code conclusions → updates LPD)
+  - [ ] One full week of daily PM work done entirely through VPMA + Claude Code hybrid
+  - [ ] No information loss compared to PM Sandbox workflow (spot-check against recent sessions)
+- **Status**: Open — formalize when Phase 1A task planning begins
+
+---
+
+## Phase 1A Planning Session Summary (2026-02-25)
+
+*Dense strategic session analyzing the PM Sandbox → VPMA transition path. Four rounds of analysis with pressure-testing at each stage.*
+
+### What Was Decided
+1. **Phase 1 reframe**: Split into 1A (Context Foundation: LPD, return path, intake, context injection) and 1B (Feature Expansion: current Phase 1 PRD features). See D14.
+2. **Path A chosen**: Strict LPD foundation + Claude Code hybrid for deep conversations. Rejected Path B (brain dump mode in VPMA) as a half-measure. See D15.
+3. **Design constraint locked in**: LPD must be API-first — future chat plugs in without rearchitecting.
+4. **Cutover point**: End of Phase 1A, not end of chat implementation.
+
+### Key Analysis Produced
+- **Two gaps**: Context gap (VPMA doesn't know project state) vs. Interaction model gap (VPMA is paste-and-process, PM Sandbox is conversational). Phase 1A closes context. Future chat closes interaction.
+- **PM Sandbox workflow decomposition**: 4 categories — brain dumps/triage (→ 1A), strategic exploration (→ Claude Code), document drafting (→ Phase 0), cross-artifact synthesis (→ LPD).
+- **Market validation of Path A**: Height's $18.3M failure → foundation first. Progression model Stage 1 focus. Chat as incremental addition. No workflow should depend on Claude Code long-term.
+- **"Log Session" concept**: Bridge mechanism for deep Claude Code conversations back to VPMA. Paste conclusions → LLM extracts and updates LPD + artifacts.
+
+### What Was NOT Decided
+- LPD section structure (Q19)
+- In-flight intake parsing strategy (Q18)
+- PM Sandbox cutover criteria (Q20)
+- Context injection implementation (section relevance scoring, token budgets)
+- Phase 1A task breakdown (deferred to next implementation session)
 
 ---
 

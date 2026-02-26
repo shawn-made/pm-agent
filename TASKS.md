@@ -11,7 +11,7 @@
 | Privacy & LLM | 5-8 | 4/4 | Complete |
 | Backend Logic | 9-12 | 4/4 | Complete |
 | Frontend | 13-17 | 5/5 | Complete |
-| Integration & Polish | 18-20 | 2.5/3 | Live testing round 2 |
+| Integration & Polish | 18-20 | 3/3 | Complete |
 
 ---
 
@@ -213,9 +213,9 @@
   - Frontend: Mode toggle in TextInput, new AnalysisCard component, conditional rendering in ArtifactSync
   - Tests: 13 new backend tests (201 total), 10 new/updated frontend tests (76 total)
 - [x] Bug fix: Mode-toggle crash — stale state not cleared on mode switch. Added `handleModeChange` handler + mode guards on render conditions (77 frontend tests)
-- [ ] Evaluate suggestion relevance with 3+ diverse samples (user testing)
-- [ ] Evaluate proposed text quality (user assessment)
-**Status**: Mode-toggle fix complete, ready for testing round 4
+- [x] Evaluate suggestion relevance with 3+ diverse samples (user testing)
+- [x] Evaluate proposed text quality (user assessment)
+**Status**: Complete — Phase 0 Go/No-Go passed (2026-02-25)
 
 ### Task 20: Styling & Polish
 - [x] Consistent Tailwind styling across all components
@@ -234,8 +234,34 @@
 
 ## Go/No-Go Criteria (End of Phase 0)
 
-- [ ] Core flow works end-to-end without errors
-- [ ] Privacy Proxy: No PII leaks in manual audit
-- [ ] Artifact suggestions are relevant and useful (personal assessment)
-- [ ] Copy-to-clipboard works reliably
-- [ ] "This saves me time vs. doing it manually" (personal validation)
+- [x] Core flow works end-to-end without errors
+- [x] Privacy Proxy: No PII leaks in manual audit
+- [x] Artifact suggestions are relevant and useful (personal assessment)
+- [x] Copy-to-clipboard works reliably
+- [x] "This saves me time vs. doing it manually" (personal validation)
+
+**Result**: GO — Phase 0 signed off 2026-02-25
+
+---
+
+## Phase 1A: Context Foundation (Strategic Planning)
+
+**Status**: Planned — decisions made (D14, D15), task breakdown not yet started
+
+Phase 1 has been reframed into 1A (Context Foundation) and 1B (Feature Expansion). Phase 1A is the prerequisite.
+
+**Scope** (from D14):
+- Living Project Document (LPD) — persistent project knowledge base per project
+- Return path — applied suggestions update LPD, not just artifact files
+- Context injection — LLM calls automatically receive relevant LPD context
+- In-flight project intake — bulk import existing PM markdown files to seed LPD
+- "Log Session" bridge — paste conclusions from deep Claude Code sessions → LPD updates
+
+**Transition plan** (from D15):
+- Cutover from PM Sandbox at end of Phase 1A
+- Hybrid workflow during transition: VPMA (structured work) + Claude Code (deep strategy)
+- Design constraint: LPD fully usable through VPMA API (no external file access required)
+
+**Open design questions**: Q18 (intake parsing), Q19 (LPD section structure), Q20 (cutover checklist)
+
+**Next step**: Phase 0 Go/No-Go sign-off, then Phase 1A task breakdown

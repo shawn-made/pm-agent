@@ -1,7 +1,7 @@
 # VPMA — Decisions Log
 
 **Last Updated**: 2026-02-25
-**Current As Of**: 2026-02-25
+**Current As Of**: 2026-02-25 (Phase 1A strategic planning session)
 
 ---
 
@@ -105,3 +105,43 @@ Records non-obvious architectural and design decisions with rationale. Prevents 
 **Decision**: Deferred multi-session status report synthesis to Phase 3 (Weekly Planner). The current one-shot flow remains for Phase 0. Session logging infrastructure exists and `get_sessions_by_project()` is built but unused.
 
 **Rationale**: Synthesis requires cross-session context accumulation, a "synthesize my week" UX action, and the return path (Phase 1). Architecture Insights Pattern 5 validates weekly cadence as the right granularity. Pulling this into Phase 0 would require premature architecture decisions about context assembly before the return path is built.
+
+### D14: Phase 1 Reframe — Phase 1A (Context Foundation) Before 1B (Feature Expansion)
+**Date**: 2026-02-25 (strategic planning session) | **Status**: Active
+
+**Decision**: Split Phase 1 into two sub-phases:
+- **Phase 1A — Context Foundation**: Living Project Document (LPD), return path (applied suggestions update LPD), context injection (LLM calls receive relevant LPD context automatically), in-flight project intake (bulk import existing PM markdown files to seed LPD)
+- **Phase 1B — Feature Expansion**: Remaining Phase 1 PRD features (TypeScript migration, more artifact types, export engine, onboarding wizard, comms assistant, feedback box)
+
+Phase 1A is the prerequisite. Phase 1B builds on it.
+
+**Rationale**: Without the return path, every VPMA session starts from zero — the system has no memory of what it already knows about a project. The LPD is the unifying concept (QUESTIONS_LOG Q7, Architecture Insights Pattern 1) that makes dashboards, narrative output, cross-session synthesis, and intelligent questions all tractable. Building Phase 1B features without the LPD would produce features that can't reference project context, limiting their value. Architecture Insights Pattern 1 (return path) and Pattern 3 (nav vs. session separation) are explicitly tagged as Phase 1 priorities. In-flight project intake (new — not in current PRD) is included in 1A because the developer's own PM Sandbox files are the first import target, and the feature is needed for any PM adopting the tool mid-project.
+
+**Connects to**: Architecture Insights Patterns 1, 3; QUESTIONS_LOG Q7 (LPD concept); VPMA_BACKLOG V1, V3, V14, V21
+
+### D15: Path A — Strict LPD Foundation + Claude Code Hybrid Workflow
+**Date**: 2026-02-25 (strategic planning session) | **Status**: Active
+
+**Decision**: For the PM Sandbox → VPMA transition, chose Path A (strict LPD foundation, Claude Code for deep conversations) over Path B (lightweight brain dump/chat mode in VPMA during Phase 1A). The transition plan:
+
+1. **Build Phase 1A**: LPD + return path + project intake + context injection
+2. **Cutover from PM Sandbox**: At end of Phase 1A — once context accumulation works, not once chat is built
+3. **Hybrid workflow during transition**: VPMA handles structured daily artifact work (extract, analyze, apply); Claude Code reads LPD files for deep strategic conversations
+4. **Bridge mechanism**: "Log Session" intake feature — paste conclusions/decisions from deep Claude Code sessions into VPMA, LLM extracts entities and updates LPD + artifacts
+5. **Future**: Native chat interface in VPMA replaces the Claude Code dependency (Phase 2+)
+
+**Design constraint**: LPD must be fully usable through VPMA's own API — no workflow should require external file access. This ensures a future chat interface can plug in without rearchitecting.
+
+**Rationale**: Two distinct gaps were identified between PM Sandbox and VPMA:
+- **Context gap**: VPMA doesn't know project state (every session starts cold). *Phase 1A closes this.*
+- **Interaction model gap**: VPMA is paste-and-process; PM Sandbox is conversational. *Future chat closes this.*
+
+Path B (brain dump mode) was rejected because even with it, deep strategic conversations would still require Claude Code — the lightweight mode wouldn't replace the interaction gap, only partially bridge it. Better to build the foundation right than ship a half-measure that still has the same dependency.
+
+**PM Sandbox workflow analysis** (from this session's research):
+- Brain dumps + triage → Covered by Phase 1A intake + extract mode
+- Strategic exploration → Stays in Claude Code until chat is built
+- Document drafting/review → Already in Phase 0 (Analyze mode)
+- Cross-artifact synthesis → Covered by LPD + context injection
+
+**Market validation**: Height's $18.3M failure validates building foundation before full experience. The progression model (personal → expert PMs → orgs) means Stage 2 users won't have Claude Code, so the API-first LPD design ensures chat can be added later as an incremental feature, not an architectural rework. The cutover point (end of 1A, not end of chat) means PM Sandbox can be retired sooner than originally assumed.
