@@ -65,6 +65,8 @@ All text is anonymized (names, emails, orgs → tokens) before reaching any exte
 
 ## Current Phase
 
-**Phase 0: Foundation MVP** — Core Artifact Sync with Privacy Proxy, 3 artifact types (RAID Log, Status Report, Meeting Notes), basic Settings.
+**Phase 1A: Context Foundation** (v0.2.0) — Living Project Document (LPD) with section-based storage, context injection into LLM prompts, return path (Apply updates LPD), project intake (bulk file import), log session bridge, content quality gate (semantic dedup + contradiction detection).
+
+**Phase 0: Foundation MVP** (v0.1.0) — Core Artifact Sync with Privacy Proxy, 3 artifact types (RAID Log, Status Report, Meeting Notes), basic Settings.
 
 See [prd.md](prd.md) for full product vision and roadmap.

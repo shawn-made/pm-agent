@@ -1,7 +1,7 @@
 # VPMA — Executive Technical Summary
 
-**Version**: Phase 0 Complete, Phase 1A In Progress
-**Last Updated**: 2026-02-25
+**Version**: 0.2.0 — Phase 0 Complete, Phase 1A Complete
+**Last Updated**: 2026-03-01
 
 ---
 
@@ -152,7 +152,13 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 | System prompt templates | Complete | `prompts/templates/` |
 | Toast notification system | Complete | `Toast.jsx`, `ToastContext.js` |
 | Error handling & loading states | Complete | Throughout |
-| 488 backend tests, 125 frontend tests | Complete | `backend/tests/`, component tests |
+| Living Project Document (LPD) | Complete | `lpd_manager.py`, `ProjectDoc.jsx` |
+| Context injection engine | Complete | `artifact_sync.py` |
+| Return path (Apply → LPD) | Complete | `lpd_manager.py`, `routes.py` |
+| Project intake (bulk file import) | Complete | `intake.py`, `Intake.jsx` |
+| Log session bridge | Complete | `artifact_sync.py`, `LogSessionCard.jsx` |
+| Content quality gate (dedup/contradiction) | Complete | `content_gate.py` |
+| 651 backend tests, 125 frontend tests | Complete | `backend/tests/`, component tests |
 
 ---
 
@@ -172,8 +178,8 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 
 - **Backend**: 11 service modules, 8 database tables, 14 API endpoints
 - **Frontend**: 7 components, 4 pages, 1 API service module
-- **Tests**: 613 total (488 backend + 125 frontend)
-- **Lines of code**: ~5,000 backend Python, ~1,500 frontend JavaScript (estimated)
+- **Tests**: 776 total (651 backend + 125 frontend)
+- **Lines of code**: ~7,000 backend Python, ~2,500 frontend JavaScript (estimated)
 
 ---
 
