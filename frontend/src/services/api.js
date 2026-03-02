@@ -94,3 +94,141 @@ export async function applySuggestionByType(suggestion, projectId = 'default') {
   if (!res.ok) throw new Error(`Failed to apply suggestion: ${res.status}`);
   return res.json();
 }
+
+// ============================================================
+// LPD (Living Project Document)
+// ============================================================
+
+/**
+ * Initialize an LPD for a project (idempotent — safe to call if already initialized).
+ * @param {string} projectId - Project scope
+ * @returns {Promise<{status: string, section_count: number, sections: string[]}>}
+ */
+export async function initializeLPD(projectId = 'default') {
+  const res = await fetch(`${API_BASE}/lpd/${encodeURIComponent(projectId)}/initialize`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error(`Failed to initialize LPD: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Get all LPD sections for a project.
+ * @param {string} projectId - Project scope
+ * @returns {Promise<{sections: Object}>} Map of section_name → content
+ */
+export async function getLPDSections(projectId = 'default') {
+  const res = await fetch(`${API_BASE}/lpd/${encodeURIComponent(projectId)}/sections`);
+  if (!res.ok) throw new Error(`Failed to load LPD sections: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Update a single LPD section's content.
+ * @param {string} projectId - Project scope
+ * @param {string} sectionName - Section to update (e.g., 'Risks')
+ * @param {string} content - New content for the section
+ * @returns {Promise<{status: string, section: string}>}
+ */
+export async function updateLPDSection(projectId, sectionName, content) {
+  const res = await fetch(`${API_BASE}/lpd/${encodeURIComponent(projectId)}/sections/${encodeURIComponent(sectionName)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) throw new Error(`Failed to update section: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Get staleness metrics for all LPD sections.
+ * @param {string} projectId - Project scope
+ * @returns {Promise<{staleness: Array}>}
+ */
+export async function getLPDStaleness(projectId = 'default') {
+  const res = await fetch(`${API_BASE}/lpd/${encodeURIComponent(projectId)}/staleness`);
+  if (!res.ok) throw new Error(`Failed to load staleness data: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Get the full LPD as rendered Markdown.
+ * @param {string} projectId - Project scope
+ * @returns {Promise<{markdown: string}>}
+ */
+export async function getLPDMarkdown(projectId = 'default') {
+  const res = await fetch(`${API_BASE}/lpd/${encodeURIComponent(projectId)}/markdown`);
+  if (!res.ok) throw new Error(`Failed to load LPD markdown: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Mark an LPD section as verified (human reviewed and confirmed accurate).
+ * @param {string} projectId - Project scope
+ * @param {string} sectionName - Section to verify
+ * @returns {Promise<{status: string, section: string}>}
+ */
+export async function verifyLPDSection(projectId, sectionName) {
+  const res = await fetch(`${API_BASE}/lpd/${encodeURIComponent(projectId)}/sections/${encodeURIComponent(sectionName)}/verify`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error(`Failed to verify section: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Append content to an LPD section (reads current content, appends, writes back).
+ * Used by the "Apply Anyway" flow for contradiction overrides.
+ * @param {string} projectId - Project scope
+ * @param {string} sectionName - Section to append to (e.g., 'Risks')
+ * @param {string} content - Content to append
+ * @returns {Promise<{status: string, section: string}>}
+ */
+export async function appendToLPDSection(projectId, sectionName, content) {
+  const { sections } = await getLPDSections(projectId)
+  const current = sections[sectionName] || ''
+  const updated = current ? current + '\n' + content : content
+  return updateLPDSection(projectId, sectionName, updated)
+}
+
+/**
+ * Submit files for intake preview (extract entities for LPD population).
+ * @param {string} projectId - Project scope
+ * @param {Array<{filename: string, content: string}>} files - Files to process
+ * @returns {Promise<Object>} IntakeDraft with extractions, proposed_sections, conflicts
+ */
+export async function intakePreview(projectId, files) {
+  const res = await fetch(`${API_BASE}/lpd/${encodeURIComponent(projectId)}/intake/preview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ files }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * Apply approved intake sections to the LPD.
+ * @param {string} projectId - Project scope
+ * @param {Object} proposedSections - Section name → content map
+ * @param {string[]} approvedSections - Sections the user approved
+ * @returns {Promise<{sections_updated: string[], sections_skipped: string[]}>}
+ */
+export async function intakeApply(projectId, proposedSections, approvedSections) {
+  const res = await fetch(`${API_BASE}/lpd/${encodeURIComponent(projectId)}/intake/apply`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      proposed_sections: proposedSections,
+      approved_sections: approvedSections,
+    }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}

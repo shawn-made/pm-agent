@@ -8,6 +8,10 @@ from app.models.schemas import (
     ArtifactCreate,
     ArtifactVersion,
     ArtifactVersionCreate,
+    LPDSection,
+    LPDSectionCreate,
+    LPDSessionSummary,
+    LPDSessionSummaryCreate,
     PIIMapping,
     Project,
     ProjectCreate,
@@ -32,9 +36,7 @@ async def create_project(data: ProjectCreate) -> Project:
             (project_id, data.project_name, data.landscape_config),
         )
         await db.commit()
-        cursor = await db.execute(
-            "SELECT * FROM projects WHERE project_id = ?", (project_id,)
-        )
+        cursor = await db.execute("SELECT * FROM projects WHERE project_id = ?", (project_id,))
         row = await cursor.fetchone()
         return Project(**dict(row))
     finally:
@@ -45,9 +47,7 @@ async def get_project(project_id: str) -> Optional[Project]:
     """Get a project by ID. Returns None if not found."""
     db = await get_db()
     try:
-        cursor = await db.execute(
-            "SELECT * FROM projects WHERE project_id = ?", (project_id,)
-        )
+        cursor = await db.execute("SELECT * FROM projects WHERE project_id = ?", (project_id,))
         row = await cursor.fetchone()
         return Project(**dict(row)) if row else None
     finally:
@@ -58,9 +58,7 @@ async def list_projects() -> list[Project]:
     """List all projects."""
     db = await get_db()
     try:
-        cursor = await db.execute(
-            "SELECT * FROM projects ORDER BY created_at DESC"
-        )
+        cursor = await db.execute("SELECT * FROM projects ORDER BY created_at DESC")
         rows = await cursor.fetchall()
         return [Project(**dict(row)) for row in rows]
     finally:
@@ -72,9 +70,7 @@ async def ensure_default_project() -> Project:
     existing = await get_project("default")
     if existing:
         return existing
-    return await create_project(
-        ProjectCreate(project_id="default", project_name="My Project")
-    )
+    return await create_project(ProjectCreate(project_id="default", project_name="My Project"))
 
 
 # ============================================================
@@ -92,9 +88,7 @@ async def create_artifact(data: ArtifactCreate) -> Artifact:
             (artifact_id, data.project_id, data.artifact_type, data.file_path),
         )
         await db.commit()
-        cursor = await db.execute(
-            "SELECT * FROM artifacts WHERE artifact_id = ?", (artifact_id,)
-        )
+        cursor = await db.execute("SELECT * FROM artifacts WHERE artifact_id = ?", (artifact_id,))
         row = await cursor.fetchone()
         return Artifact(**dict(row))
     finally:
@@ -105,9 +99,7 @@ async def get_artifact(artifact_id: str) -> Optional[Artifact]:
     """Get artifact by ID."""
     db = await get_db()
     try:
-        cursor = await db.execute(
-            "SELECT * FROM artifacts WHERE artifact_id = ?", (artifact_id,)
-        )
+        cursor = await db.execute("SELECT * FROM artifacts WHERE artifact_id = ?", (artifact_id,))
         row = await cursor.fetchone()
         return Artifact(**dict(row)) if row else None
     finally:
@@ -128,9 +120,7 @@ async def get_artifacts_by_project(project_id: str) -> list[Artifact]:
         await db.close()
 
 
-async def get_artifact_by_type(
-    project_id: str, artifact_type: str
-) -> Optional[Artifact]:
+async def get_artifact_by_type(project_id: str, artifact_type: str) -> Optional[Artifact]:
     """Find a specific artifact type within a project."""
     db = await get_db()
     try:
@@ -245,9 +235,7 @@ async def create_session(data: SessionCreate) -> Session:
             ),
         )
         await db.commit()
-        cursor = await db.execute(
-            "SELECT * FROM sessions WHERE session_id = ?", (session_id,)
-        )
+        cursor = await db.execute("SELECT * FROM sessions WHERE session_id = ?", (session_id,))
         row = await cursor.fetchone()
         return Session(**dict(row))
     finally:
@@ -258,18 +246,14 @@ async def get_session(session_id: str) -> Optional[Session]:
     """Get a session by ID."""
     db = await get_db()
     try:
-        cursor = await db.execute(
-            "SELECT * FROM sessions WHERE session_id = ?", (session_id,)
-        )
+        cursor = await db.execute("SELECT * FROM sessions WHERE session_id = ?", (session_id,))
         row = await cursor.fetchone()
         return Session(**dict(row)) if row else None
     finally:
         await db.close()
 
 
-async def get_sessions_by_project(
-    project_id: str, limit: int = 10
-) -> list[Session]:
+async def get_sessions_by_project(project_id: str, limit: int = 10) -> list[Session]:
     """Get recent sessions for a project (for context assembly)."""
     db = await get_db()
     try:
@@ -289,9 +273,7 @@ async def get_sessions_by_project(
 # ============================================================
 
 
-async def store_pii_mapping(
-    token: str, original_value: str, entity_type: str
-) -> PIIMapping:
+async def store_pii_mapping(token: str, original_value: str, entity_type: str) -> PIIMapping:
     """Store or update a PII token mapping. Preserves first_seen on re-insert."""
     db = await get_db()
     try:
@@ -304,9 +286,7 @@ async def store_pii_mapping(
             (token, original_value, entity_type, token),
         )
         await db.commit()
-        cursor = await db.execute(
-            "SELECT * FROM pii_vault WHERE token = ?", (token,)
-        )
+        cursor = await db.execute("SELECT * FROM pii_vault WHERE token = ?", (token,))
         row = await cursor.fetchone()
         return PIIMapping(**dict(row))
     finally:
@@ -317,9 +297,7 @@ async def get_pii_mapping(token: str) -> Optional[PIIMapping]:
     """Look up a PII mapping by token."""
     db = await get_db()
     try:
-        cursor = await db.execute(
-            "SELECT * FROM pii_vault WHERE token = ?", (token,)
-        )
+        cursor = await db.execute("SELECT * FROM pii_vault WHERE token = ?", (token,))
         row = await cursor.fetchone()
         return PIIMapping(**dict(row)) if row else None
     finally:
@@ -359,9 +337,7 @@ async def get_setting(key: str) -> Optional[str]:
     """Get a single setting value by key. Returns None if not found."""
     db = await get_db()
     try:
-        cursor = await db.execute(
-            "SELECT value FROM settings WHERE key = ?", (key,)
-        )
+        cursor = await db.execute("SELECT value FROM settings WHERE key = ?", (key,))
         row = await cursor.fetchone()
         return row["value"] if row else None
     finally:
@@ -390,10 +366,180 @@ async def upsert_setting(key: str, value: str) -> Setting:
             (key, value, value),
         )
         await db.commit()
-        cursor = await db.execute(
-            "SELECT * FROM settings WHERE key = ?", (key,)
-        )
+        cursor = await db.execute("SELECT * FROM settings WHERE key = ?", (key,))
         row = await cursor.fetchone()
         return Setting(**dict(row))
+    finally:
+        await db.close()
+
+
+# ============================================================
+# LPD SECTIONS
+# ============================================================
+
+
+async def create_lpd_section(data: LPDSectionCreate) -> LPDSection:
+    """Create a single LPD section row."""
+    section_id = data.section_id or str(uuid.uuid4())
+    db = await get_db()
+    try:
+        await db.execute(
+            """INSERT INTO lpd_sections
+               (section_id, project_id, section_name, content, section_order)
+               VALUES (?, ?, ?, ?, ?)""",
+            (section_id, data.project_id, data.section_name, data.content, data.section_order),
+        )
+        await db.commit()
+        cursor = await db.execute("SELECT * FROM lpd_sections WHERE section_id = ?", (section_id,))
+        row = await cursor.fetchone()
+        return LPDSection(**dict(row))
+    finally:
+        await db.close()
+
+
+async def get_lpd_sections(project_id: str) -> list[LPDSection]:
+    """Get all LPD sections for a project, ordered by section_order."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT * FROM lpd_sections WHERE project_id = ? ORDER BY section_order",
+            (project_id,),
+        )
+        rows = await cursor.fetchall()
+        return [LPDSection(**dict(row)) for row in rows]
+    finally:
+        await db.close()
+
+
+async def get_lpd_section(project_id: str, section_name: str) -> Optional[LPDSection]:
+    """Get a specific LPD section by project and name."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT * FROM lpd_sections WHERE project_id = ? AND section_name = ?",
+            (project_id, section_name),
+        )
+        row = await cursor.fetchone()
+        return LPDSection(**dict(row)) if row else None
+    finally:
+        await db.close()
+
+
+async def update_lpd_section_content(
+    project_id: str, section_name: str, content: str
+) -> Optional[LPDSection]:
+    """Replace the content of an LPD section. Updates the updated_at timestamp."""
+    db = await get_db()
+    try:
+        await db.execute(
+            """UPDATE lpd_sections
+               SET content = ?, updated_at = CURRENT_TIMESTAMP
+               WHERE project_id = ? AND section_name = ?""",
+            (content, project_id, section_name),
+        )
+        await db.commit()
+        cursor = await db.execute(
+            "SELECT * FROM lpd_sections WHERE project_id = ? AND section_name = ?",
+            (project_id, section_name),
+        )
+        row = await cursor.fetchone()
+        return LPDSection(**dict(row)) if row else None
+    finally:
+        await db.close()
+
+
+async def verify_lpd_section(project_id: str, section_name: str) -> Optional[LPDSection]:
+    """Mark an LPD section as verified (human confirmed accuracy)."""
+    db = await get_db()
+    try:
+        await db.execute(
+            """UPDATE lpd_sections
+               SET verified_at = CURRENT_TIMESTAMP
+               WHERE project_id = ? AND section_name = ?""",
+            (project_id, section_name),
+        )
+        await db.commit()
+        cursor = await db.execute(
+            "SELECT * FROM lpd_sections WHERE project_id = ? AND section_name = ?",
+            (project_id, section_name),
+        )
+        row = await cursor.fetchone()
+        return LPDSection(**dict(row)) if row else None
+    finally:
+        await db.close()
+
+
+async def lpd_exists(project_id: str) -> bool:
+    """Check whether an LPD has been initialized for a project."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT COUNT(*) as cnt FROM lpd_sections WHERE project_id = ?",
+            (project_id,),
+        )
+        row = await cursor.fetchone()
+        return row["cnt"] > 0
+    finally:
+        await db.close()
+
+
+# ============================================================
+# LPD SESSION SUMMARIES
+# ============================================================
+
+
+async def create_lpd_session_summary(data: LPDSessionSummaryCreate) -> LPDSessionSummary:
+    """Record a session summary for the LPD."""
+    summary_id = data.summary_id or str(uuid.uuid4())
+    db = await get_db()
+    try:
+        await db.execute(
+            """INSERT INTO lpd_session_summaries
+               (summary_id, project_id, session_id, summary_text, entities_extracted)
+               VALUES (?, ?, ?, ?, ?)""",
+            (
+                summary_id,
+                data.project_id,
+                data.session_id,
+                data.summary_text,
+                data.entities_extracted,
+            ),
+        )
+        await db.commit()
+        cursor = await db.execute(
+            "SELECT * FROM lpd_session_summaries WHERE summary_id = ?", (summary_id,)
+        )
+        row = await cursor.fetchone()
+        return LPDSessionSummary(**dict(row))
+    finally:
+        await db.close()
+
+
+async def get_recent_session_summaries(project_id: str, limit: int = 10) -> list[LPDSessionSummary]:
+    """Get the most recent session summaries for a project."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            """SELECT * FROM lpd_session_summaries
+               WHERE project_id = ?
+               ORDER BY created_at DESC, rowid DESC LIMIT ?""",
+            (project_id, limit),
+        )
+        rows = await cursor.fetchall()
+        return [LPDSessionSummary(**dict(row)) for row in rows]
+    finally:
+        await db.close()
+
+
+async def get_session_summary_count(project_id: str) -> int:
+    """Get total number of session summaries for a project."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT COUNT(*) as cnt FROM lpd_session_summaries WHERE project_id = ?",
+            (project_id,),
+        )
+        row = await cursor.fetchone()
+        return row["cnt"]
     finally:
         await db.close()

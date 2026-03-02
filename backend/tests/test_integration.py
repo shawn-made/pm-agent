@@ -76,59 +76,63 @@ def _make_llm_response(suggestions: list[dict]) -> str:
 
 
 # A realistic LLM response for meeting notes
-MEETING_NOTES_LLM_RESPONSE = _make_llm_response([
-    {
-        "artifact_type": "RAID Log",
-        "change_type": "add",
-        "section": "Risks",
-        "proposed_text": "**Risk**: Vendor contract with <ORG_1> expires next month. Mitigation: <PERSON_2> to follow up with renewal terms.",
-        "confidence": 0.9,
-        "reasoning": "Vendor contract expiration identified as risk from meeting discussion."
-    },
-    {
-        "artifact_type": "RAID Log",
-        "change_type": "add",
-        "section": "Issues",
-        "proposed_text": "**Issue**: Staging server at <URL_1> is down, blocking deployment. Owner: <PERSON_3>.",
-        "confidence": 0.95,
-        "reasoning": "Blocker explicitly mentioned by attendee."
-    },
-    {
-        "artifact_type": "Status Report",
-        "change_type": "update",
-        "section": "Accomplishments",
-        "proposed_text": "Dashboard redesign presented to <ORG_2> — client approved. Moving to Phase 2.",
-        "confidence": 0.85,
-        "reasoning": "Progress update from sprint review."
-    },
-    {
-        "artifact_type": "Meeting Notes",
-        "change_type": "add",
-        "section": "Action Items",
-        "proposed_text": "- <PERSON_2> to follow up with <PERSON_4> at <EMAIL_1> by Friday\n- Team to proceed with Phase 2 migration",
-        "confidence": 0.9,
-        "reasoning": "Action items identified from meeting discussion."
-    },
-])
+MEETING_NOTES_LLM_RESPONSE = _make_llm_response(
+    [
+        {
+            "artifact_type": "RAID Log",
+            "change_type": "add",
+            "section": "Risks",
+            "proposed_text": "**Risk**: Vendor contract with <ORG_1> expires next month. Mitigation: <PERSON_2> to follow up with renewal terms.",
+            "confidence": 0.9,
+            "reasoning": "Vendor contract expiration identified as risk from meeting discussion.",
+        },
+        {
+            "artifact_type": "RAID Log",
+            "change_type": "add",
+            "section": "Issues",
+            "proposed_text": "**Issue**: Staging server at <URL_1> is down, blocking deployment. Owner: <PERSON_3>.",
+            "confidence": 0.95,
+            "reasoning": "Blocker explicitly mentioned by attendee.",
+        },
+        {
+            "artifact_type": "Status Report",
+            "change_type": "update",
+            "section": "Accomplishments",
+            "proposed_text": "Dashboard redesign presented to <ORG_2> — client approved. Moving to Phase 2.",
+            "confidence": 0.85,
+            "reasoning": "Progress update from sprint review.",
+        },
+        {
+            "artifact_type": "Meeting Notes",
+            "change_type": "add",
+            "section": "Action Items",
+            "proposed_text": "- <PERSON_2> to follow up with <PERSON_4> at <EMAIL_1> by Friday\n- Team to proceed with Phase 2 migration",
+            "confidence": 0.9,
+            "reasoning": "Action items identified from meeting discussion.",
+        },
+    ]
+)
 
-STATUS_UPDATE_LLM_RESPONSE = _make_llm_response([
-    {
-        "artifact_type": "Status Report",
-        "change_type": "update",
-        "section": "Accomplishments",
-        "proposed_text": "- Completed API integration with <ORG_1>\n- Deployed v2.3 to production",
-        "confidence": 0.95,
-        "reasoning": "Direct accomplishments listed in update."
-    },
-    {
-        "artifact_type": "RAID Log",
-        "change_type": "add",
-        "section": "Issues",
-        "proposed_text": "**Issue**: Waiting on security review from <PERSON_1>. CI/CD pipeline intermittent failures.",
-        "confidence": 0.85,
-        "reasoning": "Blockers identified from status update."
-    },
-])
+STATUS_UPDATE_LLM_RESPONSE = _make_llm_response(
+    [
+        {
+            "artifact_type": "Status Report",
+            "change_type": "update",
+            "section": "Accomplishments",
+            "proposed_text": "- Completed API integration with <ORG_1>\n- Deployed v2.3 to production",
+            "confidence": 0.95,
+            "reasoning": "Direct accomplishments listed in update.",
+        },
+        {
+            "artifact_type": "RAID Log",
+            "change_type": "add",
+            "section": "Issues",
+            "proposed_text": "**Issue**: Waiting on security review from <PERSON_1>. CI/CD pipeline intermittent failures.",
+            "confidence": 0.85,
+            "reasoning": "Blockers identified from status update.",
+        },
+    ]
+)
 
 
 def _make_analysis_response(items: list[dict], summary: str = "Overall assessment.") -> str:
@@ -172,13 +176,17 @@ ANALYZE_LLM_RESPONSE = _make_analysis_response(
 )
 
 
-def _mock_llm_call(classification_response="meeting_notes", sync_response=MEETING_NOTES_LLM_RESPONSE):
+def _mock_llm_call(
+    classification_response="meeting_notes", sync_response=MEETING_NOTES_LLM_RESPONSE
+):
     """Create a mock LLM client that returns predefined responses."""
     mock_client = AsyncMock()
-    mock_client.call = AsyncMock(side_effect=[
-        classification_response,  # First call: input classification
-        sync_response,            # Second call: artifact sync
-    ])
+    mock_client.call = AsyncMock(
+        side_effect=[
+            classification_response,  # First call: input classification
+            sync_response,  # Second call: artifact sync
+        ]
+    )
     mock_client.estimate_tokens = lambda text: len(text) // 4
     mock_client.model = "mock-model"
     return mock_client
@@ -245,7 +253,9 @@ class TestFullPipeline:
 
         # The sync call (second call) should NOT contain real PII
         sync_call_args = mock_client.call.call_args_list[1]
-        llm_input = sync_call_args.kwargs.get("user_prompt") or sync_call_args[1].get("user_prompt", "")
+        llm_input = sync_call_args.kwargs.get("user_prompt") or sync_call_args[1].get(
+            "user_prompt", ""
+        )
         if not llm_input and len(sync_call_args.args) > 1:
             llm_input = sync_call_args.args[1]
 
@@ -303,14 +313,18 @@ class TestFullPipeline:
         """E2E with transcript-style input."""
         mock_client = _mock_llm_call(
             classification_response="transcript",
-            sync_response=_make_llm_response([{
-                "artifact_type": "Meeting Notes",
-                "change_type": "add",
-                "section": "Discussion",
-                "proposed_text": "Partnership update: <ORG_1> confirmed Q2 timeline. <ORG_2> migration ongoing.",
-                "confidence": 0.85,
-                "reasoning": "Key discussion points from transcript."
-            }]),
+            sync_response=_make_llm_response(
+                [
+                    {
+                        "artifact_type": "Meeting Notes",
+                        "change_type": "add",
+                        "section": "Discussion",
+                        "proposed_text": "Partnership update: <ORG_1> confirmed Q2 timeline. <ORG_2> migration ongoing.",
+                        "confidence": 0.85,
+                        "reasoning": "Key discussion points from transcript.",
+                    }
+                ]
+            ),
         )
 
         with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
@@ -365,7 +379,7 @@ class TestApplySuggestion:
                     "section": "Risks",
                     "proposed_text": "**Risk**: New vendor dependency identified.",
                     "confidence": 0.9,
-                    "reasoning": "From meeting notes."
+                    "reasoning": "From meeting notes.",
                 },
             )
 
@@ -389,7 +403,7 @@ class TestApplySuggestion:
                 "section": "Accomplishments",
                 "proposed_text": "- Completed API integration",
                 "confidence": 0.95,
-                "reasoning": "Direct accomplishment."
+                "reasoning": "Direct accomplishment.",
             },
             {
                 "artifact_type": "Status Report",
@@ -397,7 +411,7 @@ class TestApplySuggestion:
                 "section": "Blockers / Risks",
                 "proposed_text": "- Security review pending",
                 "confidence": 0.85,
-                "reasoning": "Blocker identified."
+                "reasoning": "Blocker identified.",
             },
         ]
 
@@ -441,7 +455,7 @@ class TestApplySuggestion:
                     "section": "Action Items",
                     "proposed_text": "- Review design docs by Friday",
                     "confidence": 0.9,
-                    "reasoning": "Action item from sync."
+                    "reasoning": "Action item from sync.",
                 },
             )
         assert response.status_code == 200
@@ -615,7 +629,9 @@ class TestProviderToggle:
 
         # Verify custom terms were not sent to LLM
         sync_call_args = mock_client.call.call_args_list[1]
-        llm_input = sync_call_args.kwargs.get("user_prompt") or sync_call_args[1].get("user_prompt", "")
+        llm_input = sync_call_args.kwargs.get("user_prompt") or sync_call_args[1].get(
+            "user_prompt", ""
+        )
         if not llm_input and len(sync_call_args.args) > 1:
             llm_input = sync_call_args.args[1]
         assert "ProjectPhoenix" not in llm_input
@@ -686,14 +702,18 @@ class TestErrorHandling:
     async def test_no_pii_in_text(self, async_client):
         """Text with no PII still processes successfully."""
         mock_client = _mock_llm_call(
-            sync_response=_make_llm_response([{
-                "artifact_type": "Status Report",
-                "change_type": "add",
-                "section": "Notes",
-                "proposed_text": "Sprint retrospective completed.",
-                "confidence": 0.8,
-                "reasoning": "General update."
-            }]),
+            sync_response=_make_llm_response(
+                [
+                    {
+                        "artifact_type": "Status Report",
+                        "change_type": "add",
+                        "section": "Notes",
+                        "proposed_text": "Sprint retrospective completed.",
+                        "confidence": 0.8,
+                        "reasoning": "General update.",
+                    }
+                ]
+            ),
         )
 
         with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
@@ -732,16 +752,21 @@ class TestPrivacyRoundTrip:
             # Return a suggestion referencing the email token from the anonymized input
             # Extract the email token from the input
             import re
+
             email_token = re.search(r"<EMAIL_\d+>", user_prompt)
             token_str = email_token.group(0) if email_token else "<EMAIL_1>"
-            return json.dumps([{
-                "artifact_type": "Meeting Notes",
-                "change_type": "add",
-                "section": "Action Items",
-                "proposed_text": f"Contact: {token_str}",
-                "confidence": 0.9,
-                "reasoning": f"Email found: {token_str}"
-            }])
+            return json.dumps(
+                [
+                    {
+                        "artifact_type": "Meeting Notes",
+                        "change_type": "add",
+                        "section": "Action Items",
+                        "proposed_text": f"Contact: {token_str}",
+                        "confidence": 0.9,
+                        "reasoning": f"Email found: {token_str}",
+                    }
+                ]
+            )
 
         mock_client.call = mock_call
         mock_client.estimate_tokens = lambda text: len(text) // 4
@@ -776,16 +801,21 @@ class TestPrivacyRoundTrip:
             if call_count == 1:
                 return "general_text"
             import re
+
             phone_token = re.search(r"<PHONE_\d+>", user_prompt)
             token_str = phone_token.group(0) if phone_token else "<PHONE_1>"
-            return json.dumps([{
-                "artifact_type": "RAID Log",
-                "change_type": "add",
-                "section": "Dependencies",
-                "proposed_text": f"Emergency contact: {token_str}",
-                "confidence": 0.9,
-                "reasoning": "Contact info captured."
-            }])
+            return json.dumps(
+                [
+                    {
+                        "artifact_type": "RAID Log",
+                        "change_type": "add",
+                        "section": "Dependencies",
+                        "proposed_text": f"Emergency contact: {token_str}",
+                        "confidence": 0.9,
+                        "reasoning": "Contact info captured.",
+                    }
+                ]
+            )
 
         mock_client.call = mock_call
         mock_client.estimate_tokens = lambda text: len(text) // 4
@@ -938,7 +968,9 @@ class TestAnalyzeMode:
 
         # The sync call (second call) should NOT contain real PII
         sync_call_args = mock_client.call.call_args_list[1]
-        llm_input = sync_call_args.kwargs.get("user_prompt") or sync_call_args[1].get("user_prompt", "")
+        llm_input = sync_call_args.kwargs.get("user_prompt") or sync_call_args[1].get(
+            "user_prompt", ""
+        )
         if not llm_input and len(sync_call_args.args) > 1:
             llm_input = sync_call_args.args[1]
 
@@ -961,10 +993,25 @@ class TestAnalyzeMode:
                 )
 
         data = response.json()
-        # Verify analysis items have non-empty content (reidentification ran)
+        # Verify analysis items have non-empty content and no raw PII tokens
+        # Check both bracketed (<ORG_88>) and bare (ORG_88) token forms
+        import re
+
+        bracketed_re = re.compile(r"<(PERSON|ORG|EMAIL|PHONE|URL|GPE|PRODUCT|CUSTOM)_\d+>")
+        bare_re = re.compile(
+            r"(?<![<\w])(PERSON|ORG|GPE|PRODUCT|EMAIL|PHONE|URL|CUSTOM)_\d+(?![>\w])"
+        )
         for item in data["analysis"]:
             assert item["title"]
             assert item["detail"]
+            assert not bracketed_re.search(item["title"]), (
+                f"Bracketed PII token in title: {item['title']}"
+            )
+            assert not bracketed_re.search(item["detail"]), (
+                f"Bracketed PII token in detail: {item['detail']}"
+            )
+            assert not bare_re.search(item["title"]), f"Bare PII token in title: {item['title']}"
+            assert not bare_re.search(item["detail"]), f"Bare PII token in detail: {item['detail']}"
 
     @pytest.mark.asyncio
     async def test_extract_mode_unchanged_when_omitted(self, async_client):
@@ -1048,17 +1095,19 @@ class TestParseAnalysis:
     """Unit tests for the _parse_analysis helper."""
 
     def test_valid_json(self):
-        response = json.dumps({
-            "summary": "Good document overall.",
-            "items": [
-                {
-                    "category": "strength",
-                    "title": "Clear structure",
-                    "detail": "The document is well organized.",
-                    "priority": "low",
-                },
-            ],
-        })
+        response = json.dumps(
+            {
+                "summary": "Good document overall.",
+                "items": [
+                    {
+                        "category": "strength",
+                        "title": "Clear structure",
+                        "detail": "The document is well organized.",
+                        "priority": "low",
+                    },
+                ],
+            }
+        )
         items, summary = _parse_analysis(response)
         assert len(items) == 1
         assert summary == "Good document overall."
@@ -1084,14 +1133,26 @@ class TestParseAnalysis:
 
     def test_partial_items(self):
         """Items with missing required fields are skipped."""
-        response = json.dumps({
-            "summary": "Mixed quality.",
-            "items": [
-                {"category": "strength", "title": "Good", "detail": "Solid work.", "priority": "low"},
-                {"title": "Missing category"},  # Missing required 'category' and 'detail'
-                {"category": "gap", "title": "Issue", "detail": "Problem here.", "priority": "high"},
-            ],
-        })
+        response = json.dumps(
+            {
+                "summary": "Mixed quality.",
+                "items": [
+                    {
+                        "category": "strength",
+                        "title": "Good",
+                        "detail": "Solid work.",
+                        "priority": "low",
+                    },
+                    {"title": "Missing category"},  # Missing required 'category' and 'detail'
+                    {
+                        "category": "gap",
+                        "title": "Issue",
+                        "detail": "Problem here.",
+                        "priority": "high",
+                    },
+                ],
+            }
+        )
         items, summary = _parse_analysis(response)
         assert len(items) == 2
         assert items[0].title == "Good"

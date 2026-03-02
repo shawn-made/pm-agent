@@ -1,0 +1,254 @@
+# Data Platform Project — Project Charter
+
+**Version**: 1.0 (Draft)
+**Date**: February 17, 2026
+**Author**: Jordan Rivera (Project Manager)
+**Status**: Draft — In Review (sent to ITS Leads 2/18)
+
+---
+
+## 1. Purpose
+
+This charter establishes the Data Platform Project as an authorized initiative and defines its scope, objectives, governance, and key milestones. It serves as the foundational agreement between the project team and its sponsors.
+
+The Data Platform Project is part of a broader technology program that also includes CRMPlatform work. Both projects share program leadership and executive sponsorship but currently operate with limited hard dependencies. This charter covers the Data Platform Project only.
+
+**This is a controlled document.** Changes to scope, milestones, or governance require a formal change request (see Section 9).
+
+---
+
+## 2. Problem Statement
+
+The institution currently relies on fragmented, system-specific reporting across multiple student information systems (LegacySIS, CampusPro, CRMPlatform/AdmitTrack, HousingDB, FinAidSys). This creates:
+
+- **No unified student view** — staff must manually aggregate data from multiple systems to understand a student's full picture
+- **Inconsistent reporting** — different teams extract and interpret data differently, leading to conflicting numbers
+- **Manual workarounds** — heavy reliance on spreadsheets, ad-hoc ReportHub queries, and manual cross-referencing
+- **Limited self-service** — the Analytics team and other stakeholders depend on a small number of report builders for any new data need
+- **Fragile institutional knowledge** — business rules and data quirks are held in individuals' heads rather than encoded in a governed platform
+
+The institution is also preparing for a **NextGenSIS migration** (target Fall 2027 go-live), which will replace the current SIS systems. The data platform must serve immediate reporting needs AND provide a bridge to the future state.
+
+---
+
+## 3. Project Objectives
+
+| # | Objective |
+|---|-----------|
+| O1 | **Consolidate fragmented student data** from 6+ source systems into a single DataCloud data platform |
+| O2 | **Enable self-service reporting** via VizBoard dashboards, reduce reliance on ad-hoc ReportHub reports |
+| O3 | **Establish trusted "gold" data models** that stakeholders can use confidently for decision-making |
+| O4 | **Deliver the Analytics report backlog** — a prioritized set of core and secondary reports covering enrollment, financial aid, housing, admissions, and academics |
+| O5 | **Improve data quality** through validation, deduplication, and documented business rules |
+| O6 | **Support the NextGenSIS transition** — build an architecture that accommodates the shift from LegacySIS/CampusPro to NextGenSIS |
+
+---
+
+## 4. Scope
+
+### 4.1 In Scope
+
+| Area | Description |
+|------|-------------|
+| **Source Systems** | LegacySIS (College SIS), CampusPro (Conservatory SIS), CRMPlatform, AdmitTrack, HousingDB (Housing), FinAidSys (Financial Aid) |
+| **Data Platform** | DataCloud data platform with medallion architecture (Raw → Cleansed → Modelled → Datamart) |
+| **ETL/Integration** | PipelineTool pipelines, CloudStore staging, DataPipe ingestion |
+| **Reporting** | VizBoard dashboards and data models supporting Analytics report backlog (19 reports/data sources) |
+| **Validation** | Data quality validation against ReportHub baselines and business rules |
+| **NextGenSIS Integration Planning** | Discovery, data mapping, POC ingestion, and initial modeling for NextGenSIS data |
+| **Observability** | Pipeline health monitoring, alerting, RBAC, data governance |
+| **Infrastructure** | GitHub (source control), GitHub Actions (CI/CD), SchemaSync (schema migrations) |
+
+### 4.2 Out of Scope
+
+| Area | Notes |
+|------|-------|
+| NextGenSIS configuration or development | Separate implementation project |
+| CRMPlatform advising model expansion | Deferred — scope TBD |
+| Career Services data ingestion | Deferred — scope TBD |
+| Customer Data Platform | Future |
+| AI/ML capabilities | Future |
+| Budget and procurement | Tracked separately |
+
+---
+
+## 5. Key Milestones
+
+Target dates are based on current estimates as of February 2026. These are planning targets subject to refinement through the change control process.
+
+### Current-State (LegacySIS / CampusPro)
+
+| # | Milestone | Target Date | Dependencies |
+|---|-----------|-------------|-------------|
+| M1 | **Core SIS Reports Validated** — College & Conservatory All Active Reports delivered and accepted | Mar 2026 | LegacySIS data model completion; validation with Analytics |
+| M2 | **Phase 2 Source Ingestion Complete** — HousingDB & FinAidSys data ingested and validated at Bronze layer | Apr 2026 | Discovery complete; secure access established |
+| M3 | **Registration/Enrollment Reports Delivered** — College & Conservatory Registration/Enrollment w/ Demographics | Apr 2026 | M1 (All Active foundation) |
+| M4 | **NTR Financial Reports Delivered** — College & Conservatory Net Tuition Revenue reports | May 2026 | NTR data ingestion; LegacySIS Dev team availability for charge/financial fields |
+| M5 | **Remaining Core Reports Delivered** — Restrictions and Graduation reports | Jun 2026 | Discovery and development cycle |
+| M6 | **Current-State Scope Freeze** — All current-state reports delivered and platform stabilized | Jun 2026 | M1–M5 complete |
+
+### NextGenSIS Integration
+
+| # | Milestone | Target Date | Dependencies |
+|---|-----------|-------------|-------------|
+| M7 | **NextGenSIS Discovery Complete** — Data mapping and technical approach defined | Mar 10, 2026 | Cross-project coordination with NextGenSIS team |
+| M8 | **NextGenSIS Technical POC Complete** — Ingestion proof of concept validated end-to-end | End of Apr 2026 | M7; integration path confirmed |
+| M9 | **NextGenSIS Data Model Approved** — Data model reviewed and approved, aligned with NextGenSIS Scope Freeze | End of Jun 2026 | M8; NextGenSIS code freeze (~Jun 2026) |
+| M10 | **NextGenSIS Data Platform Operational** — Rebuilt data model on NextGenSIS sources; Analytics reports migrated | TBD 2027 | NextGenSIS go-live (Fall 2027) |
+
+### Milestone Visualization
+
+```
+2026                                                                    2027
+Jan    Feb    Mar       Apr       May       Jun       Jul    ...    Fall
+ │      │      │         │         │         │         │              │
+ │      │     M1        M2        M4        M5        │              │
+ │      │      │        M3         │        M6        │              │
+ │      │     M7                  M8        M9        │              │
+ │      │      │         │         │         │         │              │
+ ├──Phase 1 Completion (SIS Reports)────────M6        │              │
+ ├──Phase 2 Ingestion───────M2    │         │         │              │
+ │         ├──NextGenSIS Discovery─M7───M8──────────M9─────────────M10─→
+ │      │      │         │         │    NextGenSIS    │              │
+ │      │      │         │         │    Scope Freeze  │       NextGenSIS
+ │      │      │         │         │                  │        Go-Live
+```
+
+---
+
+## 6. Team & Roles
+
+### 6.1 Project Team
+
+| Role | Description | Responsibility |
+|------|------------|----------------|
+| **Project Manager** | Jordan Rivera | Facilitates Agile ceremonies, manages backlog and priorities with stakeholders, tracks risks and status |
+| **Program Lead** | Added Oct 2025 | Leads this project and the related CRMPlatform project; program-level coordination |
+| **Lead Architect** | Independent Consultant | Technical direction, data model design and validation oversight, NextGenSIS integration architecture |
+| **Director of Enterprise Tech** | Technical leadership | Oversees all technical resources; resource allocation decisions |
+| **Technical Lead / Data Engineer** | David Park | Hands-on DataCloud and PipelineTool development, pipeline implementation |
+| **LegacySIS/Reporting SME** | Sarah Mitchell | Institutional knowledge for LegacySIS business rules, ReportHub report creation |
+| **Data Analyst** | Analytics team member | Data validation against ReportHub baselines, VizBoard dashboard development |
+| **Analyst / Tester** | QA team member | Data quality testing, ReportHub-to-DataCloud record reconciliation |
+| **BA (Phase 2)** | New BA (Jan 2026) | HousingDB and FinAidSys discovery, requirements, and ingestion support |
+| **Developer (Phase 2)** | New Dev (Jan 2026) | HousingDB and FinAidSys ingestion pipeline development |
+
+### 6.2 Stakeholders
+
+| Role | Involvement |
+|------|------------|
+| **Program Sponsors** | Executive visibility, strategic direction, change request approval |
+| **Analytics Team Lead** | Primary data consumer; defines and prioritizes report requirements; validates and accepts deliverables |
+| **LegacySIS Dev Team** | Dependent team — needed for field engineering (e.g., NTR charge/financial fields) |
+| **NextGenSIS Implementation Team** | Cross-project coordination for data mapping and integration planning |
+
+---
+
+## 7. Governance
+
+### 7.1 Decision-Making
+
+| Decision Type | Authority | Forum |
+|--------------|-----------|-------|
+| Day-to-day technical | Lead Architect + Technical Lead | Standup / working sessions |
+| Sprint scope and priorities | PM + Team | Sprint Planning |
+| Cross-project coordination | PM + Program Lead | ITS Leadership Weekly |
+| Strategic / resource | Program Sponsors | Sponsor Check-in (bi-weekly) |
+| Scope changes to charter | Sponsors | Change Request process (Section 9) |
+
+### 7.2 Status & Oversight Cadence
+
+| Meeting | Frequency | Attendees | Purpose |
+|---------|-----------|-----------|---------|
+| ITS Leadership Weekly | Weekly (Thu) | PM, Director of Enterprise Tech, Program Lead | Program oversight |
+| Sponsor Check-in | Bi-weekly (Fri) | PM, Program Sponsors | Executive visibility |
+| Analytics Weekly Sync | Weekly (Thu) | PM, Analytics Team Lead | Report backlog review, validation status |
+
+---
+
+## 8. Assumptions & Constraints
+
+### Assumptions
+
+| # | Assumption |
+|---|-----------|
+| A1 | The current team composition (as of Feb 2026) will remain stable through Phase 1 completion and Phase 2 |
+| A2 | The Lead Architect (independent consultant) will remain engaged through NextGenSIS integration planning |
+| A3 | LegacySIS and CampusPro data will be ingested "as-is" — business process changes to source systems are limited to prioritize the NextGenSIS transition |
+| A4 | Analytics report requirements are captured in the Analytics Backlog and will be managed through the prioritized backlog process |
+| A5 | The NextGenSIS go-live target remains Fall 2027; NextGenSIS code freeze approximately June 2026 |
+| A6 | The DataCloud data platform architecture (medallion model) is established and will not require fundamental redesign for current-state work |
+| A7 | Dependent teams (LegacySIS Dev, NextGenSIS Implementation) will be available when needed, subject to their own priorities |
+
+### Constraints
+
+| # | Constraint |
+|---|-----------|
+| C1 | **Legacy system complexity** — LegacySIS data contains deeply embedded business logic and computed fields that increase validation effort |
+| C2 | **Key-person dependencies** — Sarah Mitchell (LegacySIS SME) and the Lead Architect are critical-path resources across multiple workstreams |
+| C3 | **Dev environment only** — Production and test environments need to be established as Phase 1 nears completion |
+| C4 | **NextGenSIS timeline uncertainty** — NextGenSIS dates are subject to the implementation project's own schedule changes |
+| C5 | **Grant-funded** — Program originated from a grant; any funding constraints may affect timeline or scope |
+
+---
+
+## 9. Change Control
+
+This charter is a controlled document. Changes to the following require a formal change request:
+
+- **Scope** (systems, reports, or capabilities added or removed)
+- **Key milestones** (target dates or milestone definitions)
+- **Team composition** (significant changes to core team roles)
+- **Governance structure**
+
+### Change Request Process
+
+1. **Requestor** submits a written change request describing the proposed change, rationale, and impact assessment
+2. **PM** reviews the request and assesses feasibility with the technical team
+3. **Sponsors** approve or reject the change request
+4. **PM** updates this charter and communicates the change to stakeholders
+5. All approved changes are logged in the Change Log (below)
+
+### Change Log
+
+| # | Date | Description | Requested By | Approved By | Impact |
+|---|------|-------------|-------------|-------------|--------|
+| — | — | No changes yet | — | — | — |
+
+---
+
+## 10. Success Criteria
+
+The project will be considered successful when:
+
+1. **Analytics report backlog delivered** — Core reports (All Active, Registration/Enrollment, NTR, Restrictions, Graduation) are operational in VizBoard, validated against source systems, and accepted by the Analytics team
+2. **Data trust established** — Stakeholders use DataCloud/VizBoard as their primary data source for covered domains, reducing reliance on ad-hoc ReportHub queries
+3. **Platform stability** — Data pipelines run reliably with monitoring and alerting in place; issues are detected and resolved proactively
+4. **NextGenSIS readiness** — The data architecture has been assessed and a plan exists for transitioning from LegacySIS/CampusPro to NextGenSIS data sources
+5. **Knowledge transfer** — Business rules, data transformations, and system documentation are captured in the platform (not solely in individuals' heads)
+
+---
+
+## 11. Risk Summary
+
+A detailed risk register is maintained separately. Key project-level risks:
+
+| Risk | Severity | Summary |
+|------|----------|---------|
+| Key-person dependency (LegacySIS SME) | High | Sarah Mitchell is a single point of failure for LegacySIS institutional knowledge |
+| Architect capacity | High | Lead Architect spans all workstreams; Phase 1 delays compress NextGenSIS time |
+| All Active schedule delay (cascading) | High | College All Active validation gates all downstream Analytics reports |
+| Legacy technical debt | High | Platform surfaces pre-existing data quality issues, increasing validation burden |
+| NextGenSIS/Platform schedule misalignment | High | Current-state and future-state work compete for the same resources and timeline |
+
+---
+
+## 12. Approvals
+
+| Role | Name | Signature | Date |
+|------|------|-----------|------|
+| Program Sponsor | [_________________] | | |
+| Program Sponsor | [_________________] | | |
+| Director of Enterprise Tech | [_________________] | | |
+| Program Lead | [_________________] | | |
+| Project Manager | Jordan Rivera | | |

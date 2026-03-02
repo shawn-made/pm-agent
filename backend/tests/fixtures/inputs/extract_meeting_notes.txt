@@ -1,0 +1,20 @@
+Notes
+- ProjectAlpha All Active Findings Updates
+  - Explainable mismatches between DataCloud and All Active due to deduplication logic. When a student exists in both LegacySIS and CampusPro, DataCloud pulls demographics from the most recent enrollment source - Open Discussion. Applies to student demographics - Preferred and Legal Names, Email and Immigration attributes
+    - Outcome: Leave as-is; keep the current logic that pulls from the most recent enrollment source (SIS/CP)
+      - Immigration attributes need to preserve history while using the most current information
+  - Resident Hall Student: If a student ever had a housing status of Assigned or Reserved within a term, then the value is set to Y. Even if the housing assignment was later cancelled, the calculation still says the student was a Resident Hall Student. Eg: 1234567, 2345678
+    - Match All Active logic (investigation needed as only 2 mismatches seems low)
+  - Advisor: Inactive advisors still show up on the All Active report but without an email. Eg: Dana Torres (inactive advisor) is the assigned advisor for student: 3456789 in the All Active but the report doesn't populate Dana's email.
+    - Accept, low priority
+  - Students with multiple Active Program within the same academic level in the same term - implications on majors, minors and specializations
+    - Next Step: confirm business scenario for these records with Office of Enrollment, then determine business logic needed in report
+  - Missing Active Program - Program and Term Enrollment records in DataCloud
+  - F42 field for Total Completed UG Credit attribute in All Active
+  - Online records in All Active
+    - Capture campus credits (non Online) in DataCloud
+- FinAidSys updates (and open questions?)
+  - Request for updated script, missing tables in query?
+    - Resolved, new script not required
+- HousingDB update (and open questions)
+- Meeting Cadence - switch to Mon 10am starting in April

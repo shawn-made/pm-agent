@@ -1,0 +1,64 @@
+# Status Report
+
+**Project**: Data Platform
+**Period**: Current
+**Last Updated**: 2026-02-25
+
+## Summary
+
+_Overall project status summary._
+
+## Accomplishments
+
+- Completed API integration
+
+- Marcus Chen gained NextGenSIS access and confirmed it is working. Met with Lisa Torres, Kevin Barnes, Carlos Yang, and others to resolve access issues, which unblocks further NextGenSIS-related tasks.
+
+- Incremental data load process for new streams successfully deployed and validated by David Park for most tables. Initial full load happened, and the process is now configured for incremental updates.
+
+- Elena Kim completed the archival stored procedure for daily files and implemented an email notification for archived files, with the script ready for deployment.
+
+- Marcus Chen successfully obtained NextGenSIS access and is beginning to familiarize himself with the system.
+
+- Sarah Mitchell completed the archival procedure, which includes archiving daily files for the last 3 days and setting up email notifications upon completion of the archival process.
+
+## In Progress
+
+- Marcus Chen and Priya Sharma are continuing data validation efforts, including discussion of anomalies and reconciliation of datasets. One anomaly requires outreach to the overage office.
+
+- David Park is monitoring the incremental data load for new streams to identify and resolve any column-related issues.
+
+- Elena Kim is starting work on the ReportHub API after receiving input from Marcus Chen.
+
+The overall project timeline has been extended by 1 week. The new projected completion date is [Insert New Date].
+
+- Marcus Chen and Alex Petrov are continuing data validation efforts and met with Enrollment Services and Rebecca Stone to discuss the placement strategy for Enrollment Services' developer code.
+
+- The team, including Michael Hart and Rebecca Stone, successfully deployed code and ran tasks for data loading, confirming everything is working. Incremental load logic has been implemented by James Wilson for most tables, with only one table remaining on full load. Monitoring will continue today to ensure no column issues arise.
+
+- Taylor Morgan is reviewing responses from the Registrar regarding first terms and from Nathan Blake and Patricia Wells about swapping total credit fields using transcript grouping. A copy of 'All Active' has been updated with the recommended field, which Marcus Chen can use for validation. Taylor Morgan is still awaiting logic for another requested field. There is a need to coordinate this change across approximately 140 reports.
+
+## Upcoming
+
+- Proof of Concept (PoC) for automated data reconciliation: Use DataCloud to call ReportHub API for data comparison, identifying missing or deleted records between LegacySIS and DataCloud. Elena Kim will focus on this PoC with the awards file (1200 records).
+
+- Amanda Fox to begin loading data into HousingDB and then pick up dashboard development, aligning with upcoming March validation timelines.
+
+- David Park to work on 'starters' (16 tables): verify auto-generated tasks, deploy scripts to load data into the raw layer, match counts between HousingDB and DataCloud, and provide Elena Kim with an audit list for row hash updates before final script deployment.
+
+- The data operations team will initiate a proof-of-concept for automated data reconciliation using DataCloud and the ReportHub API, focusing on smaller data files first. James Wilson will work on loading data into HousingDB and dashboard development, with validation activities expected in March.
+
+- James Wilson will connect with Rebecca Stone today to finalize remaining work related to code deployment and incremental loads. James Wilson will also begin work on the 'starters' (16 tables), verifying tasks, deploying scripts to load data into the raw layer, matching counts, and capturing ordered columns for Rebecca Stone's update procedure.
+
+- Sarah Mitchell has the archival script ready and will proceed with its deployment. Additionally, Sarah Mitchell will begin work on FinAidSys today, following input from Rachel Lee.
+
+## Blockers / Risks
+
+- Security review pending
+
+- Changes to 'check-in restriction messages' and 'registration restriction messages' datasets by the Registrar (from description text to code-only) are occurring today in LegacySIS staging. This will break current DataCloud loading processes. Marcus Chen has paused the affected data pipes and will follow up in a week.
+
+## Key Metrics
+
+| Metric | Value | Trend |
+|--------|-------|-------|

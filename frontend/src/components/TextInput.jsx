@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from 'react'
 const PLACEHOLDERS = {
   extract: 'Paste meeting notes, transcripts, or project updates...',
   analyze: 'Paste a draft document for review...',
+  log_session: 'Paste session conclusions, decisions, or discussion outcomes...',
 }
 
 /**
@@ -84,6 +85,17 @@ export default function TextInput({ onSubmit, isLoading, mode = 'extract', onMod
               >
                 Analyze
               </button>
+              <button
+                type="button"
+                onClick={() => onModeChange('log_session')}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                  mode === 'log_session'
+                    ? 'bg-gray-900 text-white shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Log
+              </button>
             </div>
           )}
         </div>
@@ -110,9 +122,9 @@ export default function TextInput({ onSubmit, isLoading, mode = 'extract', onMod
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                {mode === 'analyze' ? 'Analyzing...' : 'Extracting...'}
+                {mode === 'analyze' ? 'Analyzing...' : mode === 'log_session' ? 'Logging...' : 'Extracting...'}
               </span>
-            ) : mode === 'analyze' ? 'Analyze' : 'Extract'}
+            ) : mode === 'analyze' ? 'Analyze' : mode === 'log_session' ? 'Log Session' : 'Extract'}
           </button>
         </div>
       </div>

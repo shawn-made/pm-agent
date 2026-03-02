@@ -1,0 +1,13 @@
+Data Platform Strategic Update
+
+The Data Platform is currently "unmasking" years of technical debt previously obscured by manual spreadsheet patches (#8). While this transparency is critical for the NextGenSIS transition, it has triggered cascading logic discrepancies that shift the All Active validation target to 2/17 (#1).
+
+To maintain momentum, leadership is addressing three primary pressures:
+
+- SME Dependency: Progress is tied to a single "Point of Failure" legacy SME, creating an urgent resource risk (#3).
+
+- Architectural Capacity: We are mitigating the Lead Architect bottleneck by decentralizing technical leads for HousingDB and FinAidSys (#4, #6).
+
+- Strategic Shift: We have prioritized "Workflow-Driven Discovery" to build an auditable, autonomous future-state model, targeting key milestones by 3/10 (#2, #5, #7).
+
+Bottom Line: We are accepting a 95% parity threshold on legacy data to prioritize "Institutional Truth" and ensure a stable architectural bridge for the 2027 NextGenSIS launch.

@@ -1,0 +1,449 @@
+WEBVTT
+
+1
+00:01:13.830 --> 00:01:15.100
+Jordan Rivera: Ready to go?
+
+2
+00:01:21.000 --> 00:01:22.009
+Marcus Chen: Hey, Jordan, how you doing?
+
+3
+00:01:22.590 --> 00:01:24.110
+Jordan Rivera: Doing alright, how about yourself?
+
+4
+00:01:24.640 --> 00:01:25.210
+Marcus Chen: Good.
+
+5
+00:01:25.950 --> 00:01:26.800
+Jordan Rivera: Good, good.
+
+6
+00:01:28.460 --> 00:01:30.079
+Marcus Chen: How's the call? How's the leads call?
+
+7
+00:01:31.120 --> 00:01:33.990
+Jordan Rivera: They're always an adventure, let's leave it at that.
+
+8
+00:01:36.130 --> 00:01:38.700
+Marcus Chen: Oh, wait, okay.
+
+9
+00:01:41.810 --> 00:01:43.360
+Marcus Chen: I got my HRPortal access.
+
+10
+00:01:43.890 --> 00:01:44.910
+Jordan Rivera: Alright.
+
+11
+00:01:45.350 --> 00:01:47.020
+Marcus Chen: As of this morning.
+
+12
+00:01:56.670 --> 00:02:02.849
+Jordan Rivera: That's good. Did you figure it out yet? Everything? You know the system now?
+
+13
+00:02:02.850 --> 00:02:03.640
+Marcus Chen: I haven't…
+
+14
+00:02:07.090 --> 00:02:26.410
+Marcus Chen: The funniest thing I've found is, as soon as I log in, there's, like, a couple of, quick links, so, there's something, something, and then duplicate students. Like, okay, like, as curious as well. I clicked on duplicate students, took me to one student, named Wolfgang Mozart. I'm like, someone thought of the right name.
+
+15
+00:02:28.480 --> 00:02:48.030
+Marcus Chen: But yeah, I got access, I will have to meet people to learn more. But yeah, I… after a conversation yesterday, I pinged Lisa and met with Taylor this morning, and Taylor, Kevin, and some other folks, they got my access figured out.
+
+16
+00:02:48.470 --> 00:02:49.340
+Marcus Chen: Going good?
+
+17
+00:02:51.980 --> 00:02:52.990
+Jordan Rivera: Good, good.
+
+18
+00:02:54.900 --> 00:02:58.399
+Jordan Rivera: Let's go ahead and just jump in.
+
+19
+00:02:59.020 --> 00:03:02.989
+Jordan Rivera: Marcus, since I'm already talking your ear off, you wanna just, get us started?
+
+20
+00:03:03.630 --> 00:03:08.240
+Marcus Chen: Sure. So, David and I…
+
+21
+00:03:08.400 --> 00:03:18.689
+Marcus Chen: Continuing more data validation, also met with Priya and Elena to talk about the… where the code that their developers are, and where that's gonna go.
+
+22
+00:03:19.570 --> 00:03:37.410
+Marcus Chen: I, later met… yesterday met with David, and we discussed some of the anomalies, as well. So, I think for only one of them, we… he had to reach out to the compliance office.
+
+23
+00:03:37.540 --> 00:03:49.359
+Marcus Chen: For the others, I think we only clarified what needs to be done, what needs to be done. We spent significant time, David and I, looking into reconciling, as well.
+
+24
+00:03:49.470 --> 00:03:55.830
+Marcus Chen: Similar reconciliation as David and Elena were talking about, but… more automated.
+
+25
+00:03:55.940 --> 00:04:07.050
+Marcus Chen: So, what we identified, and I think what we are gonna do a proof of concept on, is using DataCloud to call an API
+
+26
+00:04:07.140 --> 00:04:19.089
+Marcus Chen: a ReportHub API, make a ReportHub API call out of DataCloud for all the data sets. So let's say there's an awards file, we make an API call to the awards file, grab the IDs and the change dates.
+
+27
+00:04:19.260 --> 00:04:20.730
+Sarah Mitchell: Make that relevant.
+
+28
+00:04:21.149 --> 00:04:39.569
+Marcus Chen: Match in DataCloud and see where, if we have missing data in DataCloud, we'll tell, we'll have David insert the missing data in DataCloud. If there is data in DataCloud not there in LegacySIS, which tells us that the data has been deleted from LegacySIS, we'll just delete those records in DataCloud as well.
+
+29
+00:04:39.800 --> 00:04:53.759
+Marcus Chen: So, yeah, we talked in detail about that. I brought in Priya for that conversation as well, and this morning was discussing the team with Elena also. So,
+
+30
+00:04:54.260 --> 00:05:06.530
+Marcus Chen: I'll likely have Elena focus on this, and if we have you focus on the HousingDB, like, loading data into HousingDB, and then picking up FinAidSys, because…
+
+31
+00:05:06.870 --> 00:05:19.749
+Marcus Chen: Looking at the timelines, March is coming up, and that's where they're gonna do the validation as well. So, I think, that would be, in terms of allocation of work, I… I think…
+
+32
+00:05:20.080 --> 00:05:28.249
+Marcus Chen: I'll have Elena focus on the API part. Again, as a proof of concept, and if we need to scale, then all of us can contribute there.
+
+33
+00:05:28.500 --> 00:05:37.609
+Marcus Chen: And you focus on the HousingDB part itself, just loading data, and then FinAidSys is right around the corner, too.
+
+34
+00:05:40.180 --> 00:05:43.229
+Marcus Chen: But yeah, in terms of update, that's… that's all I have.
+
+35
+00:05:43.230 --> 00:05:45.200
+Jordan Rivera: Thank you, no, that was a lot. Thank you, Marcus.
+
+36
+00:05:46.500 --> 00:05:58.750
+David Park: Can I just jump in? I heard the end of that, sorry, and I apologize, I mistagged my mute, so if you got 10 seconds of David eating an apple, harmonious sound, my bad.
+
+37
+00:05:59.570 --> 00:06:02.890
+David Park: On the API thing with ReportHub,
+
+38
+00:06:04.020 --> 00:06:13.450
+David Park: We… as we're testing and proof of concept, those are all pointing to ReportHub production, so we should definitely focus on, like, the smaller files.
+
+39
+00:06:13.450 --> 00:06:20.299
+Marcus Chen: Yeah, the awards one with 1200 records is the one that we have. We don't have any other API ID, anyways, so we're gonna use that.
+
+40
+00:06:20.820 --> 00:06:27.389
+David Park: Okay, okay, perfect, perfect, because, yeah, I just did want to bang away on registrations and term enrollment,
+
+41
+00:06:27.590 --> 00:06:30.910
+David Park: We don't wanna… Our… our end.
+
+42
+00:06:30.910 --> 00:06:31.270
+Marcus Chen: Not yet.
+
+43
+00:06:31.270 --> 00:06:33.779
+David Park: Systems, we don't want to hit them any harder than we are.
+
+44
+00:06:34.150 --> 00:06:35.139
+Marcus Chen: I agree.
+
+45
+00:06:35.140 --> 00:06:36.630
+David Park: Sorry for the rant.
+
+46
+00:06:36.630 --> 00:06:45.420
+Marcus Chen: I… and we'll run this on a weekly basis, for now. At least once we have it figured out, we'll look to run it on a weekly basis.
+
+47
+00:06:46.760 --> 00:06:48.230
+Marcus Chen: This reconciliation process.
+
+48
+00:06:49.200 --> 00:07:01.629
+Marcus Chen: Just because there's so many records to be pulled up, like, let's say 4X, right? So, there are tables which get updated more often than others, and those are the tables which has millions and millions of records.
+
+49
+00:07:01.630 --> 00:07:11.380
+Marcus Chen: So we can't be querying them on a daily basis. So either, if we are to query them, then off hours would be the time that we do that, or weekend time.
+
+50
+00:07:12.460 --> 00:07:14.120
+David Park: You're talking about registrations?
+
+51
+00:07:14.730 --> 00:07:19.290
+Marcus Chen: Yeah, student registrations, their program enrolments, their course enrollments.
+
+52
+00:07:20.790 --> 00:07:25.299
+David Park: Registrations… is the one I'm obviously the most concerned about, but…
+
+53
+00:07:26.520 --> 00:07:41.439
+David Park: We could… we could talk more about it in the weeds, but I think we can set up the calls to refresh the data in ReportHub, which is actually not that big of a deal, and then use the API that lets you stagger the import so that you could bring it in
+
+54
+00:07:41.620 --> 00:07:48.170
+David Park: You know, maybe 500,000 records at a time, which I think will distribute it.
+
+55
+00:07:48.740 --> 00:07:51.910
+David Park: You'll wind up with all the records, and then, you know…
+
+56
+00:07:52.050 --> 00:08:02.490
+David Park: I don't know the functionality in DataCloud, but I'm sure there's some way to do something similar to, like, the parent-child pipeline, where you can set it up as basically a loop.
+
+57
+00:08:03.330 --> 00:08:13.460
+Marcus Chen: Yeah, so even if the process takes longer, like, all of this will be wrapped in a stored procedure, kickstart task on a daily… on a… whatever frequency we decide.
+
+58
+00:08:13.900 --> 00:08:16.450
+Marcus Chen: Yeah. However long it takes, I think that's okay.
+
+59
+00:08:18.110 --> 00:08:25.450
+Marcus Chen: If you were to run it on a more frequent basis, to do the match. Again, the idea of this would be
+
+60
+00:08:25.720 --> 00:08:28.929
+Marcus Chen: Or maybe we split it down to two tasks. The first task
+
+61
+00:08:29.310 --> 00:08:43.169
+Marcus Chen: Just grabs data out of LegacySIS, and that's going to take longer. So, getting the data out of DataCloud, which is already in DataCloud, is not going to be a big thing, and comparing is also not going to be a big thing, so that can be step two of the task, I guess.
+
+62
+00:08:43.289 --> 00:08:55.180
+Marcus Chen: So yeah, we can look to break it down, and if things take longer, just getting the data out of LegacySIS for a handful of tables, if it takes longer, I think that's…
+
+63
+00:08:55.300 --> 00:08:57.109
+Marcus Chen: Fine, because…
+
+64
+00:08:57.280 --> 00:09:04.619
+Marcus Chen: Then we are totally moving away from the reconciliation that you and Elena were talking about yesterday. Honestly, I'm not a big fan of it.
+
+65
+00:09:05.100 --> 00:09:08.279
+Marcus Chen: The records change so quickly.
+
+66
+00:09:08.540 --> 00:09:16.149
+Marcus Chen: In the recon file, that as soon as, like, when we query DataCloud, the record is already changed in,
+
+67
+00:09:16.150 --> 00:09:18.540
+David Park: Yeah, there's a timing component, to be sure.
+
+68
+00:09:18.540 --> 00:09:20.800
+Marcus Chen: There's a big timing component in here.
+
+69
+00:09:22.960 --> 00:09:26.410
+David Park: But you're gonna… you're still gonna have the same issue.
+
+70
+00:09:26.980 --> 00:09:33.940
+David Park: Right? Because you're doing the recon, it's still… so you're still… we're still… the way you're doing it, we're doing IDs and change state matching.
+
+71
+00:09:34.090 --> 00:09:35.739
+Marcus Chen: Okay, that's fine.
+
+72
+00:09:35.840 --> 00:09:37.060
+David Park: Yeah, that'll work.
+
+73
+00:09:37.470 --> 00:09:52.850
+Marcus Chen: So… so we'll do just one thing, which is an API-based approach and matching, and then we'll have two kind of results. One is records in DataCloud which are not in LegacySIS, so we'll get rid of them. Records in…
+
+74
+00:09:53.280 --> 00:10:12.609
+Marcus Chen: Records matching in both the systems, but LegacySIS having a more recent change date, so we'll let you know, okay, that we need change data, or we're missing some change data, and then records in LegacySIS which are not there in DataCloud, again, letting you know that we need this data which is missing from DataCloud. So, there are three outputs to it.
+
+75
+00:10:12.980 --> 00:10:18.460
+Marcus Chen: But, yeah, I like this as a much better and automated approach.
+
+76
+00:10:18.670 --> 00:10:23.480
+Marcus Chen: And troubleshooting this would be much easier.
+
+77
+00:10:25.240 --> 00:10:38.899
+Marcus Chen: So, I shared the documentation from yesterday, the ReportHub report for awards, the informal documentation with Elena, and she's gonna run a piece of it.
+
+78
+00:10:47.000 --> 00:10:48.279
+Marcus Chen: That's all I have.
+
+79
+00:10:49.590 --> 00:10:50.900
+Jordan Rivera: Thank you.
+
+80
+00:10:52.090 --> 00:10:52.970
+Jordan Rivera: Sorry, one moment…
+
+81
+00:11:01.820 --> 00:11:06.400
+Jordan Rivera: Let's continue on. Priya, would you like to go next?
+
+82
+00:11:07.990 --> 00:11:14.539
+Priya Sharma: Sure, so yesterday, I had a call with Marcus and Elena, we deployed the code, and
+
+83
+00:11:14.540 --> 00:11:30.409
+Priya Sharma: We ran the task, and everything is working fine. We loaded the data, and today, Marcus, I made that full load to incremental load, so when the task runs, it will do the incremental load, because the full load happens only once, right? So…
+
+84
+00:11:30.410 --> 00:11:43.999
+Priya Sharma: That is done. Only one table will be always a full load. As you know, there is no data update modified in it, so that will be taken care of, and I'll monitor today, when the task runs, I have to see if there are any issues with any of the columns.
+
+85
+00:11:44.120 --> 00:12:01.110
+Priya Sharma: The process is set, it's just that we have to monitor to make sure everything is good. And as you mentioned, I'll go through the folders that you created, and I'll connect with Elena, yeah, she's here. Yeah, I'll connect with Elena sometime today, to finish the rest of the work. And, for the…
+
+86
+00:12:01.260 --> 00:12:04.389
+Priya Sharma: ReportHub API, let me know…
+
+87
+00:12:04.610 --> 00:12:10.899
+Priya Sharma: What I need to do, or, like, if you have the keys, then I can try implementing that.
+
+88
+00:12:10.900 --> 00:12:18.239
+Marcus Chen: So, we'll have Elena do that, because I'll have you work on the HousingDB and FinAidSys work.
+
+89
+00:12:18.430 --> 00:12:24.949
+Marcus Chen: So, for HousingDB, all the 16 tables that we have, I created the task for them, as well, so…
+
+90
+00:12:26.550 --> 00:12:38.770
+Marcus Chen: What you will have to do is just verify, because I used Gemini to create all of them, and I've eyeballed them, but I haven't spent time on them. So, deploy the script.
+
+91
+00:12:38.930 --> 00:12:47.380
+Marcus Chen: That will create those tasks, and as soon as you create the tasks, they should get kicked off as well, because the streams already have the data.
+
+92
+00:12:47.480 --> 00:12:54.170
+Marcus Chen: So that data should be loaded in the raw layer. You'll have to match the counts.
+
+93
+00:12:54.170 --> 00:13:08.090
+Marcus Chen: In HousingDB, and then also in DataCloud. In addition to it, the row hash update process, so all the audit columns from all the 16 tables, you'll have to capture and add, and give that list to Elena, and she'll take care of the rest.
+
+94
+00:13:08.180 --> 00:13:27.549
+Marcus Chen: There is a row hash updates procedure where those will be added, along with the schema, so those are not merged with the existing list of columns that we have. So, do that first, give Elena the audit list. And once she makes the updates, you can deploy the script.
+
+95
+00:13:27.690 --> 00:13:37.960
+Marcus Chen: Because you don't want to load the data with the wrong row hash, because row hash is something we rely on very heavily to identify unique records.
+
+96
+00:13:37.970 --> 00:13:45.379
+Priya Sharma: So, we want the true unique records, as opposed to using the audit columns in there as well, because the change dates and…
+
+97
+00:13:45.380 --> 00:13:48.350
+Marcus Chen: Some of these other audit columns, they change for…
+
+98
+00:13:48.490 --> 00:14:04.849
+Marcus Chen: Even for the same rows, right? So, we don't want that to happen. So do that first, the audit list, then updates, you deploy the script, as soon as you deploy, the data is going to get loaded into the raw layer, for HousingDB, for all 16 tables.
+
+99
+00:14:05.040 --> 00:14:06.940
+Priya Sharma: I'll just verify the counts for those.
+
+100
+00:14:07.090 --> 00:14:12.140
+Marcus Chen: And just eyeball the task, right, before deploying the scripts as well.
+
+101
+00:14:12.360 --> 00:14:13.680
+Priya Sharma: Yeah, yeah, sure.
+
+102
+00:14:14.720 --> 00:14:20.019
+Priya Sharma: Okay. So, FinAidSys, ReportHub API, Elena will be working on it.
+
+103
+00:14:20.020 --> 00:14:24.220
+Marcus Chen: Yes, so she'll take that on, because there is… there's less of a learning curve there. She's familiar with it as well.
+
+104
+00:14:30.190 --> 00:14:49.639
+Marcus Chen: And, we can't get on the ProjectBeta reporting just yet, since I'm involved there, so I'll… in terms of next things for her, it'll be ProjectBeta reporting after this. So, we're just not ready for it yet.
+
+105
+00:14:49.780 --> 00:14:59.270
+Marcus Chen: In terms of segregation of work, you can still put some time on the data policies. Because that is independent of the validation work.
+
+106
+00:15:00.030 --> 00:15:00.670
+Marcus Chen: Sure.
+
+107
+00:15:00.670 --> 00:15:04.769
+Priya Sharma: Derek will be off… off till tomorrow, right? Okay.
+
+108
+00:15:05.300 --> 00:15:07.260
+Marcus Chen: I think so, yeah, for the rollout.
+
+109
+00:15:07.450 --> 00:15:12.370
+Priya Sharma: Okay, fine, yeah, maybe I'll just focus on HousingDB, and once he's back, I'll connect regarding the FinAidSys work.
+
+110
+00:15:12.520 --> 00:15:29.339
+Marcus Chen: And as soon as we deploy the scripts, the data should be loaded, so let me know as well. I expect all the 16 tables to be loaded by today, and we have a validation done on them in terms of number of counts. So don't pause the new task.
+
+111
+00:15:29.410 --> 00:15:45.390
+Marcus Chen: Which is gonna… the API, which is gonna extract from HousingDB. Let's load the streams first, resume the task, and let's load new data first, so it'll be much more of a validation step in terms of the data load, the unique records getting loaded or not.
+
+112
+00:15:45.760 --> 00:15:47.539
+Priya Sharma: Okay, sure, yeah, okay, just go.

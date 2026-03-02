@@ -129,9 +129,7 @@ class TestCustomTerms:
         assert len(entities) == 0
 
     def test_no_match(self):
-        entities = detect_custom_terms(
-            "Regular meeting notes.", ["Project Falcon"]
-        )
+        entities = detect_custom_terms("Regular meeting notes.", ["Project Falcon"])
         assert len(entities) == 0
 
 
@@ -200,9 +198,7 @@ class TestNERConfidence:
             assert persons[0].confidence >= MIN_CONFIDENCE_THRESHOLD
 
     def test_confidence_is_between_0_and_1(self):
-        entities = detect_ner(
-            "Sarah Johnson from Microsoft in New York discussed the roadmap."
-        )
+        entities = detect_ner("Sarah Johnson from Microsoft in New York discussed the roadmap.")
         for entity in entities:
             assert 0.0 <= entity.confidence <= 1.0
 
@@ -448,10 +444,68 @@ class TestReidentify:
         assert result == "No tokens here."
 
     @pytest.mark.asyncio
-    async def test_reidentify_unknown_token(self):
-        """Unknown tokens are left in place."""
+    async def test_reidentify_unknown_token_uses_fallback(self):
+        """Unknown tokens are replaced with human-readable fallbacks."""
         result = await reidentify("Hello <PERSON_999>!")
-        assert "<PERSON_999>" in result
+        assert "<PERSON_999>" not in result
+        assert "[a team member]" in result
+
+    @pytest.mark.asyncio
+    async def test_reidentify_unknown_org_token_uses_fallback(self):
+        """Unknown ORG tokens get the organization fallback."""
+        result = await reidentify("We work with <ORG_999>.")
+        assert "<ORG_999>" not in result
+        assert "[an organization]" in result
+
+    @pytest.mark.asyncio
+    async def test_reidentify_unknown_mixed_tokens(self):
+        """Mix of known and unknown tokens: known resolved, unknown gets fallback."""
+        # Anonymize to create a real vault entry
+        anon_result = await anonymize("Contact alice@example.com.", use_ner=False)
+        # Build text with one real token and one fabricated token
+        email_token = [t for t in anon_result.token_map.keys()][0]
+        text = f"Ask {email_token} or <PERSON_888> for help."
+        result = await reidentify(text)
+        assert "alice@example.com" in result
+        assert "<PERSON_888>" not in result
+        assert "[a team member]" in result
+
+    @pytest.mark.asyncio
+    async def test_reidentify_all_fallback_types(self):
+        """Every token type has a non-empty, bracket-wrapped fallback."""
+        for token_type in ["PERSON", "ORG", "GPE", "PRODUCT", "EMAIL", "PHONE", "URL", "CUSTOM"]:
+            text = f"See <{token_type}_999>."
+            result = await reidentify(text)
+            assert f"<{token_type}_999>" not in result
+            assert "[" in result  # fallback is bracket-wrapped
+
+    @pytest.mark.asyncio
+    async def test_reidentify_bare_token_resolved(self):
+        """Bare token (no brackets) is resolved from vault via bracketed lookup."""
+        # Create a real vault entry via anonymize
+        anon_result = await anonymize("Contact alice@example.com.", use_ner=False)
+        email_token = list(anon_result.token_map.keys())[0]  # e.g. <EMAIL_1>
+        # Strip brackets to simulate LLM stripping them
+        bare_token = email_token[1:-1]  # e.g. EMAIL_1
+        text = f"Ask {bare_token} for help."
+        result = await reidentify(text)
+        assert bare_token not in result
+        assert "alice@example.com" in result
+
+    @pytest.mark.asyncio
+    async def test_reidentify_bare_token_unknown_uses_fallback(self):
+        """Bare token with no vault match gets human-readable fallback."""
+        result = await reidentify("Talk to ORG_999 about it.")
+        assert "ORG_999" not in result
+        assert "[an organization]" in result
+
+    @pytest.mark.asyncio
+    async def test_reidentify_bare_token_not_in_word(self):
+        """Bare token pattern should not match inside other words."""
+        # PERSON_1 inside a larger word should NOT be treated as a token
+        result = await reidentify("The xPERSON_1y field is fine.")
+        # Should be unchanged because the pattern has word boundary guards
+        assert "xPERSON_1y" in result
 
     @pytest.mark.asyncio
     async def test_reidentify_multiple_tokens(self):
@@ -527,9 +581,7 @@ class TestAuditLog:
     async def test_anonymize_writes_audit_log(self, tmp_path, monkeypatch):
         """Anonymize writes an entry to the audit log."""
         log_path = tmp_path / "privacy" / "audit_log.jsonl"
-        monkeypatch.setattr(
-            "app.services.privacy_proxy.AUDIT_LOG_PATH", log_path
-        )
+        monkeypatch.setattr("app.services.privacy_proxy.AUDIT_LOG_PATH", log_path)
 
         await anonymize(
             "Contact alice@example.com",
@@ -547,9 +599,7 @@ class TestAuditLog:
     async def test_reidentify_writes_audit_log(self, tmp_path, monkeypatch):
         """Reidentify writes an entry to the audit log."""
         log_path = tmp_path / "privacy" / "audit_log.jsonl"
-        monkeypatch.setattr(
-            "app.services.privacy_proxy.AUDIT_LOG_PATH", log_path
-        )
+        monkeypatch.setattr("app.services.privacy_proxy.AUDIT_LOG_PATH", log_path)
 
         # First anonymize to populate vault
         anon_result = await anonymize(

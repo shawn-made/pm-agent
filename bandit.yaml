@@ -1,0 +1,14 @@
+# Bandit security scanner configuration for VPMA
+# Docs: https://bandit.readthedocs.io/
+
+# Skip test files (they intentionally use mock data that looks like secrets)
+exclude_dirs:
+  - backend/tests
+  - frontend
+  - .venv
+  - venv
+
+# Skip rules that don't apply
+skips:
+  # B101: assert used — we use assert in non-production code paths
+  - B101

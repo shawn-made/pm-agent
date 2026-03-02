@@ -1,0 +1,15 @@
+Data Platform Strategic Update
+
+The project is currently in a "unmasking" phase where the rigor of the new Data Platform architecture is exposing years of accumulated technical debt previously hidden by manual spreadsheet patches (#8). While this transparency is vital for a successful NextGenSIS transition, it has created a "cascading effect" of logic discrepancies that has pushed the All Active Report validation target to 2/17 (#1).
+
+To navigate this, the leadership team is managing three primary pressure points:
+
+- The "Single Point of Failure" Constraint: Our progress remains critically tied to the specialized legacy knowledge of a single SME, creating an urgent resource risk (#3).
+
+- Architectural Throughput: The Lead Architect is currently "broad-fronted" across every active integration, a bottleneck we are mitigating by decentralizing technical leads for HousingDB and FinAidSys (#4, #6).
+
+- The NextGenSIS Pivot: We have initiated a strategic shift toward Workflow-Driven Discovery to ensure our future-state model is auditable and autonomous. This discovery phase is the current priority for the combined team, with a series of technical and alignment milestones targeted for 3/10 (#2, #5, #7).
+
+Bottom Line: We are willingly accepting a 5% margin of legacy error (the 95% parity threshold) to ensure 100% precision on "Institutional Truth" fields, protecting the team's capacity to build the foundational bridge for the 2027 NextGenSIS launch.
+
+Next Step: Would you like me to draft a specific "Next Steps" email for Robert or the NextGenSIS team to address the resource and alignment risks identified in #6 and #7?

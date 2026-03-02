@@ -1,0 +1,144 @@
+Data Platform Replanning Notes
+
+1. Recommendation for CRMPlatform Integration Go-Live
+
+- Schedule Change Recommendation
+- The Core Problem: The Data Platform MVP is 7 working days (w/ risk of growing) behind our initial schedule for this 12-week phase, pushing our estimated go-live to November 6th.
+  - NOTE: as of last week's status report the slippage was 5 days and we have also more fully digested the critical dependencies below
+- The Critical Dependencies: This new date creates a direct collision with three immovable events (2-4 in particular create a very high risk of operational disruption during registration)
+  1. NextGenSIS Testing: Our UAT now overlaps with the start of NextGenSIS testing on 10/24, creating resource contention for the same advising team members.
+  2. Student Registration: Our go-live and support period lands directly on top of the start of student registration on 11/10, straining our technical and functional teams.
+     - Indirect RIF impact: ITS/project team stretched during high support, operational period.
+  3. Temporary Loss of Key Expert: Our Technical Architect's contract ends 11/10 (expected to restart 12/5) leaving us without critical expertise during critical post production support.
+- The Recommended Solution: Move the go-live date from November 6th to January, before semester starts (exact date pending review and confirmation with IT and Advising team). This decouples our launch from these events, ensuring a stable, focused, and well-supported deployment for the Advising team.
+- Analytics Impact: No MVP scope change, but a TBD schedule change.
+  - Opportunity: they will still be able to start building and testing in a UAT environment before go-live. They're also not dependent on integration work to start that.
+  - Risk: we may need to defer some tables to deliver the work for the CRMPlatform integration, so the current phase may require an additional push to production to deliver a subset of the fields they require.
+  - Future phase scoping included in status below
+
+---
+
+Critical Decision: Is A Strategic Pivot Required?
+
+- Where We Are: We are making progress toward a revised early January Go-Live. The delay was a direct result of an additional mandatory, unplanned rescue effort to fix the unstable platform.
+- The Root Cause: The inherited system was flawed due to a significant underestimation of the complexity of harmonizing two, highly customized student information systems, which was compounded by the fact that the internal team was still being formed during that critical initial phase.
+- The Strategic Pivot (The "Why Now"): The reason we are raising this critical issue now is because our team is finally past the initial system rescue and mature enough to grasp the program's full, long-term complexity. This new clarity makes it evident that we must pause low-ROI work on our temporary advising integration to focus on the mandatory, un-planned NextGenSIS project to avoid significant wasted investment and future rework.
+- Recommendation: Do we want to recommend a course of action here?
+
+---
+
+Phase Workstream Status
+
+| Phase | Workstream | Status | Target Date | Deliverable/Scope | Critical Risks | Mitigation |
+|-------|-----------|--------|-------------|-------------------|---------------|-----------|
+| CP Phase II (Current) | Student Portal/CRM Enhancement | On Track | | Advisor Dashboard Enhancements, Student Portal | | |
+| | Data Platform Analytics - Phase 1 | Early Nov, date needs confirmation | | Phase 1 Analytics approved Data Model in Gold Layer (Sandbox) | Parallel work could delay (PortalSync Integration) | Extension of Analytics Team Enablement |
+| | Data Platform - CRMPlatform Integration | | | | | |
+| CP Phase III / Operational | Data Platform/Analytics Roadmap | Partially Blocked | | | Same Platform Technical Team required for current phase, already working nights/weekends. Rework risk w/ switch to NextGenSIS - mitigation plan needed. CRITICAL: review priority list w/ Patricia | |
+| | Data Platform/NextGenSIS Data Model changes & Integration | Blocked | | | Same Platform Technical Team required, already working nights/weekends. Duplicate work risk for reports added after this work is complete | |
+| | Crosspoint Phase III/Grant Planning | Partially Blocked | | | Common, agreed upon scope not documented (required to confirm budget and staffing plan). Data Platform team input blocked | |
+
+---
+
+2. Project Background: Course Correcting & Rework
+
+- System Stabilization and MVP Completion
+- Context: This 12-week phase was initiated to correct a critically flawed and unstable system. The platform was not functional. The team has made remarkable progress in fixing these issues, but as the team worked through design the amount of work required for fixes to all of them have caused a risk to the pre-defined 12 week target.
+  - System Instability: Core data tasks were failing to run.
+  - Financial Drain: When tasks did run, they were inefficient, burning excessive DataCloud compute credits and driving up costs.
+  - Architecture Flaws: 1) the data mart/consumption layer was built on the Silver Layer, instead of Gold against best practices and 2) Key business logic was not moved out of PipelineTool into the data platform
+  - Staffing Gaps: Our data engineer didn't join until the end of the April deployment and we did not have both a Technical Architect and Analytics leadership in place at the same time until this phase began in August, which required a new gap analysis.
+- Root Causes:
+  - "The technical debt we inherited wasn't the result of a single mistake, but a combination of two key factors:"
+    - Underestimation of Source System Complexity: The initial plan did not fully account for the unique complexities of our source systems, particularly LegacySIS. To make the data usable, our team had to perform significant, unplanned work: re-engineering core data fields, building custom reports just to extract the data, on top of the expected harmonizing of an unusually large number of fields due to our separate SIS structure. This made the initial integration far more brittle and inefficient than anyone anticipated
+    - A Process That Masked Critical Risks: The combination of a firm schedule and an underestimation of the data complexity described above created a high-pressure environment. This appears to have led to necessary shortcuts in the initial design and prevented the rigorous code review and testing required for a platform of this scale. As a result, critical design flaws remained hidden until the original engagement was over and our team was left to discover and resolve them
+  - Accomplishments & Mitigations: Despite these challenges, we have successfully completed the Foundational Re-architecture, strategically deferred non-essential scope, and are actively building the new CRMPlatform integration
+- Where We Are Today: The positive news is that the core technical issues are now resolved. With fully staffed and dedicated teams, productivity and focus are trending well, and we are on a clear path to delivering a stable MVP.
+
+---
+
+3. Next Phase Planning
+
+- The Situation: The team is on track to deliver the Data Platform MVP (assuming above schedule change is approved). However, our intense focus on stabilizing the platform has come at a cost: we have a growing backlog of critical initiatives but no refined, formal roadmap for what comes next.
+- The Core Problem: We know these future initiatives are highly interdependent, but we do not yet know the full extent of these dependencies. The required planning and analysis, particularly with the NextGenSIS team, has been slow to start. Our teams are at full capacity and already working weekends to deliver the current MVP, leaving minimal bandwidth for this essential strategic work.
+- The Risk: Continuing without a dedicated planning phase is unsustainable. We are operating with a significant blind spot around the NextGenSIS integration. This isn't just a list of future work; it's a web of connections where a misstep in one area could trigger months of rework in another.
+  - Risk of Compounding Rework: Without this knowledge, we can't effectively triage our other priorities.
+    - How much 'throw-away' work is likely for each report?
+    - Does there need to be a full or partial scope freeze after the data model is adjusted to NextGenSIS and that integration is built to avoid doubling work during this period?
+    - Is there any capacity or timing to add data sources? If no, what's the impact to Analytics.
+  - The Human Factor: Our teams are stretched to their limit. Asking them to simultaneously support a new platform, plan a complex re-architecture, and deliver new features is a recipe for burnout and project failure.
+- The Path Forward: We must treat the creation of the roadmap as a formal project. We need to ring-fence time immediately after the MVP launch to perform the necessary analysis. This "work before the work" is the only way to mitigate the significant risks of wasted effort, team burnout, and potential platform obsolescence.
+
+---
+
+Roadmap: An Interconnected System, Not a Checklist
+
+This is not a list we can simply start at the top of. Each of these items represents significant value, but they are interdependent and carry unique risks that must be managed.
+
+- NextGenSIS Integration (Mandatory)
+  - Description: Mandatory project to align the data platform with the institution's new student information system. Involves analyzing new business processes and data models within NextGenSIS and re-architecting our platform to accommodate them.
+  - Critical Risks:
+    - Platform Obsolescence: Without this integration, the data platform will become obsolete for the entering class of Fall 2027 and beyond, jeopardizing the entire investment.
+    - Resource Contention: Both the Data Platform and NextGenSIS teams are at full capacity.
+  - Critical Questions:
+    - What is the full scope and scale of the data model and business process changes that will be introduced by NextGenSIS? The answer to this is the largest unknown in our future planning.
+
+- Strategic Reporting & Analytics Migration (High Value, High Risk of Rework)
+  - Description: Methodical process of moving key institutional reports and analytics from legacy systems to the new data platform.
+  - Critical Risks:
+    - Inefficient "Throw-Away" Work: High risk of investing resources to build reports on the current data model that will need to be at least partially rebuilt after NextGenSIS integration.
+  - Critical Questions:
+    - What is the definitive, prioritized list of reports and data points that need to be migrated from legacy systems to the data platform?
+    - Which of these reports can be safely built now versus which must wait for the new NextGenSIS data model?
+
+- Graduate Student Data Integration (Complements above item)
+  - Description: Expanding the current data model to incorporate graduate student population data, which was not included in the MVP. The current Campbell Report has Graduate and Undergraduate data filterable but coupled together.
+  - Critical Risks:
+    - Incomplete Institutional View: Delaying inclusion limits the platform's ability to answer institution-wide questions and retire manual spreadsheet reporting
+  - Critical Questions:
+    - How does the priority stack up against mandatory NextGenSIS integration and immediate need for undergraduate reporting?
+
+- Data Platform Expansion Strategy (e.g., Financial Aid)
+  - Description: How to service new data requests — fully integrating into the governed data platform, allowing a direct-to-VizBoard connection for faster access, or using a legacy tool like ReportHub as a stopgap.
+  - Critical Risks:
+    - Creating Technical Debt vs. Slow Delivery Velocity
+  - Critical Questions:
+    - What is our decision-making framework for choosing the right data delivery method based on urgency, user base, and strategic importance?
+    - For critical datasets like Financial Aid, what is the trade-off between speed of a direct connection versus long-term value of full integration?
+
+- Operational Support (Mandatory, Ongoing)
+  - Description: Bug fixes, technical support for the analytics team, general maintenance.
+  - Critical Risks:
+    - Divided Team Focus: Same team responsible for support and new development.
+  - Critical Questions:
+    - What is the anticipated volume of support requests once the analytics team begins using the platform?
+    - Do we need a formal support model or SLA?
+
+- Advising Model Enhancements
+  - Critical Risks:
+    - Conflicting Changes: Modifications could conflict with or be rendered obsolete by NextGenSIS changes.
+  - Critical Questions:
+    - Which new teams need to be onboarded, and what are their unique data requirements?
+
+- Customer Data Platform (CDP) Discovery (Strategic Future)
+  - Description: Explore and validate the business case for a CDP.
+  - Critical Risks:
+    - Premature: Investing time before core platform is stabilized could divert focus.
+  - Critical Questions:
+    - What business outcomes (improved recruitment, higher retention) are we trying to achieve?
+
+Simply starting the "next" item on this list without a clear plan will lead to inefficient use of our team and, more importantly, costly rework.
+
+---
+
+Schedule Change Summary:
+- Data Platform and Integration Complete and Validated (Ongoing - 11/10)
+  - Adds two weeks and removed concurrent UAT/feedback
+- Cleanup work: integration, deployment plan, UAT prep etc (11/12 - 12/10)
+  - Work Elena Rodriguez can do while Marcus Chen is away
+- NextGenSIS Gap Analysis (11/3 - 12/18)
+  - This starts Marcus Chen's last week in this engagement and goes through his first couple weeks back
+- Data Platform UAT (12/5 - 12/10)
+  - Week Marcus Chen returns, last week of semester for students
+- Data Platform Deployment (12/15 - 12/18)
+  - Students will be gone but staff will be here (double check PTO)

@@ -2,7 +2,7 @@
 
 A running log of technical concepts, patterns, and vocabulary learned during VPMA development. Written in plain language for a PM audience. Use this to build fluency when discussing the project with engineers.
 
-**Last Updated**: 2026-02-15
+**Last Updated**: 2026-02-25
 
 ---
 
@@ -91,7 +91,7 @@ Code that can start a slow operation (like an API call to Claude) and do other w
 ### Testing
 
 **Unit Tests vs Integration Tests**
-Unit tests check one small piece in isolation ("does the regex detect emails?"). Integration tests check the full pipeline ("does text input → anonymize → LLM → re-identify → display actually work end-to-end?"). Both are essential. VPMA has 174 backend unit tests and 22 integration tests.
+Unit tests check one small piece in isolation ("does the regex detect emails?"). Integration tests check the full pipeline ("does text input → anonymize → LLM → re-identify → display actually work end-to-end?"). Both are essential. VPMA has 425 backend tests (unit + integration) and 115 frontend tests.
 
 **Mocking**
 In tests, replacing a real dependency with a fake one. Instead of making actual API calls to Claude during tests (slow, costs money, requires API key), we "mock" the LLM client to return a pre-defined response. This makes tests fast, free, and deterministic.
@@ -111,6 +111,37 @@ Automated code style checking. `ruff` (backend) and `eslint` (frontend) scan cod
 
 **CORS (Cross-Origin Resource Sharing)**
 A browser security feature that prevents a website at one URL from making requests to a different URL unless explicitly allowed. VPMA configures CORS to allow `localhost:3000` (frontend) to call `localhost:8000` (backend). Without this, the browser would block the requests.
+
+---
+
+## Concepts Learned During Phase 1A
+
+### Living Project Document (LPD)
+
+**Living Project Document (LPD)**
+A persistent, section-based knowledge base that accumulates project understanding over time. Instead of each VPMA session starting from zero, the LPD stores what the system already knows about the project — risks, decisions, stakeholders, action items — organized into named sections. Each section has its own content, timestamps, and staleness tracking.
+
+*When to use this term*: "The LPD is the project's persistent memory. Applied suggestions feed back into it, so the system gets smarter with each session."
+
+**Context Injection**
+Before each LLM call, VPMA automatically prepends relevant LPD sections to the prompt. The PM doesn't need to paste project context — it's injected from the LPD. This means the AI's suggestions are informed by everything the system already knows about the project.
+
+*When to use this term*: "Context injection pulls the relevant LPD sections into the prompt automatically, so the LLM always has project context without the PM re-explaining."
+
+**Return Path**
+The mechanism that closes the loop: when a PM applies a suggestion, that change feeds back into the LPD. Without the return path, VPMA is a one-directional pipe (input → suggestions → clipboard). With it, applied suggestions update the project's knowledge state.
+
+*When to use this term*: "The return path means applying a suggestion doesn't just write a file — it updates the LPD, so future sessions build on what was already decided."
+
+**Project Intake**
+A bulk import flow for bootstrapping the LPD from existing PM files. Instead of building project context one paste at a time, the PM can feed in existing RAID logs, status reports, and notes. The system parses them and populates the appropriate LPD sections.
+
+*When to use this term*: "Project intake lets you bootstrap the LPD from your existing artifacts instead of starting from scratch."
+
+**Staleness Tracking**
+Each LPD section has both `updated_at` (when the content last changed) and `verified_at` (when someone confirmed it's still accurate). A section can be recently modified but still stale if only part of it was updated. The staleness API surfaces which sections need review.
+
+*When to use this term*: "Staleness tracking distinguishes between 'when was this changed' and 'when was this confirmed accurate' — so we can flag sections that need a review sweep."
 
 ---
 

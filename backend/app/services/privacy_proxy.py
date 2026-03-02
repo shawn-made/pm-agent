@@ -32,23 +32,73 @@ MIN_ENTITY_LENGTH = 2
 
 # Words that spaCy en_core_web_sm commonly misclassifies as named entities
 # in conversational text (transcripts, meeting notes).  Case-insensitive.
-NER_STOPLIST = frozenset({
-    # Interjections / conversational words misclassified as PERSON
-    "hey", "hi", "hmm", "hm", "oh", "yeah", "yep", "nope", "jeez",
-    "ok", "okay", "sure", "thanks", "bye", "hello", "wow", "oops",
-    "ugh", "um", "uh", "ah", "standup",
-    # Common words misclassified as ORG
-    "sms", "ui", "ux", "api", "qa", "hr", "it", "ai", "ml",
-    "pm", "am", "eta", "eod", "eow", "asap", "tbd", "tba",
-    "congratulations", "congrats",
-    # Common words misclassified as GPE
-    "colleague", "remote", "hybrid", "onsite",
-    # Common words misclassified as PRODUCT
-    "reschedule", "discovery", "standup", "retro", "sprint",
-})
+NER_STOPLIST = frozenset(
+    {
+        # Interjections / conversational words misclassified as PERSON
+        "hey",
+        "hi",
+        "hmm",
+        "hm",
+        "oh",
+        "yeah",
+        "yep",
+        "nope",
+        "jeez",
+        "ok",
+        "okay",
+        "sure",
+        "thanks",
+        "bye",
+        "hello",
+        "wow",
+        "oops",
+        "ugh",
+        "um",
+        "uh",
+        "ah",
+        "standup",
+        # Common words misclassified as ORG
+        "sms",
+        "ui",
+        "ux",
+        "api",
+        "qa",
+        "hr",
+        "it",
+        "ai",
+        "ml",
+        "pm",
+        "am",
+        "eta",
+        "eod",
+        "eow",
+        "asap",
+        "tbd",
+        "tba",
+        "congratulations",
+        "congrats",
+        # Common words misclassified as GPE
+        "colleague",
+        "remote",
+        "hybrid",
+        "onsite",
+        # Common words misclassified as PRODUCT
+        "reschedule",
+        "discovery",
+        "standup",
+        "retro",
+        "sprint",
+    }
+)
 
 # Token format: <TYPE_N> e.g., <PERSON_1>, <EMAIL_2>
 TOKEN_PATTERN = re.compile(r"<(PERSON|ORG|GPE|PRODUCT|EMAIL|PHONE|URL|CUSTOM)_(\d+)>")
+
+# LLMs sometimes strip angle brackets, producing bare tokens like ORG_88.
+# This pattern catches those so reidentify() can still replace them.
+BARE_TOKEN_PATTERN = re.compile(
+    r"(?<![<\w])(PERSON|ORG|GPE|PRODUCT|EMAIL|PHONE|URL|CUSTOM)_(\d+)(?![>\w])"
+)
 
 # Audit log location — co-located with the rest of the project data
 AUDIT_LOG_PATH = VPMA_DIR / "privacy" / "audit_log.jsonl"
@@ -102,15 +152,9 @@ class AnonymizeResult:
 # ============================================================
 
 REGEX_PATTERNS = {
-    "EMAIL": re.compile(
-        r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"
-    ),
-    "PHONE": re.compile(
-        r"(?<!\w)(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"
-    ),
-    "URL": re.compile(
-        r"https?://[^\s<>\"')\]]+"
-    ),
+    "EMAIL": re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
+    "PHONE": re.compile(r"(?<!\w)(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"),
+    "URL": re.compile(r"https?://[^\s<>\"')\]]+"),
 }
 
 
@@ -453,7 +497,9 @@ async def reidentify(text: str) -> str:
     """Replace anonymization tokens with original values from the PII vault.
 
     Finds all <TYPE_N> tokens in text and replaces them with the original
-    values stored in the vault.
+    values stored in the vault. Tokens with no vault match are replaced with
+    a human-readable fallback (e.g., "a team member") instead of leaking
+    the raw token to the user.
 
     Args:
         text: Anonymized text containing tokens like <PERSON_1>.
@@ -463,37 +509,85 @@ async def reidentify(text: str) -> str:
     """
     from app.services.crud import get_pii_mapping
 
-    # Find all unique tokens in text
+    # Find all unique tokens in text (bracketed and bare forms)
     token_strings = set()
     for match in TOKEN_PATTERN.finditer(text):
         token_strings.add(match.group(0))
 
-    if not token_strings:
+    bare_tokens: dict[str, str] = {}  # bare form → bracketed form
+    for match in BARE_TOKEN_PATTERN.finditer(text):
+        bare = match.group(0)
+        bracketed = f"<{bare}>"
+        # Only treat as bare token if the bracketed form isn't already in text
+        if bracketed not in text:
+            bare_tokens[bare] = bracketed
+
+    if not token_strings and not bare_tokens:
         return text
 
-    # Load mappings from vault
+    # Load mappings from vault for bracketed tokens
     mappings: dict[str, str] = {}
+    unmatched: list[str] = []
     for token in token_strings:
         mapping = await get_pii_mapping(token)
         if mapping:
             mappings[token] = mapping.original_value
+        else:
+            unmatched.append(token)
 
-    # Replace tokens with originals
+    # Load mappings for bare tokens (look up the bracketed form in vault)
+    bare_mappings: dict[str, str] = {}
+    for bare, bracketed in bare_tokens.items():
+        mapping = await get_pii_mapping(bracketed)
+        if mapping:
+            bare_mappings[bare] = mapping.original_value
+        else:
+            unmatched.append(bare)
+
+    # Replace bracketed tokens with originals; use fallback for unmatched
     def replace_token(match: re.Match) -> str:
         token = match.group(0)
-        return mappings.get(token, token)
+        if token in mappings:
+            return mappings[token]
+        entity_type = match.group(1)
+        return _UNMATCHED_TOKEN_FALLBACKS.get(entity_type, "[redacted]")
 
     result = TOKEN_PATTERN.sub(replace_token, text)
+
+    # Replace bare tokens with originals; use fallback for unmatched
+    def replace_bare_token(match: re.Match) -> str:
+        bare = match.group(0)
+        if bare in bare_mappings:
+            return bare_mappings[bare]
+        entity_type = match.group(1)
+        return _UNMATCHED_TOKEN_FALLBACKS.get(entity_type, "[redacted]")
+
+    result = BARE_TOKEN_PATTERN.sub(replace_bare_token, result)
 
     _write_audit_log(
         "reidentify",
         {
-            "token_count": len(token_strings),
-            "reidentified_count": len(mappings),
+            "token_count": len(token_strings) + len(bare_tokens),
+            "reidentified_count": len(mappings) + len(bare_mappings),
+            "unmatched_count": len(unmatched),
         },
     )
 
     return result
+
+
+# Fallback labels when a PII token has no vault match (e.g. LLM fabricated
+# a token number that was never created during anonymization).
+_UNMATCHED_TOKEN_FALLBACKS = {
+    "PERSON": "[a team member]",
+    "ORG": "[an organization]",
+    "GPE": "[a location]",
+    "PRODUCT": "[a product]",
+    "EMAIL": "[an email]",
+    "PHONE": "[a phone number]",
+    "URL": "[a URL]",
+    "CUSTOM": "[redacted]",
+}
 
 
 def _write_audit_log(action: str, details: dict) -> None:

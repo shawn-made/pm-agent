@@ -1,0 +1,141 @@
+{
+  "suggestions": [
+    {
+      "artifact_type": "Meeting Notes",
+      "change_type": "add",
+      "section": "Discussion",
+      "proposed_text": "- Reviewed ProjectAlpha All Active findings, specifically explainable mismatches between DataCloud and the 'All Active' report due to deduplication logic, affecting student demographics (Preferred/Legal Names, Email, and Immigration attributes).",
+      "confidence": 0.9,
+      "reasoning": "This discussion addresses a core data integrity topic for ProjectAlpha, identifying specific areas of mismatch and their root cause."
+    },
+    {
+      "artifact_type": "Meeting Notes",
+      "change_type": "add",
+      "section": "Decisions",
+      "proposed_text": "- For ProjectAlpha All Active findings, decided to keep the current logic for student demographics (Preferred and Legal Names, Email, Immigration attributes) that pulls from the most recent enrollment source (SIS/CP), accepting the resulting explainable mismatches between DataCloud and 'All Active' reports.",
+      "confidence": 0.95,
+      "reasoning": "This decision provides a clear resolution for a known data discrepancy in ProjectAlpha, avoiding further re-evaluation and allowing development to proceed with the existing logic."
+    },
+    {
+      "artifact_type": "Meeting Notes",
+      "change_type": "add",
+      "section": "Discussion",
+      "proposed_text": "- Clarified that immigration attributes require a system design that preserves historical data while reflecting the most current information.",
+      "confidence": 0.85,
+      "reasoning": "This highlights a specific data handling requirement for immigration attributes, which influenced the broader decision on deduplication logic."
+    },
+    {
+      "artifact_type": "Meeting Notes",
+      "change_type": "add",
+      "section": "Discussion",
+      "proposed_text": "- Identified a discrepancy where 'Resident Hall Student' status is set to Y. Even if a student ever had an 'Assigned' or 'Reserved' housing status in a term, even if the assignment was later cancelled, still showing them as a Resident Hall Student. Only 2 mismatches were observed, suggesting a potential gap in the 'All Active' logic.",
+      "confidence": 0.9,
+      "reasoning": "This identifies a specific data calculation issue for housing status that needs investigation to ensure accuracy in the 'All Active' report."
+    },
+    {
+      "artifact_type": "Meeting Notes",
+      "change_type": "add",
+      "section": "Action Items",
+      "proposed_text": "| Investigate the 'Resident Hall Student' logic to align with 'All Active' report logic, especially to understand why only two mismatches were found. | TBD | TBD | Open |",
+      "confidence": 0.75,
+      "reasoning": "Investigation is needed to resolve a data inconsistency regarding student housing status, which impacts the accuracy of the 'All Active' report."
+    },
+    {
+      "artifact_type": "Meeting Notes",
+      "change_type": "add",
+      "section": "Discussion",
+      "proposed_text": "- Noted that inactive advisors (e.g., Dana Torres) still appear on the All Active report, but without an email address (e.g., Dana's email is missing for student 3456789).",
+      "confidence": 0.9,
+      "reasoning": "Acknowledges a known data anomaly where inactive advisors are displayed on a report without complete information."
+    },
+    {
+      "artifact_type": "Meeting Notes",
+      "change_type": "add",
+      "section": "Decisions",
+      "proposed_text": "- Decided to accept the current behavior where inactive advisors appear on the All Active report without an email, categorizing it as a low-priority issue.",
+      "confidence": 0.95,
+      "reasoning": "This decision formally deprioritizes a minor data quality issue, allowing resources to be focused on higher impact items."
+    },
+    {
+      "artifact_type": "Meeting Notes",
+      "change_type": "add",
+      "section": "Discussion",
+      "proposed_text": "- Discussed the complexities arising from students having multiple Active Program (majors, minors, specializations) within the same academic level in the same term, and the implications for report logic.",
+      "confidence": 0.9,
+      "reasoning": "Highlights a complex data scenario that needs clarification to accurately report student academic program information."
+    },
+    {
+      "artifact_type": "Meeting Notes",
+      "change_type": "add",
+      "section": "Action Items",
+      "proposed_text": "| Confirm the business scenario for students with multiple Active Program within the same academic level and term with Office of Enrollment, then define the necessary business logic for the report. | TBD | TBD | Open |",
+      "confidence": 0.75,
+      "reasoning": "Defining the business logic for students with multiple academic programs is critical for accurate reporting and impacts the overall data structure."
+    },
+    {
+      "artifact_type": "Meeting Notes",
+      "change_type": "add",
+      "section": "Discussion",
+      "proposed_text": "- Identified missing Active Program, Program, and Term Enrollment records in the DataCloud\n  - F42 field for the Total Completed UG Credit attribute within the 'All Active' report.",
+      "confidence": 0.9,
+      "reasoning": "This points to a significant data gap in the 'All Active' report, potentially affecting program and attribute reporting."
+    },
+    {
+      "artifact_type": "Meeting Notes",
+      "change_type": "add",
+      "section": "Discussion",
+      "proposed_text": "- Discussed the representation of online records in the 'All Active' report and the need to capture campus credits (non-Online) in DataCloud.",
+      "confidence": 0.85,
+      "reasoning": "Addresses a data distinction for online vs. campus credits that needs to be accurately reflected in DataCloud, impacting reporting and potentially funding."
+    },
+    {
+      "artifact_type": "Meeting Notes",
+      "change_type": "add",
+      "section": "Discussion",
+      "proposed_text": "- FinAidSys updates confirmed that the request for an updated script due to missing tables in the query has been resolved, and a new script is not required.",
+      "confidence": 0.95,
+      "reasoning": "This clarifies the status of a FinAidSys scripting issue, indicating a problem has been addressed and no further action is needed on that specific task."
+    },
+    {
+      "artifact_type": "Meeting Notes",
+      "change_type": "add",
+      "section": "Decisions",
+      "proposed_text": "- The project meeting cadence will switch to Mondays at 10 AM, starting in April.",
+      "confidence": 0.95,
+      "reasoning": "This is an administrative decision to adjust the project's recurring meeting schedule, which impacts team coordination and planning."
+    },
+    {
+      "artifact_type": "Status Report",
+      "change_type": "add",
+      "section": "Blockers / Risks",
+      "proposed_text": "- Potential for ProjectAlpha All Active report to misrepresent student housing status (Y. Even/a Resident Hall Student) if a student's housing assignment was cancelled after being assigned/reserved. Investigation into the 'All Active' logic is needed due to low mismatch count.",
+      "confidence": 0.75,
+      "reasoning": "This is a potential data accuracy issue that could impact the ProjectAlpha report's reliability and requires further investigation."
+    },
+    {
+      "artifact_type": "Status Report",
+      "change_type": "add",
+      "section": "In Progress",
+      "proposed_text": "- Discussion ongoing regarding online records in the 'All Active' report and how to capture campus (non-online) credits in DataCloud.",
+      "confidence": 0.8,
+      "reasoning": "Clarifying how online and campus credits are captured is an active work item that impacts data reporting accuracy for student enrollments."
+    },
+    {
+      "artifact_type": "Status Report",
+      "change_type": "add",
+      "section": "Upcoming",
+      "proposed_text": "- Investigation into 'Resident Hall Student' logic for the ProjectAlpha 'All Active' report to reconcile observed mismatches.",
+      "confidence": 0.75,
+      "reasoning": "Addressing the 'Resident Hall Student' discrepancy is an upcoming task to ensure the accuracy of the 'All Active' report."
+    }
+  ],
+  "analysis": [],
+  "analysis_summary": null,
+  "lpd_updates": [],
+  "session_summary": null,
+  "input_type": "meeting_notes",
+  "session_id": "9bdcf25b-868f-40a8-a6c6-280388906670",
+  "pii_detected": 48,
+  "mode": "extract",
+  "content_gate_active": true
+}

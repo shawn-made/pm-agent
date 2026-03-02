@@ -12,11 +12,14 @@ graph TB
     end
 
     subgraph Backend["FastAPI Backend (localhost:8000)"]
-        API["API Routes<br/>/api/artifact-sync<br/>/api/settings<br/>/api/health"]
+        API["API Routes<br/>/api/artifact-sync<br/>/api/settings<br/>/api/health<br/>/api/lpd/{project_id}/*"]
         PP["Privacy Proxy<br/>anonymize() / reidentify()"]
         LLM["LLM Client Factory<br/>create_client(provider)"]
         AS["Artifact Sync<br/>Input classification<br/>Delta extraction"]
         AM["Artifact Manager<br/>CRUD + Templates"]
+        LPDM["LPD Manager<br/>Section CRUD + Staleness"]
+        CI["Context Injection<br/>LPD → LLM prompts"]
+        IN["Project Intake<br/>Bulk file import"]
     end
 
     subgraph Detection["PII Detection Pipeline"]
@@ -55,6 +58,10 @@ graph TB
     Gemini -->|"Suggestions"| PP
     PP -->|"Re-identified"| AS
     AS --> AM
+    AS --> CI
+    CI --> LPDM
+    LPDM --> DB
+    IN --> LPDM
     AM --> MD
     AM --> DB
     PP --> DB
@@ -146,10 +153,30 @@ erDiagram
         text updated_at
     }
 
+    LPD_SECTIONS {
+        text id PK
+        text project_id FK
+        text section_name
+        text content
+        text updated_at
+        text verified_at
+    }
+
+    LPD_SESSION_SUMMARIES {
+        text id PK
+        text project_id FK
+        text session_id FK
+        text summary
+        text created_at
+    }
+
     PROJECTS ||--o{ ARTIFACTS : contains
     PROJECTS ||--o{ SESSIONS : tracks
+    PROJECTS ||--o{ LPD_SECTIONS : has
+    PROJECTS ||--o{ LPD_SESSION_SUMMARIES : logs
     ARTIFACTS ||--o{ ARTIFACT_VERSIONS : versions
     SESSIONS ||--o{ ARTIFACT_VERSIONS : produces
+    SESSIONS ||--o{ LPD_SESSION_SUMMARIES : generates
 
 %% ============================================================
 %% DIAGRAM 4: Phase Roadmap (Gantt)
@@ -165,13 +192,18 @@ gantt
         Backend Logic & API         :done, p0c, after p0b, 7d
         Frontend & Polish           :done, p0d, after p0c, 7d
 
-    section Phase 1 - Core Experience
-        Artifact Version History    :p1a, after p0d, 14d
-        Cross-Tab Sync              :p1b, after p1a, 14d
-        UX Improvements             :p1c, after p1b, 14d
+    section Phase 1A - Living Project Document
+        LPD Manager + Schema        :active, p1a1, after p0d, 7d
+        Context Injection Engine    :active, p1a2, after p1a1, 7d
+        Return Path + Intake        :p1a3, after p1a2, 7d
+
+    section Phase 1B - Core Experience
+        Artifact Version History    :p1b1, after p1a3, 14d
+        Cross-Tab Sync              :p1b2, after p1b1, 14d
+        UX Improvements             :p1b3, after p1b2, 14d
 
     section Phase 2 - Intelligence
-        Ollama Integration          :p2a, after p1c, 14d
+        Ollama Integration          :p2a, after p1b3, 14d
         Deep Strategy Analysis      :p2b, after p2a, 21d
         Multi-Project Support       :p2c, after p2b, 21d
 

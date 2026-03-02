@@ -1,0 +1,272 @@
+# Data Platform Project — Project Plan
+
+**Version**: 1.0 (Draft)
+**Date**: February 17, 2026
+**Author**: Jordan Rivera (Project Manager)
+**Charter Reference**: [PROJECT_CHARTER.md](PROJECT_CHARTER.md)
+**Status**: Draft — In Review (sent to Architect + Reporting Mgr 2/18)
+
+---
+
+## 1. Overview
+
+This project plan details the approach, timeline, and execution strategy for the Data Platform Project. It builds on the Project Charter (which defines scope, objectives, and governance) and provides the operational roadmap for the project team.
+
+The Data Platform Project is part of a broader technology program that also includes CRMPlatform work. Both projects share program leadership and executive sponsorship but currently operate with limited hard dependencies. This plan covers the Data Platform Project only.
+
+**How this plan relates to other project artifacts:**
+
+| Artifact | Purpose | Maintained By |
+|----------|---------|---------------|
+| **Project Charter** | Scope, objectives, milestones, governance. Static — changes via change request. | PM |
+| **This Project Plan** | Approach, workstream detail, methodology, timeline. Updated periodically at phase boundaries. | PM |
+| **GitHub Projects Board** | Day-to-day work tracking, sprint backlogs, individual tickets | PM + Team |
+| **Risk Register** | Active risks, severity, mitigation plans | PM |
+| **Analytics Backlog** | Prioritized report backlog with status and dependencies | PM + Analytics Lead |
+
+This plan is a **guiding document** — it shows the team's approach and grounds execution. It is not a substitute for the day-to-day work tracked in GitHub or the active risk management in the Risk Register.
+
+---
+
+## 2. Program Context
+
+### Where We've Been
+
+The Data Platform project has been running since early 2024. Key context:
+
+- **Pre-Phase 1 (Early–Mid 2024)**: Grant secured, consulting firm engaged, discovery and architecture planning
+- **Phase 1 Start (Oct 2024)**: Development begins on DataCloud data platform; scope narrowed to LegacySIS, CampusPro, CRMPlatform, and AdmitTrack
+- **Phase 1 Challenges (2025)**: LegacySIS data complexity, pipeline automation crisis, consulting transitions, RIF impact, production deployment backed out
+- **Phase 1 Reset (Nov 2025–Present)**: Team stabilized around current Lead Architect (independent consultant), re-engagement focused on completing the SIS data model and delivering Analytics reports
+- **Phase 2 Start (Jan 2026)**: New BA + Developer onboarded for HousingDB and FinAidSys ingestion, running in parallel with Phase 1 completion
+
+### Where We're Going
+
+The program has three horizons:
+
+1. **Near-term (Now – Jun 2026)**: Complete the current-state data platform — deliver the Analytics report backlog against LegacySIS/CampusPro/HousingDB/FinAidSys data, freeze current-state reports
+2. **Medium-term (2026 – 2027)**: Integrate NextGenSIS data into the platform — discover, ingest, model, and rebuild reports against the new SIS
+3. **Long-term (2027+)**: Operate a production data platform on NextGenSIS; retire LegacySIS/CampusPro data models; expand to deferred scope items
+
+---
+
+## 3. Workstreams
+
+The program is organized into five concurrent workstreams. Each has a distinct scope but shares resources and dependencies with the others.
+
+### 3.1 Phase 1 Completion: SIS Data Model & Core Reports
+
+**Objective**: Complete and validate the LegacySIS/CampusPro data model; deliver the core Analytics report backlog.
+
+**This is the current critical path.** All downstream Analytics reports are gated by the All Active Report validation, which establishes the foundation data model that other reports build on.
+
+#### Scope
+- College All Active Report (LegacySIS)
+- Conservatory All Active Report (CampusPro)
+- Registration/Enrollment w/ Demographics (College & Conservatory)
+- Net Tuition Revenue / NTR (College & Conservatory)
+- Restrictions Report (College)
+- Graduation Report (College)
+
+#### Approach
+Each report follows a standard delivery lifecycle:
+
+```
+Discovery → Data Ingestion → Development/Modeling → Validation → UAT → Delivery
+```
+
+- **Discovery**: Confirm data sources, business rules, field mappings, and acceptance criteria with Analytics and SMEs
+- **Data Ingestion**: Ensure required source data flows through the pipeline (Raw → Cleansed → Modelled → Datamart)
+- **Development/Modeling**: Build or extend the Gold layer data model and Datamart views
+- **Validation**: Compare DataCloud outputs against ReportHub baselines; resolve discrepancies
+- **UAT**: Analytics team confirms the report meets their needs
+- **Delivery**: VizBoard dashboard published and accessible
+
+**Validation philosophy**: Discrepancies between DataCloud and ReportHub are expected and often reflect the DataCloud platform being *more correct* (e.g., better deduplication, consistent logic). Each discrepancy is investigated, categorized (pipeline issue vs. source data issue), and documented. The 95% accuracy threshold is the current pragmatic target for All Active.
+
+#### Key Dependencies
+- **Sarah Mitchell (LegacySIS SME)**: Required for ReportHub report creation and LegacySIS business rules. Single point of dependency.
+- **Lead Architect**: Primary validator for data model correctness.
+- **LegacySIS Dev Team**: Required for NTR — charge/financial fields must be made available before NTR work can proceed.
+- **Analytics Team**: Defines requirements, accepts deliverables.
+
+#### Target Timeline
+
+| Activity | Target Period | Notes |
+|----------|--------------|-------|
+| College All Active validation | Jan – Mar 2026 | Critical path. In progress. 95% accuracy target. |
+| Conservatory All Active validation | Mar 2026 | Dev resource assigned to work in parallel |
+| College Registration/Enrollment w/ Demographics | Mar – Apr 2026 | Ready for validation; pending team capacity |
+| Conservatory Registration/Enrollment w/ Demographics | Apr 2026 | Follows College version |
+| NTR Data Ingestion | Mar – Apr 2026 | Blocked on LegacySIS Dev team for charge/financial fields |
+| College NTR Report | Apr – May 2026 | Requires NTR data ingestion complete |
+| Conservatory NTR Report | May 2026 | Follows College version |
+| Discovery: Restrictions & Graduation | Apr – May 2026 | Discovery to determine scope and complexity |
+| **Current-State Scope Freeze (M6)** | **Jun 2026** | All current-state reports delivered; platform stabilized |
+
+---
+
+### 3.2 Phase 2: New Source Ingestion (HousingDB & FinAidSys)
+
+**Objective**: Ingest HousingDB (housing) and FinAidSys (financial aid) data into the DataCloud platform at the Bronze layer; validate and prepare for Analytics reporting.
+
+**This workstream is intentionally decoupled from the Phase 1 critical path.** The new BA + Developer team (onboarded Jan 2026) leads this work independently, with architectural oversight from the Lead Architect.
+
+#### Key Dependencies
+- **FinAidSys secure connection**: External dependency — SQL Server access/credentialing has been slow due to PII masking and RBAC configuration requirements. The primary technical contact is not a dedicated project resource.
+- **FinAidSys server load risk**: A server load incident occurred on the FinAidSys server (week of 2/10/2026). If data replication to a separate server is needed, this could introduce additional schedule risk.
+- **Lead Architect**: Provides architectural guidance and oversight for ingestion design.
+
+#### Target Timeline
+
+| Activity | Target Period | Notes |
+|----------|--------------|-------|
+| HousingDB Discovery | Feb 2026 | Near-complete — 14 tables loaded in dev |
+| FinAidSys Discovery | Feb 2026 | In progress — some access granted |
+| HousingDB Ingestion | Mar 2026 | Bronze layer pipeline build |
+| FinAidSys Ingestion | Mar 2026 | Dependent on secure access |
+| HousingDB Validation | Apr 2026 | Bronze layer data quality check |
+| FinAidSys Validation | Apr 2026 | Bronze layer data quality check |
+
+---
+
+### 3.3 CRMPlatform/AdmitTrack Validation
+
+**Status**: Approach TBD. This work was originally in-scope for Phase 1 but was deprioritized during the October 2025 pivot to focus on Analytics needs. Some validation occurred in a prior phase but likely not all objects.
+
+---
+
+### 3.4 Platform Health & Observability
+
+**Objective**: Establish production-grade infrastructure, monitoring, CI/CD, and data governance.
+
+This work runs as a background stream. Items are tracked in GitHub and prioritized in sprint planning alongside feature work. No dedicated team — work is absorbed by the existing team as capacity allows.
+
+**Key near-term priority**: Establishing test and production environments as Phase 1 nears completion. Currently operating in dev only (production was backed out in Fall 2025).
+
+---
+
+### 3.5 NextGenSIS Integration
+
+**Objective**: Discover, ingest, model, and eventually rebuild the data platform on NextGenSIS data sources, replacing LegacySIS/CampusPro.
+
+**This is the longest-horizon workstream.** It spans from current discovery work through the NextGenSIS go-live (Fall 2027) and beyond.
+
+#### Context
+- NextGenSIS replaces both LegacySIS (College) and CampusPro (Conservatory) as the institution's SIS
+- **NextGenSIS code freeze**: ~June 2026 — after this, the configuration is locked and the data platform team can model against a stable schema
+- **NextGenSIS go-live**: Target Fall 2027
+- **Direct Integration**: Confirmed unavailable for this environment (as of Feb 2026)
+- **Primary integration path**: Data Export Service via PipelineTool → CloudStore → DataCloud. Native Query Language also being explored as an alternative.
+
+#### Staged Approach
+
+**Stage 1: Discovery & Mapping (Now – Mar 10, 2026)** — *Charter M7*
+- Map current data model entities to NextGenSIS equivalents
+- Determine technical integration approach
+- Data model will NOT retrofit NextGenSIS data into LegacySIS-centric structures. NextGenSIS terminology will be adopted in the data platform.
+
+**Stage 2: Proof of Concept (Mar – End of Apr 2026)** — *Charter M8*
+- Build ingestion POC for NextGenSIS data
+- Validate technical integration path end-to-end
+
+**Stage 3: Data Modeling & Approval (May – End of Jun 2026)** — *Charter M9*
+- Build initial NextGenSIS data model
+- Review and approve, aligned with NextGenSIS Scope Freeze (~Jun 2026)
+
+**Stage 4: Report Rebuild & Testing (Jul 2026 – 2027)** — *Charter M10*
+- Rebuild Analytics reports against NextGenSIS data model
+- Testing cycles aligned with NextGenSIS implementation milestones
+
+**Stage 5: Go-Live & Transition (2027)**
+- Deploy rebuilt data platform
+- Migrate users from LegacySIS/CampusPro reports to NextGenSIS reports
+
+---
+
+## 5. Methodology
+
+### Hybrid Approach
+
+The team follows a **hybrid methodology** adapted to the institution's context.
+
+**Agile elements** (sprint cadence, iterative delivery):
+- 2-week sprint cadence provides a clear, repeatable rhythm
+- Built-in process for estimating work size and tracking team velocity
+
+**Waterfall elements** (milestone-driven planning, firm targets):
+- Cross-project dependencies require firm milestone dates
+- MVP and scope freeze targets (M6, M9) are managed as fixed planning gates
+
+**Sprint cadence**: 2-week iterations (Wednesday to Tuesday)
+
+### Ceremonies
+
+| Day | Format | Purpose |
+|-----|--------|---------|
+| **Mon, Wed, Thu, Fri** | Standup + Working Time | Standup (~15 min), then parking lot items, blocker review |
+| **Tuesday (alternating)** | Sprint Planning + Retro | Define sprint goal, select backlog items, reflect |
+| **Tuesday (alternating)** | Backlog Refinement + Retro | Review upcoming work, estimate effort, surface questions |
+
+---
+
+## 7. Dependencies & Integration Points
+
+### Internal Dependencies
+
+| Dependency | Workstream(s) Affected | Risk Level | Notes |
+|-----------|----------------------|-----------|-------|
+| Sarah Mitchell (LegacySIS SME) availability | Phase 1, NextGenSIS | High | Single point of failure for LegacySIS institutional knowledge |
+| Lead Architect capacity | All | High | Spans all workstreams. Phase 1 delays compress NextGenSIS time. |
+| LegacySIS Dev Team | Phase 1 (NTR) | Medium | Needed for charge/financial fields. Team lost a person in Oct 2025 RIF. |
+| Test/Production environments | Phase 1, Platform | Medium | Currently dev only. Needed before reports can go operational. |
+
+### External Dependencies
+
+| Dependency | Workstream(s) Affected | Risk Level | Notes |
+|-----------|----------------------|-----------|-------|
+| NextGenSIS Implementation Team | NextGenSIS Integration | Medium-High | Cross-project coordination for data mapping. |
+| FinAidSys secure connection | Phase 2 | Medium | External tech lead not dedicated to this project. |
+| CRMPlatform Team | CRM Validation | Low-Medium | Rep attends standup. Validation approach TBD. |
+
+---
+
+## 9. Risk Management
+
+### Current Top Risks
+
+| Risk | Severity | Key Mitigation |
+|------|----------|---------------|
+| LegacySIS SME single point of failure | High | Removed non-LegacySIS responsibilities; aggressive documentation |
+| Architect capacity across all workstreams | High | Decentralized Phase 2 leadership; capacity relief as Phase 1 wraps |
+| All Active schedule delay (cascading) | High | 95% accuracy target; parallel Conservatory work |
+| Legacy technical debt increasing validation burden | High | Clear pipeline-vs-source categorization; stakeholder communication |
+| NextGenSIS/Platform schedule misalignment | High | Cross-project coordination; flexible scope freeze date |
+
+---
+
+## 11. Resource Allocation
+
+### Current Allocation by Workstream
+
+| Resource | Phase 1 (SIS Reports) | Phase 2 (HousingDB/FinAidSys) | NextGenSIS Integration | Platform/Observability |
+|----------|----------------------|--------------------------|-----------------|----------------------|
+| PM (Jordan Rivera) | Lead | Oversight | Coordination | Oversight |
+| Director of Enterprise Tech | Resource allocation, escalation | Resource allocation | Resource allocation | Technical oversight |
+| Lead Architect | Primary (validation, modeling) | Oversight / guidance | Growing (discovery → modeling) | Guidance |
+| David Park (Tech Lead) | Development | — | TBD | Development |
+| Sarah Mitchell (LegacySIS SME) | Critical (ReportHub, biz rules) | — | Mapping support | — |
+| Analytics Team Lead | Validation, VizBoard | — | — | — |
+| QA Analyst | QA, reconciliation | — | — | — |
+| New BA | — | Lead (discovery, requirements) | — | — |
+| New Dev | — | Lead (ingestion development) | — | — |
+| Program Lead | Stakeholder coordination | — | Cross-project | — |
+
+### Core Tension
+
+The Lead Architect and Sarah Mitchell (LegacySIS SME) are needed across multiple workstreams simultaneously. The primary capacity strategy is:
+
+1. **Decentralize Phase 2**: New BA/Dev team operates independently with architectural guidance only
+2. **Sequence Phase 1 reports**: Reports are delivered sequentially to manage validation throughput
+3. **Architect allocation shifts**: As Phase 1 wraps, architect time pivots increasingly to NextGenSIS integration
+4. **Protect Sarah Mitchell**: Non-LegacySIS responsibilities already removed; team provides extra support for NextGenSIS-related tasks

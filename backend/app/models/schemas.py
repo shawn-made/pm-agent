@@ -112,6 +112,61 @@ class Setting(BaseModel):
     updated_at: Optional[datetime] = Field(None, description="Last time this setting was changed")
 
 
+# --- LPD (Living Project Document) ---
+
+# Fixed LPD sections with display order (D16)
+LPD_SECTIONS = [
+    {"name": "Overview", "order": 1},
+    {"name": "Stakeholders", "order": 2},
+    {"name": "Timeline & Milestones", "order": 3},
+    {"name": "Risks", "order": 4},
+    {"name": "Decisions", "order": 5},
+    {"name": "Open Questions", "order": 6},
+    {"name": "Recent Context", "order": 7},
+]
+
+LPD_SECTION_NAMES = [s["name"] for s in LPD_SECTIONS]
+
+
+class LPDSectionCreate(BaseModel):
+    section_id: Optional[str] = Field(None, description="UUID (auto-generated if omitted)")
+    project_id: str = Field(..., description="Parent project ID")
+    section_name: str = Field(..., description="LPD section name (e.g., 'Overview', 'Risks')")
+    content: str = Field("", description="Markdown content for this section")
+    section_order: int = Field(..., description="Display order (1-7)")
+
+
+class LPDSection(BaseModel):
+    section_id: str = Field(..., description="Unique section identifier (UUID)")
+    project_id: str = Field(..., description="Parent project ID")
+    section_name: str = Field(..., description="LPD section name")
+    content: str = Field(..., description="Markdown content for this section")
+    section_order: int = Field(..., description="Display order (1-7)")
+    updated_at: datetime = Field(..., description="Last content modification timestamp")
+    verified_at: Optional[datetime] = Field(
+        None, description="Last time a human verified this section's accuracy"
+    )
+
+
+class LPDSessionSummaryCreate(BaseModel):
+    summary_id: Optional[str] = Field(None, description="UUID (auto-generated if omitted)")
+    project_id: str = Field(..., description="Parent project ID")
+    session_id: Optional[str] = Field(None, description="Associated sync session ID")
+    summary_text: str = Field(..., description="Brief summary of what happened in this session")
+    entities_extracted: str = Field(
+        "{}", description="JSON string of entities extracted (decisions, risks, actions)"
+    )
+
+
+class LPDSessionSummary(BaseModel):
+    summary_id: str = Field(..., description="Unique summary identifier (UUID)")
+    project_id: str = Field(..., description="Parent project ID")
+    session_id: Optional[str] = Field(None, description="Associated sync session ID")
+    summary_text: str = Field(..., description="Brief summary of what happened in this session")
+    entities_extracted: str = Field(..., description="JSON string of entities extracted")
+    created_at: datetime = Field(..., description="When this summary was created")
+
+
 # --- Artifact Sync ---
 
 
@@ -133,9 +188,7 @@ class Suggestion(BaseModel):
 class AnalysisItem(BaseModel):
     """A single observation or recommendation from Analyze & Advise mode."""
 
-    category: str = Field(
-        ..., description="'observation', 'recommendation', 'gap', or 'strength'"
-    )
+    category: str = Field(..., description="'observation', 'recommendation', 'gap', or 'strength'")
     title: str = Field(..., description="Brief headline for this item")
     detail: str = Field(..., description="Full explanation with context")
     priority: str = Field("medium", description="'high', 'medium', or 'low'")
@@ -153,7 +206,29 @@ class ArtifactSyncRequest(BaseModel):
     project_id: str = Field("default", description="Project scope for the sync operation")
     mode: str = Field(
         "extract",
-        description="'extract' for Extract & Route, 'analyze' for Analyze & Advise",
+        description="'extract' for Extract & Route, 'analyze' for Analyze & Advise, "
+        "'log_session' for Log Session Bridge",
+    )
+
+
+class LPDUpdateClassification(BaseModel):
+    """Classification result from the content quality gate."""
+
+    classification: str = Field(
+        ...,
+        description="'new', 'duplicate', 'update', or 'contradiction'",
+    )
+    reason: str = Field("", description="Brief explanation of why this classification was assigned")
+
+
+class LPDUpdate(BaseModel):
+    """A direct update to an LPD section from log_session mode."""
+
+    section: str = Field(..., description="LPD section name (e.g., 'Risks', 'Decisions')")
+    content: str = Field(..., description="Content to append to the section")
+    source: str = Field("log_session", description="Where this update came from")
+    classification: Optional[LPDUpdateClassification] = Field(
+        None, description="Quality gate classification (None if gate was not active)"
     )
 
 
@@ -169,6 +244,13 @@ class ArtifactSyncResponse(BaseModel):
     analysis_summary: Optional[str] = Field(
         None, description="Brief overall assessment (analyze mode only)"
     )
+    lpd_updates: list[LPDUpdate] = Field(
+        default_factory=list,
+        description="Direct LPD updates applied (log_session mode)",
+    )
+    session_summary: Optional[str] = Field(
+        None, description="Session summary text (log_session mode)"
+    )
     input_type: str = Field(
         ...,
         description="Classified input type: 'meeting_notes', 'status_update', 'transcript', "
@@ -179,3 +261,92 @@ class ArtifactSyncResponse(BaseModel):
         ..., description="Number of PII entities found and anonymized in the input"
     )
     mode: str = Field("extract", description="Which mode was used")
+    content_gate_active: bool = Field(
+        True, description="Whether the content quality gate was applied to LPD updates"
+    )
+
+
+# --- Intake (Task 26) ---
+
+
+class IntakeFile(BaseModel):
+    """A single file submitted for intake processing."""
+
+    filename: str = Field(..., description="Name of the source file")
+    content: str = Field(..., description="Text content of the file")
+
+
+class IntakeExtraction(BaseModel):
+    """Entities extracted from a single intake file by the LLM."""
+
+    source_file: str = Field(..., description="Filename this extraction came from")
+    overview: str = Field("", description="Project overview information found")
+    stakeholders: str = Field("", description="Stakeholders identified")
+    timeline: str = Field("", description="Timeline and milestones found")
+    risks: str = Field("", description="Risks identified")
+    decisions: str = Field("", description="Decisions found")
+    open_questions: str = Field("", description="Open questions or action items found")
+
+
+# Maps IntakeExtraction field names to LPD section names
+INTAKE_FIELD_TO_LPD_SECTION: dict[str, str] = {
+    "overview": "Overview",
+    "stakeholders": "Stakeholders",
+    "timeline": "Timeline & Milestones",
+    "risks": "Risks",
+    "decisions": "Decisions",
+    "open_questions": "Open Questions",
+}
+
+
+class IntakeConflict(BaseModel):
+    """A conflict between existing LPD content and proposed intake content."""
+
+    section: str = Field(..., description="LPD section name where conflict was detected")
+    existing: str = Field(..., description="Current content in the LPD section")
+    proposed: str = Field(..., description="Proposed content from the intake file")
+    source_file: str = Field(..., description="Filename that proposed the conflicting content")
+
+
+class IntakeDraft(BaseModel):
+    """Preview of what the intake would add to the LPD."""
+
+    extractions: list[IntakeExtraction] = Field(
+        default_factory=list, description="Per-file extraction results"
+    )
+    proposed_sections: dict[str, str] = Field(
+        default_factory=dict,
+        description="Combined proposed content per LPD section name",
+    )
+    conflicts: list[IntakeConflict] = Field(
+        default_factory=list, description="Detected conflicts with existing LPD content"
+    )
+    pii_detected: int = Field(0, description="Total PII entities anonymized across all files")
+
+
+class IntakePreviewRequest(BaseModel):
+    """Request body for the intake preview endpoint."""
+
+    files: list[IntakeFile] = Field(..., description="Files to process for intake")
+
+
+class IntakeApplyRequest(BaseModel):
+    """Request body for the intake apply endpoint."""
+
+    proposed_sections: dict[str, str] = Field(
+        ..., description="Section name → proposed content (from the preview draft)"
+    )
+    approved_sections: list[str] = Field(
+        ..., description="List of section names the user approved for application"
+    )
+
+
+class IntakeApplyResponse(BaseModel):
+    """Response from the intake apply endpoint."""
+
+    sections_updated: list[str] = Field(
+        default_factory=list, description="Sections that were updated"
+    )
+    sections_skipped: list[str] = Field(
+        default_factory=list, description="Sections that were not approved"
+    )

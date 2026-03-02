@@ -8,7 +8,7 @@ Paste meeting notes → get artifact update suggestions → copy to clipboard.
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.11+
 - Node.js 18+
 - An API key for Claude (Anthropic) or Gemini (Google AI)
 
@@ -24,7 +24,7 @@ python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 python -m spacy download en_core_web_sm
-cp ../.env.example ../.env  # Edit .env with your API keys
+cp .env.example .env  # Edit with your API keys
 
 # Frontend
 cd ../frontend
@@ -39,7 +39,7 @@ cd backend && source venv/bin/activate
 uvicorn app.main:app --reload --port 8000
 
 # Terminal 2: Frontend
-cd frontend && npm start
+cd frontend && npm run dev
 ```
 
 Open http://localhost:3000

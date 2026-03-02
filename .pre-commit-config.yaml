@@ -1,0 +1,54 @@
+# VPMA Pre-Commit Hooks
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # Ruff: lint + format (replaces flake8, isort, black)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.0
+    hooks:
+      - id: ruff
+        args: [--fix, --config, pyproject.toml]
+        files: ^backend/
+      - id: ruff-format
+        args: [--config, pyproject.toml]
+        files: ^backend/
+
+  # Bandit: security scanning for Python
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.3
+    hooks:
+      - id: bandit
+        args: [-r, -c, bandit.yaml]
+        files: ^backend/app/
+
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  # Smoke tests (local hook)
+  - repo: local
+    hooks:
+      - id: pytest-smoke
+        name: smoke tests
+        entry: bash -c 'cd backend && source venv/bin/activate && python -m pytest tests/ -m smoke --timeout=10 -q'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: doc-freshness
+        name: doc freshness check
+        entry: python3 scripts/check_doc_freshness.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        verbose: true

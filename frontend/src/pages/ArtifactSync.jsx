@@ -7,12 +7,14 @@ import TextInput from '../components/TextInput'
 import SuggestionCard from '../components/SuggestionCard'
 import DocumentDraftCard from '../components/DocumentDraftCard'
 import AnalysisCard from '../components/AnalysisCard'
+import LogSessionCard from '../components/LogSessionCard'
 import { useToast } from '../components/ToastContext'
-import { artifactSync, applySuggestionByType } from '../services/api'
+import { artifactSync, applySuggestionByType, appendToLPDSection } from '../services/api'
 
 const SUBTITLES = {
   extract: 'Paste meeting notes, transcripts, or project updates. VPMA will suggest updates to your PM artifacts.',
   analyze: 'Paste a draft or document. VPMA will give you feedback, observations, and recommendations.',
+  log_session: 'Paste session conclusions or decisions. VPMA will update your project hub and suggest artifact entries.',
 }
 
 /** Artifact Sync page — orchestrates text input, LLM analysis, and suggestion/analysis display. */
@@ -20,6 +22,7 @@ export default function ArtifactSync() {
   const [mode, setMode] = useState('extract')
   const [suggestions, setSuggestions] = useState([])
   const [analysis, setAnalysis] = useState(null) // { summary, items }
+  const [logSession, setLogSession] = useState(null) // { summary, lpdUpdates, suggestions }
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [meta, setMeta] = useState(null) // input_type, pii_detected, session_id, mode
@@ -27,6 +30,10 @@ export default function ArtifactSync() {
 
   async function handleApply(suggestion) {
     await applySuggestionByType(suggestion)
+  }
+
+  async function handleApplyAnyway(update) {
+    await appendToLPDSection('default', update.section, update.content)
   }
 
   async function handleApplyAll(suggestionsToApply) {
@@ -39,6 +46,7 @@ export default function ArtifactSync() {
     setMode(newMode)
     setSuggestions([])
     setAnalysis(null)
+    setLogSession(null)
     setError(null)
     setMeta(null)
   }
@@ -48,12 +56,27 @@ export default function ArtifactSync() {
     setError(null)
     setSuggestions([])
     setAnalysis(null)
+    setLogSession(null)
     setMeta(null)
 
     try {
       const result = await artifactSync(text, 'default', mode)
 
-      if (result.mode === 'analyze') {
+      if (result.mode === 'log_session') {
+        setLogSession({
+          summary: result.session_summary,
+          lpdUpdates: result.lpd_updates || [],
+          suggestions: result.suggestions || [],
+          contentGateActive: result.content_gate_active !== false,
+        })
+        const updateCount = (result.lpd_updates || []).length
+        const suggestionCount = (result.suggestions || []).length
+        if (updateCount === 0 && suggestionCount === 0) {
+          toast.info('No updates extracted from this session')
+        } else {
+          toast.success(`Logged: ${updateCount} LPD update${updateCount !== 1 ? 's' : ''}, ${suggestionCount} suggestion${suggestionCount !== 1 ? 's' : ''}`)
+        }
+      } else if (result.mode === 'analyze') {
         setAnalysis({
           summary: result.analysis_summary,
           items: result.analysis || [],
@@ -112,7 +135,7 @@ export default function ArtifactSync() {
           </span>
           {meta.mode && (
             <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
-              {meta.mode === 'analyze' ? 'analyze' : 'extract'}
+              {meta.mode === 'analyze' ? 'analyze' : meta.mode === 'log_session' ? 'log session' : 'extract'}
             </span>
           )}
           {meta.piiDetected > 0 && (
@@ -174,8 +197,20 @@ export default function ArtifactSync() {
         <AnalysisCard summary={analysis.summary} items={analysis.items} />
       )}
 
+      {/* Log Session mode: Summary + LPD updates + artifact suggestions */}
+      {mode === 'log_session' && logSession && (
+        <LogSessionCard
+          sessionSummary={logSession.summary}
+          lpdUpdates={logSession.lpdUpdates}
+          suggestions={logSession.suggestions}
+          contentGateActive={logSession.contentGateActive}
+          onApply={handleApply}
+          onApplyAnyway={handleApplyAnyway}
+        />
+      )}
+
       {/* Empty state */}
-      {!isLoading && !error && suggestions.length === 0 && !analysis && !meta && (
+      {!isLoading && !error && suggestions.length === 0 && !analysis && !logSession && !meta && (
         <div className="text-center py-12">
           <div className="text-gray-300 text-4xl mb-3">&#9998;</div>
           <p className="text-sm text-gray-400">No suggestions yet. Paste some text above to get started.</p>

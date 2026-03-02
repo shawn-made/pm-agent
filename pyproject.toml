@@ -6,6 +6,12 @@ target-version = "py311"
 select = ["E", "F", "I", "W"]
 ignore = ["E501"]
 
+[tool.ruff.format]
+quote-style = "double"
+
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]
 asyncio_mode = "auto"
+markers = [
+    "smoke: Critical-path tests for fast pre-commit validation (<10s)",
+]

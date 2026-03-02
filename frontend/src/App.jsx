@@ -4,7 +4,10 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, NavLink } from 'react-router-dom'
 import { ToastProvider } from './components/Toast.jsx'
+import { ProjectProvider } from './components/ProjectContext.jsx'
 import ArtifactSync from './pages/ArtifactSync.jsx'
+import ProjectDoc from './pages/ProjectDoc.jsx'
+import Intake from './pages/Intake.jsx'
 import Settings from './pages/Settings.jsx'
 import { healthCheck } from './services/api'
 
@@ -19,6 +22,7 @@ function App() {
   }, [])
 
   return (
+    <ProjectProvider>
     <ToastProvider>
       <div className="min-h-screen bg-gray-50 flex flex-col">
         {/* Backend connection warning */}
@@ -49,6 +53,18 @@ function App() {
                 Artifact Sync
               </NavLink>
               <NavLink
+                to="/project"
+                className={({ isActive }) =>
+                  `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-gray-900 text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`
+                }
+              >
+                Project Hub
+              </NavLink>
+              <NavLink
                 to="/settings"
                 className={({ isActive }) =>
                   `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -68,6 +84,8 @@ function App() {
         <main className="max-w-5xl mx-auto px-6 py-8 w-full flex-1">
           <Routes>
             <Route path="/" element={<ArtifactSync />} />
+            <Route path="/project" element={<ProjectDoc />} />
+            <Route path="/intake" element={<Intake />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>
@@ -80,6 +98,7 @@ function App() {
         </footer>
       </div>
     </ToastProvider>
+    </ProjectProvider>
   )
 }
 

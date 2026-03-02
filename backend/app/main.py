@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
+from app.services.crud import ensure_default_project
 from app.services.database import init_db
 
 # Load environment variables from backend/.env
@@ -16,8 +17,9 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database on startup."""
+    """Initialize database and seed defaults on startup."""
     await init_db()
+    await ensure_default_project()
     yield
 
 

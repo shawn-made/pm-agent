@@ -1,7 +1,7 @@
 # VPMA — Executive Technical Summary
 
-**Version**: Phase 0 MVP (Foundation)
-**Last Updated**: 2026-02-15
+**Version**: Phase 0 Complete, Phase 1A In Progress
+**Last Updated**: 2026-02-25
 
 ---
 
@@ -152,7 +152,7 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 | System prompt templates | Complete | `prompts/templates/` |
 | Toast notification system | Complete | `Toast.jsx`, `ToastContext.js` |
 | Error handling & loading states | Complete | Throughout |
-| 174 backend tests, 57 frontend tests | Complete | `backend/tests/`, component tests |
+| 488 backend tests, 125 frontend tests | Complete | `backend/tests/`, component tests |
 
 ---
 
@@ -160,7 +160,8 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 
 | Phase | Focus | Key Additions |
 |-------|-------|--------------|
-| **Phase 1** | Core Experience | Full artifact version history, cross-tab sync, improved UX |
+| **Phase 1A** | Living Project Document | LPD with section-based storage, context injection, return path, project intake |
+| **Phase 1B** | Core Experience | Full artifact version history, cross-tab sync, improved UX |
 | **Phase 2** | Intelligence | Ollama (local AI), deep strategy analysis, multi-project |
 | **Phase 3** | Proactive | Daily planner, project initiation wizard, history search |
 | **Phase 4** | Commercial | Google auth, security hardening, integrations, HR planning |
@@ -169,10 +170,10 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 
 ## Codebase Statistics
 
-- **Backend**: 9 service modules, 6 database tables, 5 API endpoints
-- **Frontend**: 7 components, 2 pages, 1 API service module
-- **Tests**: 231 total (174 backend + 57 frontend)
-- **Lines of code**: ~3,500 backend Python, ~1,500 frontend JavaScript (estimated)
+- **Backend**: 11 service modules, 8 database tables, 14 API endpoints
+- **Frontend**: 7 components, 4 pages, 1 API service module
+- **Tests**: 613 total (488 backend + 125 frontend)
+- **Lines of code**: ~5,000 backend Python, ~1,500 frontend JavaScript (estimated)
 
 ---
 

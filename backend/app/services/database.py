@@ -34,11 +34,6 @@ async def init_db():
     finally:
         await db.close()
 
-    # Ensure default project exists for MVP (single-project mode)
-    from app.services.crud import ensure_default_project
-
-    await ensure_default_project()
-
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS projects (
@@ -92,5 +87,28 @@ CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS lpd_sections (
+    section_id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    section_name TEXT NOT NULL,
+    content TEXT DEFAULT '',
+    section_order INTEGER NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    verified_at TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(project_id),
+    UNIQUE(project_id, section_name)
+);
+
+CREATE TABLE IF NOT EXISTS lpd_session_summaries (
+    summary_id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    session_id TEXT,
+    summary_text TEXT NOT NULL,
+    entities_extracted TEXT DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(project_id),
+    FOREIGN KEY (session_id) REFERENCES sessions(session_id)
 );
 """
