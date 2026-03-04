@@ -1,7 +1,7 @@
 # VPMA — Decisions Log
 
-**Last Updated**: 2026-03-01
-**Current As Of**: 2026-03-01 (D38-D39 added — Phase 1B UI/UX deferrals, cross-section reconciliation)
+**Last Updated**: 2026-03-03
+**Current As Of**: 2026-03-03 (D41-D44 added — Phase 1B design decisions)
 
 ---
 
@@ -369,3 +369,39 @@ Full plan documented in `QA_PLAN.md`. Rules integrated into `CLAUDE.md`.
 **Fix (Phase 1B)**: Call `classify_lpd_updates()` from `update_lpd_from_suggestion()` before appending, reusing the existing `content_gate.py` module. This adds one LLM call per Apply click that targets an LPD-mapped section (~5 of the artifact sections map to LPD). Cost is acceptable since Apply is user-initiated (not batched like Log Session).
 
 **Connects to**: D33 (content gate), D39 (cross-section reconciliation)
+
+### D41: localStorage for Result Persistence
+**Date**: 2026-03-03 (Phase 1B planning) | **Status**: Active
+
+**Decision**: Use localStorage with "clear on new sync" semantics for persisting artifact sync results across tab navigation. Each mode (extract/analyze/log_session) gets independent storage. Results are cleared when the user submits new text, not on a time-based TTL.
+
+**Rationale**: The Skeptical PM review flagged TTL-based expiration as a source of silent failures. "Clear on new sync" is deterministic — the user controls when results refresh. Backend session storage was considered but rejected as over-engineering for a single-user local app. No distributed concerns, no multi-device sync needed.
+
+**Connects to**: D38 (Phase 1B UI/UX improvements)
+
+### D42: Graceful Degradation for Semantic Dedup on Return Path
+**Date**: 2026-03-03 (Phase 1B planning) | **Status**: Active
+
+**Decision**: When extending the content gate to the Apply return path (D40), LLM failure falls back to exact substring matching. Apply never fails due to content gate issues. Contradictions are applied with a warning log (user explicitly clicked Apply, so honor their intent).
+
+**Rationale**: Matches the D33 pattern — the content gate on Log Session also degrades gracefully when LLM is unavailable. The Apply button is a user-initiated action; blocking it on a transient LLM failure would be a worse UX than allowing a potential duplicate.
+
+**Connects to**: D33 (content gate), D40 (semantic dedup gap)
+
+### D43: Transcript Watcher as Background Asyncio Task
+**Date**: 2026-03-03 (Phase 1B planning) | **Status**: Active
+
+**Decision**: The transcript file watcher runs as a background asyncio task inside the FastAPI process, not as a separate daemon or subprocess.
+
+**Rationale**: Simpler deployment (one process to manage), simpler lifecycle (start/stop via API), and the watcher is I/O-bound (file system events) not CPU-bound, so sharing the event loop is appropriate. The `watchdog` library supports asyncio integration. If VPMA ever moves to multi-worker deployment, this would need revisiting.
+
+**Connects to**: D31 (meeting intelligence strategy)
+
+### D44: VTT Parser as Separate Module from Transcript Watcher
+**Date**: 2026-03-03 (Phase 1B planning) | **Status**: Active
+
+**Decision**: The VTT/SRT parser is a separate pure-function module (`vtt_parser.py`) from the file watcher service (`transcript_watcher.py`).
+
+**Rationale**: Clean separation of concerns. The parser is a pure function (text in, text out) that can be tested independently with static fixtures. The watcher handles lifecycle, file detection, debouncing, and orchestration. This makes the parser reusable — the manual "process transcript file" endpoint uses the parser without the watcher.
+
+**Connects to**: D31 (meeting intelligence strategy), D43 (watcher architecture)

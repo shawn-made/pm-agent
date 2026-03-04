@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="VPMA API",
     description="Virtual Project Management Assistant — Backend API",
-    version="0.1.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 

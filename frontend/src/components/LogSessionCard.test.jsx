@@ -77,6 +77,24 @@ describe('LogSessionCard', () => {
     })
   })
 
+  it('shows KB toast when apply returns lpd_updated true', async () => {
+    const onApply = vi.fn().mockResolvedValue({ status: 'applied', lpd_updated: true })
+    renderCard({ onApply })
+    fireEvent.click(screen.getByText('Apply'))
+    await waitFor(() => {
+      expect(screen.getByText('Applied to artifact + knowledge base')).toBeInTheDocument()
+    })
+  })
+
+  it('shows duplicate toast when apply returns duplicate status', async () => {
+    const onApply = vi.fn().mockResolvedValue({ status: 'duplicate', lpd_updated: false })
+    renderCard({ onApply })
+    fireEvent.click(screen.getByText('Apply'))
+    await waitFor(() => {
+      expect(screen.getByText('Already applied (duplicate)')).toBeInTheDocument()
+    })
+  })
+
   it('renders Copy All button', () => {
     renderCard()
     expect(screen.getByText('Copy All')).toBeInTheDocument()

@@ -472,6 +472,140 @@ New files: `backend/app/services/intake.py`, `backend/app/prompts/lpd_prompts.py
 
 ---
 
+## Phase 1B: Fit-and-Finish + Transcript Integration
+
+**Status**: Complete — v0.3.0 shipped (2026-03-03)
+**Scope**: Lean phase focused on validated refinements + transcript watcher. Skeptical PM review endorsed this scope, deferring V25 (narrative-first) and V15 (question tracking) until beta feedback.
+**Backlog Review 2**: V40 (concept refinement cascade) → Phase 3. No new promotions.
+**Design decisions**: D41 (localStorage persistence), D42 (graceful dedup degradation), D43 (watcher as asyncio task), D44 (parser/watcher separation)
+
+### Progress
+
+| Group | Tasks | Done | Status |
+|-------|-------|------|--------|
+| UI/UX Polish | 31-33 | 3/3 | Complete |
+| Content Quality | 34 | 1/1 | Complete |
+| Transcript Integration | 35-36 | 2/2 | Complete |
+| Integration | 37 | 1/1 | Complete |
+
+### Dependency Graph
+```
+Task 31 (XS, rename)                    ─┐
+Task 32 (S, lpd_updated toast)           ├─→ Task 37 (M, E2E)
+Task 33 (S-M, result persistence)        │
+Task 34 (M, semantic dedup on Apply)     │
+Task 35 (M, VTT parser + watcher) → 36 ─┘
+```
+
+---
+
+### GROUP 1: UI/UX POLISH
+
+### Task 31: Rename "Project Hub" → "Project Knowledge Base"
+**Complexity**: XS | **Sessions**: 0.5 | **Dependencies**: None
+
+- [x] All user-visible "Project Hub" text replaced in frontend (App.jsx, ProjectDoc.jsx, ArtifactSync.jsx, Intake.jsx)
+- [x] Frontend test assertions updated (ProjectDoc.test.jsx)
+- [x] Backend reason strings updated (content_gate.py, artifact_sync.py)
+- [x] Backend test assertions updated (test_content_gate.py)
+- [x] `grep -ri "project hub"` returns zero results
+**Status**: Complete
+
+### Task 32: Surface `lpd_updated` Feedback in Apply Toast
+**Complexity**: S | **Sessions**: 0.5 | **Dependencies**: None
+
+- [x] ArtifactSync handleApply captures response, shows differentiated toast when `lpd_updated=true`
+- [x] Handle `status: "duplicate"` → `toast.info("Already applied")`
+- [x] LogSessionCard handleApplySuggestion shows same differentiated feedback
+- [x] handleApplyAll shows aggregated feedback (e.g., "Applied 5 suggestions, 3 knowledge base updates")
+- [x] Frontend tests updated (5 new tests)
+**Status**: Complete
+
+### Task 33: Result Persistence Across Tab Navigation
+**Complexity**: S-M | **Sessions**: 1-2 | **Dependencies**: None
+
+New file: `frontend/src/hooks/usePersistedResults.js`
+
+- [x] Custom hook `usePersistedResults` wrapping localStorage
+- [x] Independent storage per mode (`vpma_results_extract`, `vpma_results_analyze`, `vpma_results_log_session`)
+- [x] Store results (suggestions, analysis, logSession, meta) as JSON after successful submit
+- [x] Restore results on component mount for current mode
+- [x] Clear on new submission (not TTL-based) — D41
+- [x] Mode switch preserves other modes' storage
+- [x] Hook unit tests + integration tests (8 tests)
+**Status**: Complete
+
+---
+
+### GROUP 2: CONTENT QUALITY
+
+### Task 34: Semantic Dedup on Return Path (Apply Button)
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: None
+
+- [x] Add optional `client` param to `update_lpd_from_suggestion()` in lpd_manager.py
+- [x] If client provided, call `classify_lpd_updates()` with single-item LPDUpdate before append
+- [x] `duplicate` → skip, `contradiction` → apply with warning log, `new`/`update` → apply
+- [x] Graceful fallback: LLM failure → exact substring match (D42)
+- [x] Make `get_llm_client()` and `get_custom_terms()` public in artifact_sync.py
+- [x] Wire client creation in routes.py apply endpoint
+- [x] Architecture tests still pass
+- [x] Tests: semantic dedup, fallback, contradiction logging (13 new tests)
+**Status**: Complete
+
+---
+
+### GROUP 3: TRANSCRIPT INTEGRATION
+
+### Task 35: VTT Parser + Transcript File Watcher Service
+**Complexity**: M | **Sessions**: 2 | **Dependencies**: None
+
+New files: `backend/app/services/vtt_parser.py`, `backend/app/services/transcript_watcher.py`
+
+- [x] VTT parser: extract speaker-tagged text, strip timestamps/formatting, handle `<v>` tags, NOTE/STYLE blocks
+- [x] SRT parser: similar to VTT with different header structure
+- [x] Plain text pass-through
+- [x] Adjacent duplicate line deduplication
+- [x] `TranscriptWatcher` class with start/stop/status (polling-based, no watchdog dependency)
+- [x] Watch configurable folder for `.vtt`/`.txt`/`.srt` files
+- [x] Processed file manifest (`transcript_manifest.json`) to prevent re-processing
+- [x] 2-second debounce for partially-written files
+- [x] Background asyncio task in FastAPI process (D43)
+- [x] API endpoints: GET status, POST start, POST stop, POST process (manual)
+- [x] Settings: `transcript_watch_folder`, `transcript_auto_mode`
+- [x] Both modules added to architecture test parametrize lists
+- [x] Tests: VTT parsing (10), SRT parsing (6), TXT (4), watcher lifecycle (9), file processing (5), manifest (2), API smoke (4), dispatch (6) — 48 total
+**Status**: Complete
+
+### Task 36: Transcript Watcher Frontend UX
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: Task 35
+
+- [x] Settings page: "Transcript Watcher" section with folder path input
+- [x] Mode selector (Extract / Log Session)
+- [x] Start/Stop toggle with green/gray status indicator
+- [x] "Recent Files" list (last 5 processed transcripts)
+- [x] API client functions: getStatus, start, stop, processFile
+- [x] Frontend tests (9 new tests in Settings.test.jsx)
+**Status**: Complete
+
+---
+
+### GROUP 4: INTEGRATION
+
+### Task 37: Phase 1B E2E Integration & Polish
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: All
+
+- [x] E2E validation of all features
+- [x] Regression: all Phase 0 + 1A tests pass
+- [x] Version bump → 0.3.0
+- [x] CLAUDE.md updated (project structure, test counts, endpoint count)
+- [x] docs/EXECUTIVE_SUMMARY.md updated
+- [x] Architecture tests include transcript_watcher, vtt_parser
+- [x] Smoke tests for new critical paths (3 new smoke tests)
+- [x] Full test suite pass: 719 backend + 147 frontend = 866 total tests
+**Status**: Complete
+
+---
+
 ## Backlog-Sourced Additions (from Review 1, 2026-02-27)
 
 Items promoted or slotted from VPMA_BACKLOG.md based on real PM workflow validation. See D36 (dual-tool architecture) and D37 (backlog consumption protocol) for strategic context. Full dispositions in `~/Projects/PM Sandbox/VPMA_BACKLOG.md` Review Log.
@@ -491,6 +625,8 @@ Items promoted or slotted from VPMA_BACKLOG.md based on real PM workflow validat
 
 | Item | Source | Description |
 |------|--------|-------------|
+| V41 | Phase 1B review | **Folder browser for transcript watcher** — backend-powered directory listing endpoint (`GET /api/settings/browse-folders`) + "Browse" button in Settings. Browser APIs (`showDirectoryPicker`, `webkitdirectory`) don't return filesystem path strings. ~4-5 hrs. |
+| V42 | Phase 1B testing | **Transcript watcher results view** — when watcher processes a file, surface what was extracted (suggestion cards, KB updates) in the UI. Currently processes server-side with no frontend visibility beyond "1 file processed" count. PM needs to read and understand updates as they enter the KB. Options: notification panel, activity feed, or auto-navigate to results. ~4-6 hrs. |
 | V29 | PA Session 2+4 | **Import AI history** — generalize Gemini export pipeline into product feature. Users import conversation history from any AI assistant. Competitive differentiator. Intake pipeline (Phase 1A) is the foundation. |
 | V5 | Session 3 | **Personal bottleneck detection** — track PM's action item aging and convergence points. Simpler than full HR capacity; moved earlier from Phase 4. |
 | V17 | Sessions 1-4 | **Data provenance / source tracking** — every fact traces to input, timestamp, session. Add to LPD/artifact data model. Easier now than retrofit. |

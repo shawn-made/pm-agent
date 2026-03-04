@@ -6,9 +6,18 @@ import { ToastProvider } from '../components/Toast'
 vi.mock('../services/api', () => ({
   getSettings: vi.fn(),
   updateSettings: vi.fn(),
+  getTranscriptWatcherStatus: vi.fn(),
+  startTranscriptWatcher: vi.fn(),
+  stopTranscriptWatcher: vi.fn(),
 }))
 
-import { getSettings, updateSettings } from '../services/api'
+import {
+  getSettings,
+  updateSettings,
+  getTranscriptWatcherStatus,
+  startTranscriptWatcher,
+  stopTranscriptWatcher,
+} from '../services/api'
 
 function renderSettings() {
   return render(
@@ -21,6 +30,13 @@ function renderSettings() {
 describe('Settings', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    getTranscriptWatcherStatus.mockResolvedValue({
+      running: false,
+      watch_folder: null,
+      mode: 'extract',
+      files_processed: 0,
+      recent_files: [],
+    })
   })
 
   it('shows loading state initially', () => {
@@ -117,6 +133,145 @@ describe('Settings', () => {
       const payload = updateSettings.mock.calls[0][0]
       expect(payload).not.toHaveProperty('anthropic_api_key')
       expect(payload).not.toHaveProperty('google_ai_api_key')
+    })
+  })
+})
+
+describe('Settings — Transcript Watcher', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getTranscriptWatcherStatus.mockResolvedValue({
+      running: false,
+      watch_folder: null,
+      mode: 'extract',
+      files_processed: 0,
+      recent_files: [],
+    })
+  })
+
+  it('renders Transcript Watcher section', async () => {
+    getSettings.mockResolvedValue({ settings: {} })
+    renderSettings()
+    await waitFor(() => {
+      expect(screen.getByText('Transcript Watcher')).toBeInTheDocument()
+    })
+  })
+
+  it('shows stopped status when watcher is not running', async () => {
+    getSettings.mockResolvedValue({ settings: {} })
+    renderSettings()
+    await waitFor(() => {
+      expect(screen.getByText('Stopped')).toBeInTheDocument()
+    })
+  })
+
+  it('shows running status when watcher is active', async () => {
+    getSettings.mockResolvedValue({ settings: { transcript_watch_folder: '/tmp/transcripts' } })
+    getTranscriptWatcherStatus.mockResolvedValue({
+      running: true,
+      watch_folder: '/tmp/transcripts',
+      mode: 'extract',
+      files_processed: 3,
+      recent_files: [],
+    })
+    renderSettings()
+    await waitFor(() => {
+      expect(screen.getByText('Running')).toBeInTheDocument()
+      expect(screen.getByText('(3 files processed)')).toBeInTheDocument()
+    })
+  })
+
+  it('shows Start button when stopped', async () => {
+    getSettings.mockResolvedValue({ settings: {} })
+    renderSettings()
+    await waitFor(() => {
+      expect(screen.getByText('Start')).toBeInTheDocument()
+    })
+  })
+
+  it('shows Stop button when running', async () => {
+    getSettings.mockResolvedValue({ settings: { transcript_watch_folder: '/tmp' } })
+    getTranscriptWatcherStatus.mockResolvedValue({
+      running: true,
+      watch_folder: '/tmp',
+      mode: 'extract',
+      files_processed: 0,
+      recent_files: [],
+    })
+    renderSettings()
+    await waitFor(() => {
+      expect(screen.getByText('Stop')).toBeInTheDocument()
+    })
+  })
+
+  it('starts watcher on Start click', async () => {
+    getSettings.mockResolvedValue({ settings: { transcript_watch_folder: '/tmp/transcripts' } })
+    updateSettings.mockResolvedValue({ success: true })
+    startTranscriptWatcher.mockResolvedValue({ status: 'started' })
+    // After start, return running status
+    getTranscriptWatcherStatus
+      .mockResolvedValueOnce({ running: false, watch_folder: null, mode: 'extract', files_processed: 0, recent_files: [] })
+      .mockResolvedValueOnce({ running: true, watch_folder: '/tmp/transcripts', mode: 'extract', files_processed: 0, recent_files: [] })
+
+    renderSettings()
+    await waitFor(() => {
+      expect(screen.getByText('Start')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByText('Start'))
+    await waitFor(() => {
+      expect(startTranscriptWatcher).toHaveBeenCalled()
+      expect(screen.getByText('Transcript watcher started')).toBeInTheDocument()
+    })
+  })
+
+  it('stops watcher on Stop click', async () => {
+    getSettings.mockResolvedValue({ settings: { transcript_watch_folder: '/tmp' } })
+    stopTranscriptWatcher.mockResolvedValue({ status: 'stopped' })
+    getTranscriptWatcherStatus
+      .mockResolvedValueOnce({ running: true, watch_folder: '/tmp', mode: 'extract', files_processed: 0, recent_files: [] })
+      .mockResolvedValueOnce({ running: false, watch_folder: null, mode: 'extract', files_processed: 0, recent_files: [] })
+
+    renderSettings()
+    await waitFor(() => {
+      expect(screen.getByText('Stop')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByText('Stop'))
+    await waitFor(() => {
+      expect(stopTranscriptWatcher).toHaveBeenCalled()
+      expect(screen.getByText('Transcript watcher stopped')).toBeInTheDocument()
+    })
+  })
+
+  it('shows recent files when available', async () => {
+    getSettings.mockResolvedValue({ settings: {} })
+    getTranscriptWatcherStatus.mockResolvedValue({
+      running: true,
+      watch_folder: '/tmp',
+      mode: 'extract',
+      files_processed: 2,
+      recent_files: [
+        { file: 'meeting.vtt', status: 'processed', timestamp: '2026-03-01T10:00:00Z' },
+        { file: 'notes.txt', status: 'skipped', timestamp: '2026-03-01T09:00:00Z' },
+      ],
+    })
+    renderSettings()
+    await waitFor(() => {
+      expect(screen.getByText('Recent Files')).toBeInTheDocument()
+      expect(screen.getByText('meeting.vtt')).toBeInTheDocument()
+      expect(screen.getByText('notes.txt')).toBeInTheDocument()
+    })
+  })
+
+  it('loads watch folder from settings', async () => {
+    getSettings.mockResolvedValue({
+      settings: { transcript_watch_folder: '/Users/test/Transcripts' },
+    })
+    renderSettings()
+    await waitFor(() => {
+      const input = screen.getByPlaceholderText('/Users/you/Transcripts')
+      expect(input).toHaveValue('/Users/test/Transcripts')
     })
   })
 })

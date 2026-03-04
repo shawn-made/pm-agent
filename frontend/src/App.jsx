@@ -62,7 +62,7 @@ function App() {
                   }`
                 }
               >
-                Project Hub
+                Knowledge Base
               </NavLink>
               <NavLink
                 to="/settings"
@@ -93,7 +93,7 @@ function App() {
         {/* Footer */}
         <footer className="border-t border-gray-200 bg-white">
           <div className="max-w-5xl mx-auto px-6 py-3 text-xs text-gray-400 text-center">
-            VPMA v0.2.0 — Phase 1A
+            VPMA v0.3.0 — Phase 1B
           </div>
         </footer>
       </div>

@@ -19,8 +19,8 @@ from app.services.artifact_manager import (
     read_artifact_content,
     write_artifact_content,
 )
-from app.services.artifact_sync import run_artifact_sync
-from app.services.crud import get_all_settings, upsert_setting, verify_lpd_section
+from app.services.artifact_sync import get_custom_terms, get_llm_client, run_artifact_sync
+from app.services.crud import get_all_settings, get_setting, upsert_setting, verify_lpd_section
 from app.services.intake import apply_intake_draft, generate_intake_draft
 from app.services.llm_client import LLMError
 from app.services.lpd_manager import (
@@ -31,6 +31,7 @@ from app.services.lpd_manager import (
     update_lpd_from_suggestion,
     update_section,
 )
+from app.services.transcript_watcher import get_transcript_watcher
 
 router = APIRouter()
 
@@ -66,7 +67,7 @@ def _insert_into_section(content: str, section: str, proposed_text: str) -> str:
 @router.get("/health")
 async def health_check():
     """Backend health check endpoint."""
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "version": "0.3.0"}
 
 
 # ============================================================
@@ -165,10 +166,20 @@ async def apply_suggestion_by_type(suggestion: Suggestion, project_id: str = "de
         raise HTTPException(status_code=500, detail="Failed to write artifact")
 
     # Return path: update LPD with the applied suggestion content
+    # Uses content gate for semantic dedup when LLM is available (D40)
+    try:
+        client = await get_llm_client()
+        custom_terms = await get_custom_terms()
+    except Exception:
+        client = None
+        custom_terms = None
+
     lpd_updated = await update_lpd_from_suggestion(
         project_id=project_id,
         artifact_section=suggestion.section,
         proposed_text=suggestion.proposed_text,
+        client=client,
+        custom_terms=custom_terms,
     )
 
     return {
@@ -210,6 +221,8 @@ async def update_settings(settings: dict):
         "anthropic_api_key",
         "google_ai_api_key",
         "sensitive_terms",
+        "transcript_watch_folder",
+        "transcript_auto_mode",
     }
 
     updated = {}
@@ -351,3 +364,73 @@ async def verify_lpd_section_endpoint(project_id: str, section_name: str):
             detail=f"Section '{section_name}' not found",
         )
     return {"status": "verified", "section": section_name}
+
+
+# ============================================================
+# TRANSCRIPT WATCHER
+# ============================================================
+
+
+@router.get("/transcript-watcher/status")
+async def transcript_watcher_status():
+    """Get the current transcript watcher status."""
+    watcher = get_transcript_watcher()
+    return watcher.status()
+
+
+@router.post("/transcript-watcher/start")
+async def transcript_watcher_start(
+    project_id: str = "default",
+):
+    """Start the transcript file watcher.
+
+    Uses the configured watch folder and mode from settings.
+    Falls back to defaults if not configured.
+    """
+    watch_folder = await get_setting("transcript_watch_folder")
+    if not watch_folder:
+        raise HTTPException(
+            status_code=400,
+            detail="No transcript_watch_folder configured. Set it in Settings first.",
+        )
+
+    mode = await get_setting("transcript_auto_mode") or "extract"
+
+    watcher = get_transcript_watcher()
+    started = await watcher.start(
+        watch_folder=watch_folder,
+        mode=mode,
+        project_id=project_id,
+    )
+
+    if not started:
+        if watcher.is_running:
+            raise HTTPException(status_code=409, detail="Watcher is already running")
+        raise HTTPException(status_code=400, detail="Failed to start watcher (invalid folder?)")
+
+    return {"status": "started", **watcher.status()}
+
+
+@router.post("/transcript-watcher/stop")
+async def transcript_watcher_stop():
+    """Stop the transcript file watcher."""
+    watcher = get_transcript_watcher()
+    stopped = await watcher.stop()
+    if not stopped:
+        raise HTTPException(status_code=409, detail="Watcher is not running")
+    return {"status": "stopped"}
+
+
+@router.post("/transcript-watcher/process")
+async def transcript_watcher_process(body: dict):
+    """Process a single transcript file manually (one-off).
+
+    Expects JSON body with a "file_path" key.
+    """
+    file_path = body.get("file_path")
+    if not file_path:
+        raise HTTPException(status_code=400, detail="Missing 'file_path' in request body")
+
+    watcher = get_transcript_watcher()
+    result = await watcher.process_file(file_path)
+    return result

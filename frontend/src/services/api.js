@@ -217,6 +217,69 @@ export async function intakePreview(projectId, files) {
  * @param {string[]} approvedSections - Sections the user approved
  * @returns {Promise<{sections_updated: string[], sections_skipped: string[]}>}
  */
+// ============================================================
+// TRANSCRIPT WATCHER
+// ============================================================
+
+/**
+ * Get the current transcript watcher status.
+ * @returns {Promise<{running: boolean, watch_folder: string|null, mode: string, files_processed: number, recent_files: Array}>}
+ */
+export async function getTranscriptWatcherStatus() {
+  const res = await fetch(`${API_BASE}/transcript-watcher/status`);
+  if (!res.ok) throw new Error(`Failed to get watcher status: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Start the transcript watcher.
+ * @param {string} [projectId='default'] - Project scope
+ * @returns {Promise<Object>} Watcher status after starting
+ */
+export async function startTranscriptWatcher(projectId = 'default') {
+  const res = await fetch(`${API_BASE}/transcript-watcher/start?project_id=${encodeURIComponent(projectId)}`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Failed to start watcher: ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * Stop the transcript watcher.
+ * @returns {Promise<{status: string}>}
+ */
+export async function stopTranscriptWatcher() {
+  const res = await fetch(`${API_BASE}/transcript-watcher/stop`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Failed to stop watcher: ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * Process a single transcript file manually.
+ * @param {string} filePath - Absolute path to the transcript file
+ * @returns {Promise<Object>} Processing result
+ */
+export async function processTranscriptFile(filePath) {
+  const res = await fetch(`${API_BASE}/transcript-watcher/process`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file_path: filePath }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Failed to process file: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function intakeApply(projectId, proposedSections, approvedSections) {
   const res = await fetch(`${API_BASE}/lpd/${encodeURIComponent(projectId)}/intake/apply`, {
     method: 'POST',

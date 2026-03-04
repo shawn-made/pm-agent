@@ -107,6 +107,8 @@ class TestLLMAbstraction:
             "lpd_manager.py",
             "intake.py",
             "content_gate.py",
+            "transcript_watcher.py",
+            "vtt_parser.py",
         ],
     )
     def test_services_do_not_import_anthropic_sdk(self, service_file):
@@ -127,6 +129,8 @@ class TestLLMAbstraction:
             "lpd_manager.py",
             "intake.py",
             "content_gate.py",
+            "transcript_watcher.py",
+            "vtt_parser.py",
         ],
     )
     def test_services_do_not_import_google_genai_sdk(self, service_file):

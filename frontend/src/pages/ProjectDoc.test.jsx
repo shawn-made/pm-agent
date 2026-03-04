@@ -67,7 +67,7 @@ describe('ProjectDoc', () => {
     renderPage()
 
     await waitFor(() => {
-      expect(screen.getByText('Initialize Project Hub')).toBeInTheDocument()
+      expect(screen.getByText('Initialize Knowledge Base')).toBeInTheDocument()
     })
   })
 
@@ -81,10 +81,10 @@ describe('ProjectDoc', () => {
     renderPage()
 
     await waitFor(() => {
-      expect(screen.getByText('Initialize Project Hub')).toBeInTheDocument()
+      expect(screen.getByText('Initialize Knowledge Base')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByText('Initialize Project Hub'))
+    fireEvent.click(screen.getByText('Initialize Knowledge Base'))
 
     await waitFor(() => {
       expect(initializeLPD).toHaveBeenCalledWith('default')

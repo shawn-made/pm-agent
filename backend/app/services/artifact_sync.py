@@ -42,7 +42,7 @@ from app.services.privacy_proxy import anonymize, reidentify
 logger = logging.getLogger(__name__)
 
 
-async def _get_llm_client() -> LLMClient:
+async def get_llm_client() -> LLMClient:
     """Get the configured LLM client based on settings."""
     provider_str = await get_setting("llm_provider") or "gemini"
     provider = Provider(provider_str)
@@ -58,7 +58,7 @@ async def _get_llm_client() -> LLMClient:
         return create_client(provider)
 
 
-async def _get_custom_terms() -> list[str]:
+async def get_custom_terms() -> list[str]:
     """Load custom sensitive terms from settings."""
     terms_str = await get_setting("sensitive_terms")
     if not terms_str:
@@ -254,8 +254,8 @@ async def run_artifact_sync(
         logger.warning("Unknown mode '%s', defaulting to extract", mode)
         mode = "extract"
 
-    client = await _get_llm_client()
-    custom_terms = await _get_custom_terms()
+    client = await get_llm_client()
+    custom_terms = await get_custom_terms()
 
     # Step 1: Classify input type
     input_type = await classify_input(text, client)
@@ -348,7 +348,7 @@ async def run_artifact_sync(
                 update.model_copy(
                     update={
                         "classification": LPDUpdateClassification(
-                            classification="new", reason="No existing project hub"
+                            classification="new", reason="No existing knowledge base"
                         )
                     }
                 )

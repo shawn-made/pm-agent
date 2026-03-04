@@ -205,7 +205,7 @@ class TestFullPipeline:
         """Full E2E: meeting notes → PII anonymized → suggestions returned with real names."""
         mock_client = _mock_llm_call()
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 response = await client.post(
                     "/api/artifact-sync",
@@ -241,7 +241,7 @@ class TestFullPipeline:
         """Verify that PII is anonymized BEFORE reaching the LLM."""
         mock_client = _mock_llm_call()
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 await client.post(
                     "/api/artifact-sync",
@@ -270,7 +270,7 @@ class TestFullPipeline:
         """Verify PII tokens in LLM response are replaced back with real values."""
         mock_client = _mock_llm_call()
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 response = await client.post(
                     "/api/artifact-sync",
@@ -296,7 +296,7 @@ class TestFullPipeline:
             sync_response=STATUS_UPDATE_LLM_RESPONSE,
         )
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 response = await client.post(
                     "/api/artifact-sync",
@@ -327,7 +327,7 @@ class TestFullPipeline:
             ),
         )
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 response = await client.post(
                     "/api/artifact-sync",
@@ -344,7 +344,7 @@ class TestFullPipeline:
         """Verify session is logged to database after pipeline runs."""
         mock_client = _mock_llm_call()
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 response = await client.post(
                     "/api/artifact-sync",
@@ -616,7 +616,7 @@ class TestProviderToggle:
             )
 
             # Run artifact sync with those terms active
-            with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+            with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
                 response = await client.post(
                     "/api/artifact-sync",
                     json={"text": "The ProjectPhoenix team at Acme delivered the milestone."},
@@ -672,7 +672,7 @@ class TestErrorHandling:
         mock_client = AsyncMock()
         mock_client.call = AsyncMock(side_effect=LLMError("Rate limited"))
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 response = await client.post(
                     "/api/artifact-sync",
@@ -687,7 +687,7 @@ class TestErrorHandling:
             sync_response="This is not valid JSON at all!",
         )
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 response = await client.post(
                     "/api/artifact-sync",
@@ -716,7 +716,7 @@ class TestErrorHandling:
             ),
         )
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 response = await client.post(
                     "/api/artifact-sync",
@@ -772,7 +772,7 @@ class TestPrivacyRoundTrip:
         mock_client.estimate_tokens = lambda text: len(text) // 4
         mock_client.model = "mock-model"
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 response = await client.post(
                     "/api/artifact-sync",
@@ -821,7 +821,7 @@ class TestPrivacyRoundTrip:
         mock_client.estimate_tokens = lambda text: len(text) // 4
         mock_client.model = "mock-model"
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 response = await client.post(
                     "/api/artifact-sync",
@@ -927,7 +927,7 @@ class TestAnalyzeMode:
             sync_response=ANALYZE_LLM_RESPONSE,
         )
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 response = await client.post(
                     "/api/artifact-sync",
@@ -959,7 +959,7 @@ class TestAnalyzeMode:
             sync_response=ANALYZE_LLM_RESPONSE,
         )
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 await client.post(
                     "/api/artifact-sync",
@@ -985,7 +985,7 @@ class TestAnalyzeMode:
             sync_response=ANALYZE_LLM_RESPONSE,
         )
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 response = await client.post(
                     "/api/artifact-sync",
@@ -1018,7 +1018,7 @@ class TestAnalyzeMode:
         """Omitting mode defaults to extract (backward compatible)."""
         mock_client = _mock_llm_call()
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 response = await client.post(
                     "/api/artifact-sync",
@@ -1036,7 +1036,7 @@ class TestAnalyzeMode:
         """Unknown mode values fall back to extract."""
         mock_client = _mock_llm_call()
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 response = await client.post(
                     "/api/artifact-sync",
@@ -1055,7 +1055,7 @@ class TestAnalyzeMode:
             sync_response=ANALYZE_LLM_RESPONSE,
         )
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 response = await client.post(
                     "/api/artifact-sync",
@@ -1073,7 +1073,7 @@ class TestAnalyzeMode:
             sync_response="This is not valid JSON!",
         )
 
-        with patch("app.services.artifact_sync._get_llm_client", return_value=mock_client):
+        with patch("app.services.artifact_sync.get_llm_client", return_value=mock_client):
             async with async_client as client:
                 response = await client.post(
                     "/api/artifact-sync",

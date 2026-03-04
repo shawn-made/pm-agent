@@ -49,9 +49,15 @@ export default function LogSessionCard({ sessionSummary, lpdUpdates, suggestions
 
   async function handleApplySuggestion(suggestion, index) {
     try {
-      await onApply(suggestion)
+      const result = await onApply(suggestion)
       setAppliedSuggestions(prev => new Set([...prev, index]))
-      toast.success('Applied to artifact')
+      if (result?.status === 'duplicate') {
+        toast.info('Already applied (duplicate)')
+      } else if (result?.lpd_updated) {
+        toast.success('Applied to artifact + knowledge base')
+      } else {
+        toast.success('Applied to artifact')
+      }
     } catch {
       toast.error('Failed to apply suggestion')
     }

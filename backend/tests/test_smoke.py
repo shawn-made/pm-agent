@@ -112,3 +112,28 @@ class TestLPDCriticalPaths:
             )
         # Empty files should be rejected (400), not crash (500) or missing (404)
         assert resp.status_code in (400, 422)
+
+
+class TestTranscriptWatcherCriticalPaths:
+    """Verify Phase 1B Transcript Watcher critical paths."""
+
+    async def test_watcher_status_endpoint(self, async_client):
+        async with async_client as client:
+            resp = await client.get("/api/transcript-watcher/status")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "running" in data
+
+    async def test_vtt_parser_imports(self):
+        from app.services.vtt_parser import parse_srt, parse_transcript_file, parse_vtt
+
+        assert callable(parse_vtt)
+        assert callable(parse_srt)
+        assert callable(parse_transcript_file)
+
+    async def test_vtt_basic_parse(self):
+        from app.services.vtt_parser import parse_vtt
+
+        vtt = "WEBVTT\n\n00:00:01.000 --> 00:00:05.000\n<v Alice>Hello.</v>\n"
+        result = parse_vtt(vtt)
+        assert "Alice: Hello." in result

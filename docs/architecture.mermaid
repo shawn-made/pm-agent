@@ -12,7 +12,7 @@ graph TB
     end
 
     subgraph Backend["FastAPI Backend (localhost:8000)"]
-        API["API Routes<br/>/api/artifact-sync<br/>/api/settings<br/>/api/health<br/>/api/lpd/{project_id}/*"]
+        API["API Routes<br/>/api/artifact-sync<br/>/api/settings<br/>/api/health<br/>/api/lpd/{project_id}/*<br/>/api/transcript-watcher/*"]
         PP["Privacy Proxy<br/>anonymize() / reidentify()"]
         LLM["LLM Client Factory<br/>create_client(provider)"]
         AS["Artifact Sync<br/>Input classification<br/>Delta extraction"]
@@ -20,6 +20,7 @@ graph TB
         LPDM["LPD Manager<br/>Section CRUD + Staleness"]
         CI["Context Injection<br/>LPD → LLM prompts"]
         IN["Project Intake<br/>Bulk file import"]
+        TW["Transcript Watcher<br/>File polling + VTT parser"]
     end
 
     subgraph Detection["PII Detection Pipeline"]
@@ -197,10 +198,10 @@ gantt
         Context Injection Engine    :active, p1a2, after p1a1, 7d
         Return Path + Intake        :p1a3, after p1a2, 7d
 
-    section Phase 1B - Core Experience
-        Artifact Version History    :p1b1, after p1a3, 14d
-        Cross-Tab Sync              :p1b2, after p1b1, 14d
-        UX Improvements             :p1b3, after p1b2, 14d
+    section Phase 1B - Fit & Finish + Transcripts
+        UX Polish + Semantic Dedup  :done, p1b1, after p1a3, 7d
+        Transcript Watcher          :done, p1b2, after p1b1, 7d
+        E2E Integration             :done, p1b3, after p1b2, 3d
 
     section Phase 2 - Intelligence
         Ollama Integration          :p2a, after p1b3, 14d

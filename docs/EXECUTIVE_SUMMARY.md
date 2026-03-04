@@ -1,7 +1,7 @@
 # VPMA — Executive Technical Summary
 
-**Version**: 0.2.0 — Phase 0 Complete, Phase 1A Complete
-**Last Updated**: 2026-03-01
+**Version**: 0.3.0 — Phase 0 Complete, Phase 1A Complete, Phase 1B Complete
+**Last Updated**: 2026-03-03
 
 ---
 
@@ -158,7 +158,11 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 | Project intake (bulk file import) | Complete | `intake.py`, `Intake.jsx` |
 | Log session bridge | Complete | `artifact_sync.py`, `LogSessionCard.jsx` |
 | Content quality gate (dedup/contradiction) | Complete | `content_gate.py` |
-| 651 backend tests, 125 frontend tests | Complete | `backend/tests/`, component tests |
+| Semantic dedup on Apply (return path) | Complete | `lpd_manager.py`, `content_gate.py` |
+| Result persistence across tabs | Complete | `usePersistedResults.js` |
+| LPD update toast feedback | Complete | `ArtifactSync.jsx`, `LogSessionCard.jsx` |
+| VTT/SRT transcript parser | Complete | `vtt_parser.py` |
+| Transcript file watcher service | Complete | `transcript_watcher.py`, Settings page |
 
 ---
 
@@ -166,8 +170,8 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 
 | Phase | Focus | Key Additions |
 |-------|-------|--------------|
-| **Phase 1A** | Living Project Document | LPD with section-based storage, context injection, return path, project intake |
-| **Phase 1B** | Core Experience | Full artifact version history, cross-tab sync, improved UX |
+| **Phase 1A** | Living Project Document | ~~LPD with section-based storage, context injection, return path, project intake~~ DONE |
+| **Phase 1B** | Fit & Finish + Transcripts | ~~Semantic dedup, result persistence, transcript watcher, UX polish~~ DONE |
 | **Phase 2** | Intelligence | Ollama (local AI), deep strategy analysis, multi-project |
 | **Phase 3** | Proactive | Daily planner, project initiation wizard, history search |
 | **Phase 4** | Commercial | Google auth, security hardening, integrations, HR planning |
@@ -176,10 +180,10 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 
 ## Codebase Statistics
 
-- **Backend**: 11 service modules, 8 database tables, 14 API endpoints
-- **Frontend**: 7 components, 4 pages, 1 API service module
-- **Tests**: 776 total (651 backend + 125 frontend)
-- **Lines of code**: ~7,000 backend Python, ~2,500 frontend JavaScript (estimated)
+- **Backend**: 13 service modules, 8 database tables, 18 API endpoints
+- **Frontend**: 7 components, 4 pages, 1 hook, 1 API service module
+- **Tests**: 866 total (719 backend + 147 frontend)
+- **Lines of code**: ~8,500 backend Python, ~3,200 frontend JavaScript (estimated)
 
 ---
 

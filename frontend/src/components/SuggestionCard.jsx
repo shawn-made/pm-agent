@@ -47,9 +47,15 @@ export default function SuggestionCard({ suggestion, onApply }) {
 
   async function handleApply() {
     try {
-      if (onApply) await onApply(suggestion)
+      const result = onApply ? await onApply(suggestion) : null
       setApplied(true)
-      toast.success('Applied to artifact')
+      if (result?.status === 'duplicate') {
+        toast.info('Already applied (duplicate)')
+      } else if (result?.lpd_updated) {
+        toast.success('Applied to artifact + knowledge base')
+      } else {
+        toast.success('Applied to artifact')
+      }
     } catch {
       toast.error('Failed to apply suggestion')
     }

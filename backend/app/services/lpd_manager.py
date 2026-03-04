@@ -326,6 +326,8 @@ async def update_lpd_from_suggestion(
     project_id: str,
     artifact_section: str,
     proposed_text: str,
+    client=None,
+    custom_terms: list[str] | None = None,
 ) -> bool:
     """Update the LPD based on an applied artifact suggestion (return path).
 
@@ -333,10 +335,16 @@ async def update_lpd_from_suggestion(
     the proposed text. Does nothing if the LPD is not initialized or the
     artifact section has no LPD mapping.
 
+    When an LLM client is provided, uses the content gate for semantic dedup
+    (D40). Falls back to exact substring matching if the client is unavailable
+    or the LLM call fails (D42 — graceful degradation).
+
     Args:
         project_id: Project to update.
         artifact_section: The section name from the suggestion (e.g., "Risks", "Action Items").
         proposed_text: The text that was applied to the artifact.
+        client: Optional LLM client for semantic dedup via content gate.
+        custom_terms: Optional custom sensitive terms for privacy proxy.
 
     Returns:
         True if the LPD was updated, False if skipped (no LPD, no mapping, or error).
@@ -352,11 +360,48 @@ async def update_lpd_from_suggestion(
         )
         return False
 
-    # Check for duplicate — don't append if the text is already present
+    # Check for exact duplicate first (fast path, no API call)
     section = await get_lpd_section(project_id, lpd_section)
     if section and proposed_text.strip() in section.content:
-        logger.debug("Duplicate text in LPD section '%s', skipping", lpd_section)
+        logger.debug("Exact duplicate text in LPD section '%s', skipping", lpd_section)
         return False
+
+    # Semantic dedup via content gate (D40) if LLM client is available
+    if client is not None:
+        try:
+            from app.models.schemas import LPDUpdate
+            from app.services.content_gate import classify_lpd_updates
+
+            lpd_update = LPDUpdate(section=lpd_section, content=proposed_text)
+            classified_updates, _gate_active = await classify_lpd_updates(
+                project_id, [lpd_update], client, custom_terms=custom_terms
+            )
+
+            if classified_updates:
+                cls = classified_updates[0].classification
+                if cls and cls.classification == "duplicate":
+                    logger.info(
+                        "Semantic duplicate on return path: '%s' → LPD '%s' (%s)",
+                        artifact_section,
+                        lpd_section,
+                        cls.reason,
+                    )
+                    return False
+                if cls and cls.classification == "contradiction":
+                    logger.warning(
+                        "Contradiction on return path: '%s' → LPD '%s' (%s). "
+                        "Applying anyway (user-initiated Apply).",
+                        artifact_section,
+                        lpd_section,
+                        cls.reason,
+                    )
+                    # Fall through to apply — user explicitly clicked Apply
+        except Exception:
+            logger.warning(
+                "Content gate failed on return path — falling back to exact match",
+                exc_info=True,
+            )
+            # Fall through to apply (graceful degradation per D42)
 
     result = await append_to_section(project_id, lpd_section, proposed_text)
     if result:

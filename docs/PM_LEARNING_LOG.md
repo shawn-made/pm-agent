@@ -2,7 +2,7 @@
 
 A running log of technical concepts, patterns, and vocabulary learned during VPMA development. Written in plain language for a PM audience. Use this to build fluency when discussing the project with engineers.
 
-**Last Updated**: 2026-02-25
+**Last Updated**: 2026-03-03
 
 ---
 
@@ -142,6 +142,39 @@ A bulk import flow for bootstrapping the LPD from existing PM files. Instead of 
 Each LPD section has both `updated_at` (when the content last changed) and `verified_at` (when someone confirmed it's still accurate). A section can be recently modified but still stale if only part of it was updated. The staleness API surfaces which sections need review.
 
 *When to use this term*: "Staleness tracking distinguishes between 'when was this changed' and 'when was this confirmed accurate' — so we can flag sections that need a review sweep."
+
+---
+
+## Concepts Learned During Phase 1B
+
+### Content Quality & UX Polish
+
+**Semantic Deduplication**
+Going beyond exact string matching to detect when two pieces of text mean the same thing even if worded differently. VPMA's content gate uses an LLM to classify updates as "new," "duplicate," "update," or "contradiction" relative to existing LPD content. This prevents knowledge base bloat from repeated meeting discussions about the same topic.
+
+*When to use this term*: "We use semantic dedup, not just exact matching — so 'vendor delay risk' and 'vendor API might be late' are recognized as the same concern."
+
+**Graceful Degradation**
+When a non-critical feature fails (like the LLM content gate), the system falls back to simpler behavior (exact string match) instead of blocking the user. The Apply button never fails because of a content gate issue — worst case, it skips dedup and applies anyway.
+
+*When to use this term*: "The content gate degrades gracefully — if the LLM is unavailable, we fall back to exact-match dedup instead of blocking the user."
+
+**Result Persistence (localStorage)**
+Browser-side storage that survives page navigation. VPMA stores sync results in localStorage so switching tabs doesn't lose your suggestions. Cleared automatically when you run a new sync, so you're never looking at stale results.
+
+*When to use this term*: "Results are persisted in localStorage with clear-on-new-sync semantics, so tab navigation is non-destructive."
+
+### Transcript Integration
+
+**VTT/SRT Parsing**
+WebVTT (.vtt) and SubRip (.srt) are standard caption/subtitle formats used by video conferencing tools. VPMA's parser strips timestamps, cue numbers, and formatting tags, then extracts speaker-tagged dialogue. This converts raw transcript files into clean text suitable for the artifact sync pipeline.
+
+*When to use this term*: "The VTT parser handles speaker voice tags, deduplicates repeated cues, and produces clean speaker-attributed text for analysis."
+
+**File Watcher (Polling-Based)**
+A background service that monitors a folder for new files. VPMA uses polling (checking the folder every second) rather than OS-level file event monitoring, which is simpler and more portable. It includes debouncing (waiting for file writes to finish) and a manifest to track which files have already been processed.
+
+*When to use this term*: "The transcript watcher polls the configured folder, debounces partial writes, and feeds completed transcripts into the existing artifact sync pipeline."
 
 ---
 

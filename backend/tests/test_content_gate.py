@@ -80,7 +80,7 @@ def _patch_llm(monkeypatch, responses: list[str]):
     """Patch the LLM client for full pipeline tests."""
     client = _make_client(responses)
     monkeypatch.setattr(
-        "app.services.artifact_sync._get_llm_client",
+        "app.services.artifact_sync.get_llm_client",
         AsyncMock(return_value=client),
     )
     return client
@@ -478,7 +478,7 @@ class TestContentGateInPipeline:
 
         assert len(result.lpd_updates) == 1
         assert result.lpd_updates[0].classification.classification == "new"
-        assert "No existing project hub" in result.lpd_updates[0].classification.reason
+        assert "No existing knowledge base" in result.lpd_updates[0].classification.reason
 
 
 # ============================================================

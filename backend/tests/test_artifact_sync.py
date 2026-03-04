@@ -13,40 +13,44 @@ from app.services.artifact_sync import _parse_suggestions, classify_input, run_a
 
 class TestParseSuggestions:
     def test_parse_valid_json(self):
-        response = json.dumps([
-            {
-                "artifact_type": "RAID Log",
-                "change_type": "add",
-                "section": "Risks",
-                "proposed_text": "New risk identified",
-                "confidence": 0.9,
-                "reasoning": "Explicitly mentioned as a risk",
-            }
-        ])
+        response = json.dumps(
+            [
+                {
+                    "artifact_type": "RAID Log",
+                    "change_type": "add",
+                    "section": "Risks",
+                    "proposed_text": "New risk identified",
+                    "confidence": 0.9,
+                    "reasoning": "Explicitly mentioned as a risk",
+                }
+            ]
+        )
         suggestions = _parse_suggestions(response)
         assert len(suggestions) == 1
         assert suggestions[0].artifact_type == "RAID Log"
         assert suggestions[0].confidence == 0.9
 
     def test_parse_multiple_suggestions(self):
-        response = json.dumps([
-            {
-                "artifact_type": "RAID Log",
-                "change_type": "add",
-                "section": "Risks",
-                "proposed_text": "Risk 1",
-                "confidence": 0.9,
-                "reasoning": "Reason 1",
-            },
-            {
-                "artifact_type": "Status Report",
-                "change_type": "add",
-                "section": "Accomplishments",
-                "proposed_text": "Completed task X",
-                "confidence": 0.85,
-                "reasoning": "Reason 2",
-            },
-        ])
+        response = json.dumps(
+            [
+                {
+                    "artifact_type": "RAID Log",
+                    "change_type": "add",
+                    "section": "Risks",
+                    "proposed_text": "Risk 1",
+                    "confidence": 0.9,
+                    "reasoning": "Reason 1",
+                },
+                {
+                    "artifact_type": "Status Report",
+                    "change_type": "add",
+                    "section": "Accomplishments",
+                    "proposed_text": "Completed task X",
+                    "confidence": 0.85,
+                    "reasoning": "Reason 2",
+                },
+            ]
+        )
         suggestions = _parse_suggestions(response)
         assert len(suggestions) == 2
 
@@ -73,17 +77,19 @@ class TestParseSuggestions:
         assert suggestions == []
 
     def test_parse_skips_malformed_items(self):
-        response = json.dumps([
-            {
-                "artifact_type": "RAID Log",
-                "change_type": "add",
-                "section": "Risks",
-                "proposed_text": "Valid",
-                "confidence": 0.9,
-                "reasoning": "Valid reason",
-            },
-            {"bad": "data"},  # Missing required fields
-        ])
+        response = json.dumps(
+            [
+                {
+                    "artifact_type": "RAID Log",
+                    "change_type": "add",
+                    "section": "Risks",
+                    "proposed_text": "Valid",
+                    "confidence": 0.9,
+                    "reasoning": "Valid reason",
+                },
+                {"bad": "data"},  # Missing required fields
+            ]
+        )
         suggestions = _parse_suggestions(response)
         assert len(suggestions) == 1
 
@@ -138,27 +144,27 @@ class TestRunArtifactSync:
     @pytest.mark.asyncio
     async def test_full_pipeline(self, monkeypatch):
         """End-to-end pipeline with mocked LLM."""
-        llm_suggestions = json.dumps([
-            {
-                "artifact_type": "Status Report",
-                "change_type": "add",
-                "section": "Accomplishments",
-                "proposed_text": "- Completed database migration",
-                "confidence": 0.95,
-                "reasoning": "Explicitly stated as completed",
-            }
-        ])
+        llm_suggestions = json.dumps(
+            [
+                {
+                    "artifact_type": "Status Report",
+                    "change_type": "add",
+                    "section": "Accomplishments",
+                    "proposed_text": "- Completed database migration",
+                    "confidence": 0.95,
+                    "reasoning": "Explicitly stated as completed",
+                }
+            ]
+        )
 
         mock_client = MagicMock()
         # First call: classification, Second call: artifact sync
-        mock_client.call = AsyncMock(
-            side_effect=["status_update", llm_suggestions]
-        )
+        mock_client.call = AsyncMock(side_effect=["status_update", llm_suggestions])
         mock_client.estimate_tokens = MagicMock(return_value=50)
         mock_client.model = "mock-model"
 
         monkeypatch.setattr(
-            "app.services.artifact_sync._get_llm_client",
+            "app.services.artifact_sync.get_llm_client",
             AsyncMock(return_value=mock_client),
         )
 
@@ -186,7 +192,7 @@ class TestRunArtifactSync:
         mock_client.model = "mock"
 
         monkeypatch.setattr(
-            "app.services.artifact_sync._get_llm_client",
+            "app.services.artifact_sync.get_llm_client",
             AsyncMock(return_value=mock_client),
         )
 
@@ -206,7 +212,7 @@ class TestRunArtifactSync:
         mock_client.model = "mock"
 
         monkeypatch.setattr(
-            "app.services.artifact_sync._get_llm_client",
+            "app.services.artifact_sync.get_llm_client",
             AsyncMock(return_value=mock_client),
         )
 

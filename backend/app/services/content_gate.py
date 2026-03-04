@@ -121,7 +121,7 @@ async def classify_lpd_updates(
             update.model_copy(
                 update={
                     "classification": LPDUpdateClassification(
-                        classification="new", reason="No existing project hub"
+                        classification="new", reason="No existing knowledge base"
                     )
                 }
             )

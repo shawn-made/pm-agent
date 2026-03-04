@@ -1,5 +1,5 @@
 /**
- * Project Hub page — Living Project Document (LPD) viewer and editor.
+ * Knowledge Base page — Living Project Document (LPD) viewer and editor.
  *
  * Displays all LPD sections with:
  * - Staleness indicators (days since last update)
@@ -61,7 +61,7 @@ export default function ProjectDoc() {
       }
       setStaleness(stalenessMap)
     } catch {
-      toast.error('Failed to load project hub')
+      toast.error('Failed to load knowledge base')
       setSections({})
     }
   }, [projectId, toast])
@@ -74,10 +74,10 @@ export default function ProjectDoc() {
     setInitializing(true)
     try {
       await initializeLPD(projectId)
-      toast.success('Project hub initialized')
+      toast.success('Knowledge base initialized')
       await loadData()
     } catch {
-      toast.error('Failed to initialize project hub')
+      toast.error('Failed to initialize knowledge base')
     } finally {
       setInitializing(false)
     }
@@ -122,7 +122,7 @@ export default function ProjectDoc() {
     try {
       const res = await getLPDMarkdown(projectId)
       await navigator.clipboard.writeText(res.markdown)
-      toast.success('Copied project hub')
+      toast.success('Copied knowledge base')
     } catch {
       toast.error('Failed to copy')
     }
@@ -132,7 +132,7 @@ export default function ProjectDoc() {
   if (sections === null) {
     return (
       <div className="text-center py-12">
-        <p className="text-sm text-gray-400">Loading project hub...</p>
+        <p className="text-sm text-gray-400">Loading knowledge base...</p>
       </div>
     )
   }
@@ -143,19 +143,19 @@ export default function ProjectDoc() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">Project Hub</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">Knowledge Base</h2>
           <p className="text-sm text-gray-500">Your project knowledge base — accumulated context across sessions.</p>
         </div>
         <div className="text-center py-12 bg-white border border-gray-200 rounded-lg">
           <div className="text-gray-300 text-4xl mb-3">&#128196;</div>
-          <p className="text-sm text-gray-500 mb-4">No project hub yet. Initialize one to get started.</p>
+          <p className="text-sm text-gray-500 mb-4">No knowledge base yet. Initialize one to get started.</p>
           <div className="flex justify-center gap-3">
             <button
               onClick={handleInitialize}
               disabled={initializing}
               className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:bg-gray-300 transition-colors"
             >
-              {initializing ? 'Initializing...' : 'Initialize Project Hub'}
+              {initializing ? 'Initializing...' : 'Initialize Knowledge Base'}
             </button>
             <Link
               to="/intake"
@@ -174,7 +174,7 @@ export default function ProjectDoc() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">Project Hub</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">Knowledge Base</h2>
           <p className="text-sm text-gray-500">Your project knowledge base — accumulated context across sessions.</p>
         </div>
         <div className="flex gap-2">

@@ -79,7 +79,7 @@ def _patch_llm(monkeypatch, responses):
     client.estimate_tokens = MagicMock(return_value=50)
     client.model = "mock-model"
     monkeypatch.setattr(
-        "app.services.artifact_sync._get_llm_client",
+        "app.services.artifact_sync.get_llm_client",
         AsyncMock(return_value=client),
     )
     return call_args

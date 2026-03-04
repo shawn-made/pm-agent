@@ -96,7 +96,7 @@ export default function Intake() {
         draft.proposed_sections,
         [...approved],
       )
-      toast.success(`Applied ${result.sections_updated.length} section${result.sections_updated.length !== 1 ? 's' : ''} to project hub`)
+      toast.success(`Applied ${result.sections_updated.length} section${result.sections_updated.length !== 1 ? 's' : ''} to knowledge base`)
       navigate('/project')
     } catch (err) {
       setError(err.message)
@@ -111,7 +111,7 @@ export default function Intake() {
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-1">Import Files</h2>
         <p className="text-sm text-gray-500">
-          Paste existing PM documents to populate your project hub. Each file is processed individually.
+          Paste existing PM documents to populate your knowledge base. Each file is processed individually.
         </p>
       </div>
 

@@ -28,6 +28,8 @@ backend/                # Python FastAPI application
       lpd_manager.py    # Living Project Document management (Phase 1A)
       intake.py         # Bulk project file intake (Phase 1A)
       content_gate.py   # LPD content quality gate — dedup/contradiction detection (Phase 1A)
+      vtt_parser.py     # VTT/SRT/TXT transcript parser (Phase 1B)
+      transcript_watcher.py # File watcher for auto-processing transcripts (Phase 1B)
       crud.py           # Database CRUD operations
       database.py       # SQLite init + schema
     prompts/            # System prompt templates
@@ -36,7 +38,8 @@ backend/                # Python FastAPI application
 frontend/               # React application
   src/
     components/         # React components
-    pages/              # Page-level components (ArtifactSync, Settings)
+    hooks/              # Custom React hooks (usePersistedResults)
+    pages/              # Page-level components (ArtifactSync, Settings, ProjectDoc, Intake)
     services/           # API client, utilities
     App.jsx             # Root component
 prd.md                  # Vision PRD (source of truth)
@@ -75,15 +78,26 @@ Foundation MVP:
 - Basic Settings: API keys, LLM toggle, custom sensitive terms
 - SQLite database with full schema (project-scoped)
 
-## Phase 1A Scope (In Progress)
+## Phase 1A Scope (Complete)
 
 Living Project Document (LPD) — persistent project knowledge:
 - LPD Manager: section-based DB storage with staleness tracking
 - Context Injection Engine: prepends LPD context to LLM prompts
 - Return Path: applied suggestions feed back into LPD state
 - Project Intake: bulk import existing PM files into LPD
+- Content Quality Gate: semantic dedup and contradiction detection for LPD updates
 - New tables: `lpd_sections`, `lpd_session_summaries`
 - New endpoints: 8 LPD endpoints under `/api/lpd/{project_id}/`
+
+## Phase 1B Scope (Complete)
+
+Fit-and-finish polish + transcript integration:
+- Semantic dedup on Apply return path (reuses content gate)
+- Result persistence across tab navigation (localStorage)
+- LPD update toast feedback (differentiated Apply toasts)
+- VTT/SRT transcript parser (pure-function module)
+- Transcript file watcher with auto-processing
+- New endpoints: 4 transcript watcher endpoints under `/api/transcript-watcher/`
 
 ## Rules
 
@@ -173,13 +187,13 @@ npm run dev  # → http://localhost:3000
 ## Debugging
 
 ```bash
-# Run backend tests (651+ tests)
+# Run backend tests (719+ tests)
 cd backend && source venv/bin/activate && python -m pytest tests/ -v
 
 # Run backend tests with coverage
 cd backend && python -m pytest tests/ -v --cov=app --cov-report=term-missing
 
-# Run frontend tests (125+ tests)
+# Run frontend tests (147+ tests)
 cd frontend && npm test
 
 # Run smoke tests only (pre-commit gate)

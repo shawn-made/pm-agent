@@ -102,6 +102,33 @@ describe('SuggestionCard', () => {
     })
   })
 
+  it('shows KB toast when lpd_updated is true', async () => {
+    const onApply = vi.fn().mockResolvedValue({ status: 'applied', lpd_updated: true })
+    renderCard({ onApply })
+    fireEvent.click(screen.getByText('Apply'))
+    await waitFor(() => {
+      expect(screen.getByText('Applied to artifact + knowledge base')).toBeInTheDocument()
+    })
+  })
+
+  it('shows duplicate toast when status is duplicate', async () => {
+    const onApply = vi.fn().mockResolvedValue({ status: 'duplicate', lpd_updated: false })
+    renderCard({ onApply })
+    fireEvent.click(screen.getByText('Apply'))
+    await waitFor(() => {
+      expect(screen.getByText('Already applied (duplicate)')).toBeInTheDocument()
+    })
+  })
+
+  it('shows plain toast when lpd_updated is false', async () => {
+    const onApply = vi.fn().mockResolvedValue({ status: 'applied', lpd_updated: false })
+    renderCard({ onApply })
+    fireEvent.click(screen.getByText('Apply'))
+    await waitFor(() => {
+      expect(screen.getByText('Applied to artifact')).toBeInTheDocument()
+    })
+  })
+
   it('applies correct color class for each artifact type', () => {
     const { rerender } = render(
       <ToastProvider>

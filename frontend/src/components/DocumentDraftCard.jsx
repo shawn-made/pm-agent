@@ -73,9 +73,14 @@ export default function DocumentDraftCard({ artifactType, suggestions, onApplyAl
   async function handleApplyAll() {
     try {
       setApplying(true)
-      if (onApplyAll) await onApplyAll(suggestions)
+      const results = onApplyAll ? await onApplyAll(suggestions) : []
       setApplied(true)
-      toast.success(`Applied ${suggestions.length} items to ${artifactType}`)
+      const kbUpdates = (results || []).filter(r => r?.lpd_updated).length
+      if (kbUpdates > 0) {
+        toast.success(`Applied ${suggestions.length} items to ${artifactType} + ${kbUpdates} knowledge base update${kbUpdates !== 1 ? 's' : ''}`)
+      } else {
+        toast.success(`Applied ${suggestions.length} items to ${artifactType}`)
+      }
     } catch {
       toast.error('Failed to apply suggestions')
     } finally {
