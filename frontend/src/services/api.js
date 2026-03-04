@@ -330,6 +330,103 @@ export async function processTranscriptFile(filePath) {
   return res.json();
 }
 
+// ============================================================
+// DEEP STRATEGY
+// ============================================================
+
+/**
+ * Run 4-pass Deep Strategy analysis on uploaded artifacts.
+ * @param {Array<{name: string, content: string, priority: number}>} artifacts - Artifacts to analyze
+ * @param {string} [projectId='default'] - Project scope
+ * @returns {Promise<Object>} DeepStrategyResponse with all pass results and summary
+ */
+export async function deepStrategyAnalyze(artifacts, projectId = 'default') {
+  const res = await fetch(`${API_BASE}/deep-strategy/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ artifacts, project_id: projectId }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * Apply selected Deep Strategy updates to artifacts.
+ * @param {Array} updates - ProposedUpdate objects to apply
+ * @param {string} [projectId='default'] - Project scope
+ * @returns {Promise<{applied: Array, copied_to_clipboard: string[]}>}
+ */
+export async function deepStrategyApply(updates, projectId = 'default') {
+  const res = await fetch(`${API_BASE}/deep-strategy/apply`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ updates, project_id: projectId }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ============================================================
+// RISK PREDICTION & RECONCILIATION
+// ============================================================
+
+/**
+ * Run AI risk prediction based on project LPD state.
+ * @param {string} [projectId='default'] - Project scope
+ * @returns {Promise<{predictions: Array, project_health: string, pii_detected: number, session_id: string}>}
+ */
+export async function predictRisks(projectId = 'default') {
+  const res = await fetch(`${API_BASE}/risk-prediction/${encodeURIComponent(projectId)}`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * Run cross-section LPD reconciliation.
+ * @param {string} [projectId='default'] - Project scope
+ * @returns {Promise<{impacts: Array, sections_analyzed: number, pii_detected: number, session_id: string}>}
+ */
+export async function reconcileLPD(projectId = 'default') {
+  const res = await fetch(`${API_BASE}/lpd/${encodeURIComponent(projectId)}/reconcile`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ============================================================
+// FOLDER BROWSER
+// ============================================================
+
+/**
+ * Browse directories for folder selection.
+ * @param {string} [path] - Directory path to browse (defaults to home)
+ * @returns {Promise<{current_path: string, parent_path: string|null, directories: Array}>}
+ */
+export async function browseFolders(path) {
+  const params = path ? `?path=${encodeURIComponent(path)}` : '';
+  const res = await fetch(`${API_BASE}/settings/browse-folders${params}`);
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function intakeApply(projectId, proposedSections, approvedSections) {
   const res = await fetch(`${API_BASE}/lpd/${encodeURIComponent(projectId)}/intake/apply`, {
     method: 'POST',

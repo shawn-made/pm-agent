@@ -413,3 +413,204 @@ class ChatResponse(BaseModel):
     session_id: str = Field(..., description="Sync session ID for tracking")
     pii_detected: int = Field(0, description="Number of PII entities anonymized")
     token_count: int = Field(0, description="Total tokens used for this exchange")
+
+
+# --- Deep Strategy (Phase 2B) ---
+
+
+class DeepStrategyArtifact(BaseModel):
+    """A single uploaded artifact for Deep Strategy analysis."""
+
+    name: str = Field(..., description="User-assigned name, e.g., 'Project Charter'")
+    content: str = Field(..., description="Raw markdown/text content")
+    priority: int = Field(
+        ..., description="Position in priority order (1 = highest, source of truth)"
+    )
+
+
+class DependencyEdge(BaseModel):
+    """A single edge in the artifact dependency graph."""
+
+    source: str = Field(..., description="Source artifact name (influencing)")
+    target: str = Field(..., description="Target artifact name (influenced)")
+    relationship: str = Field(
+        ..., description="Nature of the relationship, e.g., 'scope influences timeline'"
+    )
+
+
+class DependencyGraph(BaseModel):
+    """Output of Pass 1: artifact relationships."""
+
+    artifacts: list[str] = Field(
+        default_factory=list, description="List of artifact names analyzed"
+    )
+    edges: list[DependencyEdge] = Field(
+        default_factory=list, description="Relationships between artifacts"
+    )
+    summary: str = Field("", description="Brief description of the dependency structure")
+
+
+class Inconsistency(BaseModel):
+    """A single inconsistency detected between artifacts in Pass 2."""
+
+    id: str = Field(..., description="Unique inconsistency identifier, e.g., 'INC-1'")
+    source_artifact: str = Field(..., description="Artifact where the 'truth' resides")
+    target_artifact: str = Field(..., description="Artifact that needs updating")
+    description: str = Field(..., description="What the inconsistency is")
+    severity: str = Field(
+        ..., description="'high' (blocks project), 'medium' (causes confusion), 'low' (cosmetic)"
+    )
+    source_excerpt: str = Field("", description="Relevant text from the source artifact")
+    target_excerpt: str = Field("", description="Relevant text from the target artifact")
+
+
+class ProposedUpdate(BaseModel):
+    """A single proposed fix generated in Pass 3."""
+
+    inconsistency_id: str = Field(..., description="Links back to an Inconsistency.id")
+    artifact_name: str = Field(..., description="Which artifact to update")
+    section: str = Field("", description="Section within the artifact, if applicable")
+    current_text: str = Field("", description="Current text that needs changing")
+    proposed_text: str = Field(..., description="Proposed replacement or addition")
+    change_type: str = Field(..., description="'add', 'modify', or 'remove'")
+    rationale: str = Field("", description="Why this change is needed")
+
+
+class ValidationCheck(BaseModel):
+    """A single validation result from Pass 4 cross-validation."""
+
+    artifact_name: str = Field(..., description="Which artifact was checked")
+    check_description: str = Field(..., description="What was verified")
+    passed: bool = Field(..., description="Whether the check passed")
+    detail: str = Field("", description="Details if the check failed")
+
+
+class DeepStrategySummary(BaseModel):
+    """Summary statistics for the Deep Strategy results."""
+
+    artifacts_analyzed: int = Field(0, description="Number of artifacts in the analysis")
+    inconsistencies_found: int = Field(0, description="Total inconsistencies detected")
+    updates_proposed: int = Field(0, description="Total proposed updates generated")
+    validation_passed: bool = Field(False, description="True if all cross-validation checks pass")
+    consistency_score: float = Field(
+        0.0, description="Post-update consistency score from 0.0 to 1.0"
+    )
+
+
+class DeepStrategyRequest(BaseModel):
+    """Request body for the Deep Strategy analyze endpoint."""
+
+    artifacts: list[DeepStrategyArtifact] = Field(
+        ..., description="Artifacts to analyze (minimum 2)"
+    )
+    project_id: str = Field("default", description="Project scope for session logging")
+
+
+class DeepStrategyResponse(BaseModel):
+    """Full response from the Deep Strategy 4-pass analysis engine."""
+
+    session_id: str = Field(..., description="Unique session ID for this analysis")
+    dependency_graph: DependencyGraph = Field(..., description="Pass 1: artifact dependency graph")
+    inconsistencies: list[Inconsistency] = Field(
+        default_factory=list, description="Pass 2: detected inconsistencies"
+    )
+    proposed_updates: list[ProposedUpdate] = Field(
+        default_factory=list, description="Pass 3: proposed updates per inconsistency"
+    )
+    validation_checks: list[ValidationCheck] = Field(
+        default_factory=list, description="Pass 4: cross-validation results"
+    )
+    summary: DeepStrategySummary = Field(..., description="Summary statistics for the analysis")
+    pii_detected: int = Field(0, description="Total PII entities anonymized across all artifacts")
+
+
+class DeepStrategyApplyRequest(BaseModel):
+    """Request to apply selected Deep Strategy updates."""
+
+    updates: list[ProposedUpdate] = Field(
+        ..., description="Subset of proposed updates the user accepted"
+    )
+    project_id: str = Field("default", description="Project scope")
+
+
+class DeepStrategyApplyResponse(BaseModel):
+    """Result of applying Deep Strategy updates."""
+
+    applied: list[dict] = Field(
+        default_factory=list,
+        description="Applied updates: [{artifact_name, section, status}]",
+    )
+    copied_to_clipboard: list[str] = Field(
+        default_factory=list,
+        description="Artifact names that were copy-only (not VPMA-managed)",
+    )
+
+
+# --- AI Risk Prediction (Phase 2B) ---
+
+
+class PredictedRisk(BaseModel):
+    """A risk predicted by AI analysis of project health."""
+
+    description: str = Field(..., description="What the predicted risk is")
+    severity: str = Field(..., description="'high', 'medium', or 'low'")
+    evidence: str = Field(
+        ..., description="Which LPD section or artifact data triggered this prediction"
+    )
+    confidence: float = Field(..., description="Prediction confidence from 0.0 to 1.0")
+    suggested_raid_entry: str = Field(
+        ..., description="Ready-to-use text for adding to the RAID Log"
+    )
+    category: str = Field(
+        ...,
+        description="Risk category: 'timeline', 'resource', 'scope', 'stakeholder', or 'quality'",
+    )
+
+
+class RiskPredictionRequest(BaseModel):
+    """Request body for the risk prediction endpoint."""
+
+    project_id: str = Field("default", description="Project to analyze")
+
+
+class RiskPredictionResponse(BaseModel):
+    """Response from the AI Risk Prediction engine."""
+
+    predictions: list[PredictedRisk] = Field(
+        default_factory=list, description="List of predicted risks"
+    )
+    project_health: str = Field(
+        "unknown",
+        description="Overall health assessment: 'healthy', 'needs_attention', 'at_risk', or 'unknown'",
+    )
+    pii_detected: int = Field(0, description="PII entities anonymized during analysis")
+    session_id: str = Field(..., description="Unique session ID for this prediction run")
+
+
+# --- Cross-Section LPD Reconciliation (Phase 2B, D39) ---
+
+
+class CrossSectionImpact(BaseModel):
+    """A detected cross-section relationship in the LPD."""
+
+    source_section: str = Field(..., description="LPD section where the source information lives")
+    target_section: str = Field(..., description="LPD section that is impacted")
+    impact_type: str = Field(
+        ...,
+        description="'resolves', 'contradicts', 'supersedes', or 'requires_update'",
+    )
+    description: str = Field(..., description="What the cross-section impact is")
+    source_excerpt: str = Field("", description="Relevant text from the source section")
+    target_excerpt: str = Field("", description="Relevant text from the target section")
+    suggested_action: str = Field("", description="What the user should do to resolve this")
+
+
+class ReconciliationResponse(BaseModel):
+    """Response from the cross-section LPD reconciliation engine."""
+
+    impacts: list[CrossSectionImpact] = Field(
+        default_factory=list, description="Detected cross-section impacts"
+    )
+    sections_analyzed: int = Field(0, description="Number of LPD sections analyzed")
+    pii_detected: int = Field(0, description="PII entities anonymized during analysis")
+    session_id: str = Field(..., description="Unique session ID for this reconciliation")

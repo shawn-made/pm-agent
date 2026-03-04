@@ -8,6 +8,7 @@ import { ProjectProvider } from './components/ProjectContext.jsx'
 import ArtifactSync from './pages/ArtifactSync.jsx'
 import ProjectDoc from './pages/ProjectDoc.jsx'
 import Intake from './pages/Intake.jsx'
+import DeepStrategy from './pages/DeepStrategy.jsx'
 import Settings from './pages/Settings.jsx'
 import { healthCheck } from './services/api'
 
@@ -65,6 +66,18 @@ function App() {
                 Knowledge Base
               </NavLink>
               <NavLink
+                to="/deep-strategy"
+                className={({ isActive }) =>
+                  `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-gray-800 text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`
+                }
+              >
+                Deep Strategy
+              </NavLink>
+              <NavLink
                 to="/settings"
                 className={({ isActive }) =>
                   `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -86,6 +99,7 @@ function App() {
             <Route path="/" element={<ArtifactSync />} />
             <Route path="/project" element={<ProjectDoc />} />
             <Route path="/intake" element={<Intake />} />
+            <Route path="/deep-strategy" element={<DeepStrategy />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>

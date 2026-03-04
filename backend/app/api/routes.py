@@ -1,16 +1,23 @@
 """VPMA API Routes."""
 
 import re
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
 from app.models.schemas import (
     ArtifactSyncRequest,
     ArtifactSyncResponse,
+    DeepStrategyApplyRequest,
+    DeepStrategyApplyResponse,
+    DeepStrategyRequest,
+    DeepStrategyResponse,
     IntakeApplyRequest,
     IntakeApplyResponse,
     IntakeDraft,
     IntakePreviewRequest,
+    ReconciliationResponse,
+    RiskPredictionResponse,
     Suggestion,
 )
 from app.services.artifact_manager import (
@@ -21,6 +28,7 @@ from app.services.artifact_manager import (
 )
 from app.services.artifact_sync import get_custom_terms, get_llm_client, run_artifact_sync
 from app.services.crud import get_all_settings, get_setting, upsert_setting, verify_lpd_section
+from app.services.deep_strategy import apply_deep_strategy_updates, run_deep_strategy
 from app.services.intake import apply_intake_draft, generate_intake_draft
 from app.services.llm_client import LLMError
 from app.services.llm_ollama import check_ollama_status
@@ -32,6 +40,8 @@ from app.services.lpd_manager import (
     update_lpd_from_suggestion,
     update_section,
 )
+from app.services.reconciliation import reconcile_lpd_sections
+from app.services.risk_prediction import predict_risks
 from app.services.transcript_watcher import get_transcript_watcher
 
 router = APIRouter()
@@ -464,6 +474,88 @@ async def transcript_watcher_stop():
     return {"status": "stopped"}
 
 
+# ============================================================
+# DEEP STRATEGY
+# ============================================================
+
+
+@router.post("/deep-strategy/analyze", response_model=DeepStrategyResponse)
+async def deep_strategy_analyze(request: DeepStrategyRequest):
+    """Run 4-pass Deep Strategy analysis on uploaded artifacts.
+
+    Accepts 2+ artifacts with name, content, and priority. Runs dependency
+    graph construction, inconsistency detection, proposed updates, and
+    cross-validation. Returns all results with summary statistics.
+    """
+    if len(request.artifacts) < 2:
+        raise HTTPException(
+            status_code=400, detail="At least 2 artifacts are required for Deep Strategy analysis"
+        )
+
+    try:
+        result = await run_deep_strategy(
+            artifacts=request.artifacts,
+            project_id=request.project_id,
+        )
+        return result
+    except LLMError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/deep-strategy/apply", response_model=DeepStrategyApplyResponse)
+async def deep_strategy_apply(request: DeepStrategyApplyRequest):
+    """Apply selected Deep Strategy updates to artifacts.
+
+    VPMA-managed artifacts (RAID Log, Status Report, Meeting Notes) are
+    written directly. Other artifacts are returned for copy-to-clipboard.
+    """
+    if not request.updates:
+        raise HTTPException(status_code=400, detail="At least one update is required")
+
+    result = await apply_deep_strategy_updates(request)
+    return result
+
+
+# ============================================================
+# RISK PREDICTION
+# ============================================================
+
+
+@router.post("/risk-prediction/{project_id}", response_model=RiskPredictionResponse)
+async def risk_prediction(project_id: str):
+    """Run AI risk prediction based on project LPD state.
+
+    Analyzes the full Living Project Document, RAID Log, and section
+    staleness data to identify risks that are not yet tracked.
+    """
+    try:
+        result = await predict_risks(project_id=project_id)
+        return result
+    except LLMError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+# ============================================================
+# LPD RECONCILIATION
+# ============================================================
+
+
+@router.post("/lpd/{project_id}/reconcile", response_model=ReconciliationResponse)
+async def lpd_reconcile(project_id: str):
+    """Run cross-section LPD reconciliation.
+
+    Detects cross-section impacts: decisions resolving questions,
+    timeline contradictions, superseded information, and required updates.
+    """
+    try:
+        result = await reconcile_lpd_sections(project_id=project_id)
+        return result
+    except LLMError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
 @router.post("/transcript-watcher/process")
 async def transcript_watcher_process(body: dict):
     """Process a single transcript file manually (one-off).
@@ -530,3 +622,64 @@ async def transcript_watcher_results():
     """
     watcher = get_transcript_watcher()
     return {"results": watcher.recent_files}
+
+
+# ============================================================
+# FOLDER BROWSER
+# ============================================================
+
+
+@router.get("/settings/browse-folders")
+async def browse_folders(path: str = None):
+    """Browse directories for folder selection (e.g., transcript watch folder).
+
+    Security constraints:
+    - Only lists subdirectories (no files)
+    - Skips hidden directories (starting with .)
+    - Restricts browsing to within the user's home directory
+    - Does not follow symlinks
+    """
+    home = Path.home()
+
+    if path:
+        target = Path(path).resolve()
+    else:
+        target = home
+
+    # Security: must be within home directory
+    try:
+        target.relative_to(home)
+    except ValueError:
+        raise HTTPException(
+            status_code=403,
+            detail="Cannot browse outside home directory",
+        )
+
+    if not target.is_dir():
+        raise HTTPException(status_code=404, detail="Directory not found")
+
+    # List subdirectories (skip hidden, skip symlinks)
+    directories = []
+    try:
+        for entry in sorted(target.iterdir()):
+            if entry.name.startswith("."):
+                continue
+            if entry.is_symlink():
+                continue
+            if entry.is_dir():
+                directories.append(
+                    {
+                        "name": entry.name,
+                        "path": str(entry),
+                    }
+                )
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    parent_path = str(target.parent) if target != home else None
+
+    return {
+        "current_path": str(target),
+        "parent_path": parent_path,
+        "directories": directories,
+    }

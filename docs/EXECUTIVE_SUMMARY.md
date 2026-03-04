@@ -169,6 +169,10 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 | Transcript watcher results view | Complete | Settings page (expandable results) |
 | Transcript drag-and-drop upload | Complete | Settings page (drop zone), `routes.py` |
 | Conversational API design | Complete | `docs/conversational_api_design.md`, `schemas.py` |
+| Deep Strategy 4-pass engine | Complete | `deep_strategy.py`, `DeepStrategy.jsx` |
+| AI Risk Prediction | Complete | `risk_prediction.py`, `RiskPredictionPanel.jsx` |
+| Cross-section LPD Reconciliation | Complete | `reconciliation.py`, `ReconciliationPanel.jsx` |
+| Folder browser for Settings | Complete | `routes.py`, `FolderBrowser.jsx` |
 
 ---
 
@@ -179,7 +183,7 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 | **Phase 1A** | Living Project Document | ~~LPD with section-based storage, context injection, return path, project intake~~ DONE |
 | **Phase 1B** | Fit & Finish + Transcripts | ~~Semantic dedup, result persistence, transcript watcher, UX polish~~ DONE |
 | **Phase 2A** | Workflow Completion | ~~Ollama adapter, export, change summary, results view, drag-drop, conv. API design~~ DONE |
-| **Phase 2B** | Deep Analysis | Deep strategy tab, folder browser, AI risk prediction, cross-section reconciliation |
+| **Phase 2B** | Deep Analysis | ~~Deep strategy tab, folder browser, AI risk prediction, cross-section reconciliation~~ DONE |
 | **Phase 3** | Proactive | Daily planner, project initiation wizard, history search |
 | **Phase 4** | Commercial | Google auth, security hardening, integrations, HR planning |
 
@@ -187,9 +191,9 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 
 ## Codebase Statistics
 
-- **Backend**: 14 service modules, 8 database tables, 22 API endpoints
-- **Frontend**: 7 components, 4 pages, 1 hook, 1 API service module
-- **Tests**: 907 total (745 backend + 162 frontend)
+- **Backend**: 17 service modules, 8 database tables, 28 API endpoints
+- **Frontend**: 13 components, 5 pages, 1 hook, 1 API service module
+- **Tests**: 1,084+ total (875+ backend + 209+ frontend)
 - **Lines of code**: ~8,500 backend Python, ~3,200 frontend JavaScript (estimated)
 
 ---

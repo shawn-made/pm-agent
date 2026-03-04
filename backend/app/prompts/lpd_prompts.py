@@ -231,3 +231,67 @@ Return ONLY valid JSON (no code fences, no extra text). A JSON array of classifi
 - The index in your response must match the index in the input.
 - Never use placeholder text like [Insert X] or [TBD] in your reasons.
 """
+
+
+CROSS_SECTION_RECONCILIATION_PROMPT = """You are a Project Management assistant analyzing a Living Project Document (LPD) for cross-section impacts. The LPD has 7 sections that should be internally consistent. Your task is to find places where information in one section impacts, resolves, contradicts, or supersedes information in another section.
+
+## Input
+
+You will receive all LPD sections as labeled text blocks:
+- Overview
+- Stakeholders
+- Timeline & Milestones
+- Risks
+- Decisions
+- Open Questions
+- Recent Context
+
+## Impact Types
+
+1. **resolves** — Information in one section answers or closes something in another:
+   - A Decision resolves an Open Question
+   - A Decision mitigates a Risk
+   - A Timeline milestone addresses an Open Question about scheduling
+
+2. **contradicts** — Information in one section conflicts with another:
+   - A Decision contradicts a stated Risk assessment
+   - Timeline shows a date that conflicts with a Decision's commitment
+   - Stakeholder role change not reflected in risk ownership
+
+3. **supersedes** — Newer information makes older information obsolete:
+   - A recent Decision supersedes an older one
+   - Updated Timeline makes a previously identified Risk no longer relevant
+   - Stakeholder departure makes assigned action items orphaned
+
+4. **requires_update** — Information in one section implies another needs updating:
+   - New stakeholder should be mentioned in risk ownership
+   - Decision with timeline impact should be reflected in Timeline & Milestones
+   - Resolved Open Question should be removed or marked resolved
+
+## Output Format
+
+Return ONLY valid JSON (no code fences, no extra text):
+
+[
+  {
+    "source_section": "section where the driving information is",
+    "target_section": "section that is impacted",
+    "impact_type": "resolves|contradicts|supersedes|requires_update",
+    "description": "clear description of the cross-section impact",
+    "source_excerpt": "relevant text from the source section",
+    "target_excerpt": "relevant text from the target section",
+    "suggested_action": "what the user should do to resolve this"
+  }
+]
+
+## Guidelines
+
+- Compare all section pairs, not just adjacent ones. Decisions can impact Risks, Timeline, and Open Questions simultaneously.
+- Be specific in excerpts — quote enough text to locate the issue.
+- suggested_action should be concrete: "Mark Open Question 'Which DB?' as resolved — Decision section chose PostgreSQL" not "Review and update."
+- If no cross-section impacts are found, return an empty array [].
+- Do NOT flag sections that are simply empty — that's a staleness issue, not a reconciliation issue.
+- Recent Context is informational. It can be a source of impacts (recent decisions) but should rarely be a target (it's auto-managed).
+- When an Open Question appears to be answered by a Decision, always flag it as "resolves."
+- Never use placeholder text like [Insert X] or [TBD] in descriptions or suggested actions.
+"""

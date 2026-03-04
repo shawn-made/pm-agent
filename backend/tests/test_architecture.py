@@ -109,6 +109,9 @@ class TestLLMAbstraction:
             "content_gate.py",
             "transcript_watcher.py",
             "vtt_parser.py",
+            "deep_strategy.py",
+            "risk_prediction.py",
+            "reconciliation.py",
         ],
     )
     def test_services_do_not_import_anthropic_sdk(self, service_file):
@@ -131,6 +134,9 @@ class TestLLMAbstraction:
             "content_gate.py",
             "transcript_watcher.py",
             "vtt_parser.py",
+            "deep_strategy.py",
+            "risk_prediction.py",
+            "reconciliation.py",
         ],
     )
     def test_services_do_not_import_google_genai_sdk(self, service_file):

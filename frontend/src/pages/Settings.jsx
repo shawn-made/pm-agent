@@ -3,6 +3,7 @@
  */
 import { useState, useEffect, useCallback } from 'react'
 import { useToast } from '../components/ToastContext'
+import FolderBrowser from '../components/FolderBrowser'
 import {
   getSettings,
   updateSettings,
@@ -40,6 +41,7 @@ export default function Settings() {
   const [isDragOver, setIsDragOver] = useState(false)
   const [uploadResult, setUploadResult] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [showFolderBrowser, setShowFolderBrowser] = useState(false)
 
   const toast = useToast()
 
@@ -333,14 +335,30 @@ export default function Settings() {
             <p className="text-xs text-gray-400 mb-2">
               Absolute path to the folder to monitor for transcript files.
             </p>
-            <input
-              id="watch-folder"
-              type="text"
-              value={watchFolder}
-              onChange={(e) => setWatchFolder(e.target.value)}
-              placeholder="/Users/you/Transcripts"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-            />
+            <div className="flex gap-2">
+              <input
+                id="watch-folder"
+                type="text"
+                value={watchFolder}
+                onChange={(e) => setWatchFolder(e.target.value)}
+                placeholder="/Users/you/Transcripts"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              />
+              <button
+                type="button"
+                onClick={() => setShowFolderBrowser(true)}
+                className="px-3 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
+              >
+                Browse
+              </button>
+            </div>
+
+            {showFolderBrowser && (
+              <FolderBrowser
+                onSelect={(path) => setWatchFolder(path)}
+                onClose={() => setShowFolderBrowser(false)}
+              />
+            )}
           </div>
 
           {/* Processing mode */}

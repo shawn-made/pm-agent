@@ -178,3 +178,74 @@ class TestPhase2ACriticalPaths:
         assert req.include_lpd_context is True
         assert "response" in ChatResponse.model_fields
         assert "project_id" in ConversationSession.model_fields
+
+
+class TestDeepStrategyCriticalPaths:
+    """Verify Phase 2B Deep Strategy critical paths."""
+
+    async def test_deep_strategy_endpoint_reachable(self, async_client):
+        async with async_client as client:
+            resp = await client.post(
+                "/api/deep-strategy/analyze",
+                json={"artifacts": [{"name": "A", "content": "x", "priority": 1}]},
+            )
+        # Fewer than 2 artifacts should be rejected (400)
+        assert resp.status_code == 400
+
+    async def test_deep_strategy_parsers_importable(self):
+        from app.services.deep_strategy import (
+            _parse_dependency_graph,
+            _parse_inconsistencies,
+            _parse_proposed_updates,
+            _parse_validation,
+        )
+
+        assert _parse_dependency_graph("[]") is not None
+        assert _parse_inconsistencies("[]") == []
+        assert _parse_proposed_updates("[]") == []
+        assert _parse_validation("[]") == []
+
+
+class TestRiskPredictionCriticalPaths:
+    """Verify Phase 2B Risk Prediction critical paths."""
+
+    async def test_risk_prediction_endpoint_reachable(self, async_client):
+        async with async_client as client:
+            resp = await client.post("/api/risk-prediction/smoke-test-project")
+        # Should respond (may be 502 if no LLM key, but not 404/500)
+        assert resp.status_code in (200, 502)
+
+    async def test_risk_prediction_parsers(self):
+        from app.services.risk_prediction import _assess_project_health, _parse_predictions
+
+        assert _parse_predictions("[]") == []
+        assert _assess_project_health({}, [], []) == "healthy"
+
+
+class TestReconciliationCriticalPaths:
+    """Verify Phase 2B Cross-Section Reconciliation critical paths."""
+
+    async def test_reconciliation_endpoint_reachable(self, async_client):
+        async with async_client as client:
+            resp = await client.post("/api/lpd/smoke-test-project/reconcile")
+        # Empty LPD should return 200 with empty impacts
+        assert resp.status_code in (200, 502)
+
+    async def test_reconciliation_parsers(self):
+        from app.services.reconciliation import _build_section_block, _parse_impacts
+
+        assert _parse_impacts("[]") == []
+        block = _build_section_block({"A": "content"})
+        assert "Section: A" in block
+
+
+class TestFolderBrowserCriticalPaths:
+    """Verify Phase 2B Folder Browser critical paths."""
+
+    async def test_browse_folders_endpoint(self, async_client):
+        async with async_client as client:
+            resp = await client.get("/api/settings/browse-folders")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "current_path" in data
+        assert "directories" in data

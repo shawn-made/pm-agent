@@ -11,6 +11,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useToast } from '../components/ToastContext'
+import RiskPredictionPanel from '../components/RiskPredictionPanel'
+import ReconciliationPanel from '../components/ReconciliationPanel'
 import {
   getLPDSections,
   getLPDStaleness,
@@ -46,6 +48,8 @@ export default function ProjectDoc() {
   const [editContent, setEditContent] = useState('')
   const [saving, setSaving] = useState(false)
   const [initializing, setInitializing] = useState(false)
+  const [showRiskPanel, setShowRiskPanel] = useState(false)
+  const [showReconPanel, setShowReconPanel] = useState(false)
   const toast = useToast()
   const projectId = 'default'
 
@@ -219,6 +223,18 @@ export default function ProjectDoc() {
           <p className="text-sm text-gray-500">Your project knowledge base — accumulated context across sessions.</p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setShowRiskPanel(true)}
+            className="text-xs px-3 py-1.5 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Predict Risks
+          </button>
+          <button
+            onClick={() => setShowReconPanel(true)}
+            className="text-xs px-3 py-1.5 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Reconcile
+          </button>
           <Link
             to="/intake"
             className="text-xs px-3 py-1.5 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -246,6 +262,24 @@ export default function ProjectDoc() {
         </div>
       </div>
 
+      {showRiskPanel && (
+        <RiskPredictionPanel
+          projectId={projectId}
+          onClose={() => setShowRiskPanel(false)}
+        />
+      )}
+
+      {showReconPanel && (
+        <ReconciliationPanel
+          projectId={projectId}
+          onClose={() => setShowReconPanel(false)}
+          onNavigateToSection={(sectionName) => {
+            const el = document.getElementById(`lpd-section-${sectionName}`)
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }}
+        />
+      )}
+
       <div className="space-y-3">
         {SECTION_ORDER.map((name) => {
           if (!(name in sections)) return null
@@ -255,7 +289,7 @@ export default function ProjectDoc() {
           const isRecent = name === 'Recent Context'
 
           return (
-            <div key={name} className="bg-white border border-gray-200 rounded-lg">
+            <div key={name} id={`lpd-section-${name}`} className="bg-white border border-gray-200 rounded-lg">
               <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
                 <div className="flex items-center gap-3">
                   <h3 className="text-sm font-semibold text-gray-700">{name}</h3>
