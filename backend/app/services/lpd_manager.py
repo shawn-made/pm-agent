@@ -328,7 +328,7 @@ async def update_lpd_from_suggestion(
     proposed_text: str,
     client=None,
     custom_terms: list[str] | None = None,
-) -> bool:
+) -> dict:
     """Update the LPD based on an applied artifact suggestion (return path).
 
     Maps the artifact section to the corresponding LPD section and appends
@@ -347,10 +347,13 @@ async def update_lpd_from_suggestion(
         custom_terms: Optional custom sensitive terms for privacy proxy.
 
     Returns:
-        True if the LPD was updated, False if skipped (no LPD, no mapping, or error).
+        Dict with 'updated' (bool), 'section' (str or None), 'content_added' (str or None).
+        For backward compatibility, the dict is truthy when updated=True.
     """
+    _skip = {"updated": False, "section": None, "content_added": None}
+
     if not await lpd_exists(project_id):
-        return False
+        return _skip
 
     lpd_section = ARTIFACT_SECTION_TO_LPD.get(artifact_section.lower().strip())
     if not lpd_section:
@@ -358,13 +361,13 @@ async def update_lpd_from_suggestion(
             "No LPD mapping for artifact section '%s', skipping return path",
             artifact_section,
         )
-        return False
+        return _skip
 
     # Check for exact duplicate first (fast path, no API call)
     section = await get_lpd_section(project_id, lpd_section)
     if section and proposed_text.strip() in section.content:
         logger.debug("Exact duplicate text in LPD section '%s', skipping", lpd_section)
-        return False
+        return _skip
 
     # Semantic dedup via content gate (D40) if LLM client is available
     if client is not None:
@@ -386,7 +389,7 @@ async def update_lpd_from_suggestion(
                         lpd_section,
                         cls.reason,
                     )
-                    return False
+                    return _skip
                 if cls and cls.classification == "contradiction":
                     logger.warning(
                         "Contradiction on return path: '%s' → LPD '%s' (%s). "
@@ -411,7 +414,12 @@ async def update_lpd_from_suggestion(
             lpd_section,
             project_id,
         )
-    return result
+        # Truncate content_added for the response (max 120 chars)
+        content_preview = proposed_text.strip()
+        if len(content_preview) > 120:
+            content_preview = content_preview[:117] + "..."
+        return {"updated": True, "section": lpd_section, "content_added": content_preview}
+    return _skip
 
 
 def generate_session_summary(

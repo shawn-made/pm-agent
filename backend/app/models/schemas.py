@@ -350,3 +350,66 @@ class IntakeApplyResponse(BaseModel):
     sections_skipped: list[str] = Field(
         default_factory=list, description="Sections that were not approved"
     )
+
+
+# --- Conversational API (D46 — design only, implementation Phase 2B/3) ---
+
+
+class ConversationMessage(BaseModel):
+    """A single message in a conversation."""
+
+    message_id: str = Field(..., description="Unique message identifier (UUID)")
+    conversation_id: str = Field(..., description="Parent conversation ID")
+    role: str = Field(..., description="'user' or 'assistant'")
+    content: str = Field(..., description="Message text content")
+    suggestions: list[Suggestion] = Field(
+        default_factory=list, description="Structured suggestions from assistant messages"
+    )
+    lpd_sections_referenced: list[str] = Field(
+        default_factory=list, description="LPD sections referenced in this message"
+    )
+    timestamp: datetime = Field(..., description="When this message was created")
+    token_count: int = Field(0, description="Token count for this message")
+
+
+class ConversationSession(BaseModel):
+    """A multi-turn conversation session."""
+
+    conversation_id: str = Field(..., description="Unique conversation identifier (UUID)")
+    project_id: str = Field(..., description="Parent project ID")
+    title: Optional[str] = Field(None, description="Auto-generated conversation title")
+    created_at: datetime = Field(..., description="When the conversation started")
+    last_message_at: datetime = Field(..., description="When the last message was sent")
+    message_count: int = Field(0, description="Number of messages in this conversation")
+
+
+class ChatRequest(BaseModel):
+    """Request body for the chat endpoint."""
+
+    message: str = Field(..., description="User's message text")
+    conversation_id: Optional[str] = Field(
+        None, description="Existing conversation ID (null to start new)"
+    )
+    include_lpd_context: bool = Field(
+        True, description="Whether to inject LPD context into the prompt"
+    )
+    include_artifacts: bool = Field(
+        False, description="Whether to include artifact content in the prompt"
+    )
+
+
+class ChatResponse(BaseModel):
+    """Response from the chat endpoint."""
+
+    conversation_id: str = Field(..., description="Conversation ID (new or existing)")
+    message_id: str = Field(..., description="ID of the assistant's response message")
+    response: str = Field(..., description="Assistant's response text")
+    suggestions: list[Suggestion] = Field(
+        default_factory=list, description="Structured suggestions extracted from the response"
+    )
+    lpd_sections_referenced: list[str] = Field(
+        default_factory=list, description="LPD sections referenced in the response"
+    )
+    session_id: str = Field(..., description="Sync session ID for tracking")
+    pii_detected: int = Field(0, description="Number of PII entities anonymized")
+    token_count: int = Field(0, description="Total tokens used for this exchange")

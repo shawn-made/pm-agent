@@ -1162,3 +1162,68 @@ class TestParseAnalysis:
         items, summary = _parse_analysis("[1, 2, 3]")
         assert items == []
         assert summary is None
+
+
+# ============================================================
+# Artifact Export Tests
+# ============================================================
+
+
+class TestArtifactExport:
+    """Test the combined artifact export endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_export_no_artifacts_returns_empty(self, async_client):
+        """Export with no artifacts returns empty markdown."""
+        async with async_client as client:
+            response = await client.get("/api/artifacts/default/export")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["markdown"] == ""
+        assert data["artifact_count"] == 0
+
+    @pytest.mark.asyncio
+    async def test_export_with_artifacts(self, async_client, tmp_database):
+        """Export returns combined markdown from all artifacts."""
+        async with async_client as client:
+            # Create artifacts by applying suggestions
+            for artifact_type, section, text in [
+                (
+                    "RAID Log",
+                    "Risks",
+                    "| R-1 | Export test risk | High | High | Monitor | PM | Open |",
+                ),
+                ("Status Report", "Accomplishments", "- Export feature implemented"),
+            ]:
+                await client.post(
+                    "/api/artifacts/apply?project_id=default",
+                    json={
+                        "artifact_type": artifact_type,
+                        "change_type": "add",
+                        "section": section,
+                        "proposed_text": text,
+                        "confidence": 0.9,
+                        "reasoning": "Export test.",
+                    },
+                )
+
+            response = await client.get("/api/artifacts/default/export")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["artifact_count"] == 2
+        assert "Export test risk" in data["markdown"]
+        assert "Export feature implemented" in data["markdown"]
+        # Artifacts separated by horizontal rule
+        assert "---" in data["markdown"]
+
+    @pytest.mark.asyncio
+    async def test_export_nonexistent_project(self, async_client):
+        """Export for a project with no artifacts returns empty."""
+        async with async_client as client:
+            response = await client.get("/api/artifacts/nonexistent/export")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["artifact_count"] == 0

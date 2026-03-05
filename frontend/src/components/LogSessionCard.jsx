@@ -53,6 +53,8 @@ export default function LogSessionCard({ sessionSummary, lpdUpdates, suggestions
       setAppliedSuggestions(prev => new Set([...prev, index]))
       if (result?.status === 'duplicate') {
         toast.info('Already applied (duplicate)')
+      } else if (result?.lpd_updated && result?.lpd_change) {
+        toast.success(`Applied to artifact + KB "${result.lpd_change.section}"`)
       } else if (result?.lpd_updated) {
         toast.success('Applied to artifact + knowledge base')
       } else {

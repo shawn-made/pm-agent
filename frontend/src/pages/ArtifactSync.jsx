@@ -56,6 +56,81 @@ export default function ArtifactSync() {
     // Don't clear results — usePersistedResults loads each mode's stored results
   }
 
+  function formatResultsAsMarkdown() {
+    if (mode === 'extract' && suggestions.length > 0) {
+      const groups = {}
+      suggestions.forEach((s) => {
+        if (!groups[s.artifact_type]) groups[s.artifact_type] = []
+        groups[s.artifact_type].push(s)
+      })
+      let md = '# Artifact Sync — Extract Results\n\n'
+      for (const [type, items] of Object.entries(groups)) {
+        md += `## ${type}\n\n`
+        for (const s of items) {
+          md += `### ${s.section}\n\n${s.proposed_text}\n\n`
+          if (s.reasoning) md += `> ${s.reasoning}\n\n`
+        }
+      }
+      return md
+    }
+    if (mode === 'analyze' && analysis?.items?.length > 0) {
+      let md = '# Artifact Sync — Analysis Results\n\n'
+      if (analysis.summary) md += `${analysis.summary}\n\n`
+      for (const item of analysis.items) {
+        md += `## ${item.category || 'Observation'}\n\n${item.observation}\n\n`
+        if (item.recommendation) md += `**Recommendation:** ${item.recommendation}\n\n`
+      }
+      return md
+    }
+    if (mode === 'log_session' && logSession) {
+      let md = '# Artifact Sync — Log Session Results\n\n'
+      if (logSession.summary) md += `## Summary\n\n${logSession.summary}\n\n`
+      if (logSession.lpdUpdates?.length > 0) {
+        md += '## Knowledge Base Updates\n\n'
+        for (const u of logSession.lpdUpdates) {
+          md += `### ${u.section}\n\n${u.content}\n\n`
+        }
+      }
+      if (logSession.suggestions?.length > 0) {
+        md += '## Artifact Suggestions\n\n'
+        for (const s of logSession.suggestions) {
+          md += `### ${s.artifact_type} — ${s.section}\n\n${s.proposed_text}\n\n`
+        }
+      }
+      return md
+    }
+    return null
+  }
+
+  async function handleExportResults() {
+    const md = formatResultsAsMarkdown()
+    if (!md) return
+
+    // Download as file
+    const blob = new Blob([md], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `artifact-sync-${mode}-results.md`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    toast.success('Results exported')
+  }
+
+  async function handleCopyResults() {
+    const md = formatResultsAsMarkdown()
+    if (!md) return
+
+    try {
+      await navigator.clipboard.writeText(md)
+      toast.success('Results copied to clipboard')
+    } catch {
+      toast.error('Failed to copy')
+    }
+  }
+
   async function handleSubmit(text) {
     setIsLoading(true)
     setError(null)
@@ -132,7 +207,7 @@ export default function ArtifactSync() {
 
       {/* Meta info bar */}
       {meta && (
-        <div className="flex items-center gap-4 text-xs text-gray-400 border-t border-gray-100 pt-3">
+        <div className="flex items-center gap-4 text-xs text-gray-400 border-t border-gray-100 pt-3 flex-wrap">
           <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
             {meta.inputType.replaceAll('_', ' ')}
           </span>
@@ -151,6 +226,16 @@ export default function ArtifactSync() {
           )}
           {meta.piiDetected === 0 && (
             <span className="text-gray-400">No PII detected</span>
+          )}
+          {formatResultsAsMarkdown() && (
+            <span className="ml-auto flex gap-2">
+              <button onClick={handleCopyResults} className="text-gray-400 hover:text-gray-600 transition-colors">
+                Copy Results
+              </button>
+              <button onClick={handleExportResults} className="text-gray-400 hover:text-gray-600 transition-colors">
+                Export .md
+              </button>
+            </span>
           )}
         </div>
       )}

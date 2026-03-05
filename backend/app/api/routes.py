@@ -23,6 +23,7 @@ from app.services.artifact_sync import get_custom_terms, get_llm_client, run_art
 from app.services.crud import get_all_settings, get_setting, upsert_setting, verify_lpd_section
 from app.services.intake import apply_intake_draft, generate_intake_draft
 from app.services.llm_client import LLMError
+from app.services.llm_ollama import check_ollama_status
 from app.services.lpd_manager import (
     get_full_lpd,
     get_section_staleness,
@@ -67,7 +68,7 @@ def _insert_into_section(content: str, section: str, proposed_text: str) -> str:
 @router.get("/health")
 async def health_check():
     """Backend health check endpoint."""
-    return {"status": "ok", "version": "0.3.0"}
+    return {"status": "ok", "version": "0.4.0"}
 
 
 # ============================================================
@@ -174,7 +175,7 @@ async def apply_suggestion_by_type(suggestion: Suggestion, project_id: str = "de
         client = None
         custom_terms = None
 
-    lpd_updated = await update_lpd_from_suggestion(
+    lpd_result = await update_lpd_from_suggestion(
         project_id=project_id,
         artifact_section=suggestion.section,
         proposed_text=suggestion.proposed_text,
@@ -182,12 +183,44 @@ async def apply_suggestion_by_type(suggestion: Suggestion, project_id: str = "de
         custom_terms=custom_terms,
     )
 
-    return {
+    response = {
         "status": "applied",
         "artifact_id": artifact.artifact_id,
         "artifact_type": suggestion.artifact_type,
-        "lpd_updated": lpd_updated,
+        "lpd_updated": lpd_result.get("updated", False),
     }
+    # Include change details when LPD was updated
+    if lpd_result.get("updated"):
+        response["lpd_change"] = {
+            "section": lpd_result["section"],
+            "content_added": lpd_result["content_added"],
+        }
+    return response
+
+
+@router.get("/artifacts/{project_id}/export")
+async def export_artifacts(project_id: str):
+    """Export all artifacts for a project as combined Markdown.
+
+    Returns the content of all existing artifacts (RAID Log, Status Report,
+    Meeting Notes) concatenated into a single Markdown document.
+    """
+    from app.services.artifact_manager import list_project_artifacts
+
+    artifacts = await list_project_artifacts(project_id)
+
+    if not artifacts:
+        return {"markdown": "", "artifact_count": 0}
+
+    parts = []
+    for artifact in artifacts:
+        content = await read_artifact_content(artifact.artifact_id)
+        if content and content.strip():
+            parts.append(content.strip())
+
+    combined = "\n\n---\n\n".join(parts)
+
+    return {"markdown": combined, "artifact_count": len(parts)}
 
 
 # ============================================================
@@ -220,6 +253,8 @@ async def update_settings(settings: dict):
         "llm_provider",
         "anthropic_api_key",
         "google_ai_api_key",
+        "ollama_base_url",
+        "ollama_model",
         "sensitive_terms",
         "transcript_watch_folder",
         "transcript_auto_mode",
@@ -234,6 +269,14 @@ async def update_settings(settings: dict):
             updated[key] = key if "api_key" in key else value
 
     return {"status": "saved", "updated": list(updated.keys())}
+
+
+@router.get("/settings/ollama-status")
+async def ollama_status():
+    """Check Ollama connectivity and list available models."""
+    base_url = await get_setting("ollama_base_url")
+    result = await check_ollama_status(base_url or None)
+    return result
 
 
 # ============================================================
@@ -434,3 +477,56 @@ async def transcript_watcher_process(body: dict):
     watcher = get_transcript_watcher()
     result = await watcher.process_file(file_path)
     return result
+
+
+@router.post("/transcript-watcher/upload")
+async def transcript_watcher_upload(body: dict):
+    """Process an uploaded transcript file (content provided directly).
+
+    Accepts JSON body with "filename" and "content" keys.
+    Used by the drag-and-drop UI where the browser reads the file.
+    """
+    import os
+    import tempfile
+
+    filename = body.get("filename", "")
+    content = body.get("content", "")
+    if not content or not content.strip():
+        raise HTTPException(status_code=400, detail="Missing or empty 'content' in request body")
+
+    suffix = os.path.splitext(filename)[1].lower() if filename else ".txt"
+    if suffix not in {".vtt", ".srt", ".txt"}:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '{suffix}'. Accepted: .vtt, .srt, .txt",
+        )
+
+    # Write to a temp file and process through the watcher pipeline
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=suffix, prefix="vpma_upload_", delete=False
+    ) as tmp:
+        tmp.write(content)
+        tmp_path = tmp.name
+
+    try:
+        watcher = get_transcript_watcher()
+        result = await watcher.process_file(tmp_path)
+        # Override the file name to show the original filename
+        result["file"] = filename or f"upload{suffix}"
+        return result
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+
+
+@router.get("/transcript-watcher/results")
+async def transcript_watcher_results():
+    """Get recent transcript processing results with full sync data.
+
+    Returns the last 10 processed files with their full artifact sync
+    results (suggestions, LPD updates, etc.) for frontend display.
+    """
+    watcher = get_transcript_watcher()
+    return {"results": watcher.recent_files}

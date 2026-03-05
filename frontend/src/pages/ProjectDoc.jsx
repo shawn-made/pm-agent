@@ -18,6 +18,7 @@ import {
   updateLPDSection,
   verifyLPDSection,
   initializeLPD,
+  exportArtifacts,
 } from '../services/api'
 
 const SECTION_ORDER = [
@@ -128,6 +129,46 @@ export default function ProjectDoc() {
     }
   }
 
+  async function handleDownloadMarkdown() {
+    try {
+      const res = await getLPDMarkdown(projectId)
+      const blob = new Blob([res.markdown], { type: 'text/markdown' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${projectId}_knowledge-base.md`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      toast.success('Downloaded knowledge base')
+    } catch {
+      toast.error('Failed to download')
+    }
+  }
+
+  async function handleExportArtifacts() {
+    try {
+      const res = await exportArtifacts(projectId)
+      if (!res.markdown || res.artifact_count === 0) {
+        toast.info('No artifacts to export')
+        return
+      }
+      const blob = new Blob([res.markdown], { type: 'text/markdown' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${projectId}_artifacts.md`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      toast.success(`Exported ${res.artifact_count} artifact${res.artifact_count !== 1 ? 's' : ''}`)
+    } catch {
+      toast.error('Failed to export artifacts')
+    }
+  }
+
   // Loading state
   if (sections === null) {
     return (
@@ -189,6 +230,18 @@ export default function ProjectDoc() {
             className="text-xs px-3 py-1.5 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Copy All
+          </button>
+          <button
+            onClick={handleDownloadMarkdown}
+            className="text-xs px-3 py-1.5 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Download .md
+          </button>
+          <button
+            onClick={handleExportArtifacts}
+            className="text-xs px-3 py-1.5 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Export Artifacts
           </button>
         </div>
       </div>

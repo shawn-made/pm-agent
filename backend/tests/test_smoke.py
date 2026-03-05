@@ -137,3 +137,44 @@ class TestTranscriptWatcherCriticalPaths:
         vtt = "WEBVTT\n\n00:00:01.000 --> 00:00:05.000\n<v Alice>Hello.</v>\n"
         result = parse_vtt(vtt)
         assert "Alice: Hello." in result
+
+
+class TestPhase2ACriticalPaths:
+    """Verify Phase 2A new critical paths."""
+
+    async def test_export_endpoint_reachable(self, async_client):
+        async with async_client as client:
+            resp = await client.get("/api/artifacts/default/export")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "markdown" in data
+        assert "artifact_count" in data
+
+    async def test_upload_endpoint_validates(self, async_client):
+        async with async_client as client:
+            resp = await client.post(
+                "/api/transcript-watcher/upload",
+                json={"filename": "test.pdf", "content": "hello"},
+            )
+        assert resp.status_code == 400
+        assert "Unsupported" in resp.json()["detail"]
+
+    async def test_watcher_results_endpoint(self, async_client):
+        async with async_client as client:
+            resp = await client.get("/api/transcript-watcher/results")
+        assert resp.status_code == 200
+        assert "results" in resp.json()
+
+    async def test_ollama_client_importable(self):
+        from app.services.llm_ollama import OllamaClient
+
+        client = OllamaClient()
+        assert client.model == "llama3.2"
+
+    async def test_conversational_models_importable(self):
+        from app.models.schemas import ChatRequest, ChatResponse, ConversationSession
+
+        req = ChatRequest(message="test")
+        assert req.include_lpd_context is True
+        assert "response" in ChatResponse.model_fields
+        assert "project_id" in ConversationSession.model_fields

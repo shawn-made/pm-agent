@@ -95,6 +95,27 @@ export async function applySuggestionByType(suggestion, projectId = 'default') {
   return res.json();
 }
 
+/**
+ * Check Ollama connectivity and list available models.
+ * @returns {Promise<{available: boolean, models: string[], error: string|null}>}
+ */
+export async function getOllamaStatus() {
+  const res = await fetch(`${API_BASE}/settings/ollama-status`);
+  if (!res.ok) throw new Error(`Failed to check Ollama status: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Export all artifacts for a project as combined Markdown.
+ * @param {string} projectId - Project scope
+ * @returns {Promise<{markdown: string, artifact_count: number}>}
+ */
+export async function exportArtifacts(projectId = 'default') {
+  const res = await fetch(`${API_BASE}/artifacts/${encodeURIComponent(projectId)}/export`);
+  if (!res.ok) throw new Error(`Failed to export artifacts: ${res.status}`);
+  return res.json();
+}
+
 // ============================================================
 // LPD (Living Project Document)
 // ============================================================
@@ -267,6 +288,35 @@ export async function stopTranscriptWatcher() {
  * @param {string} filePath - Absolute path to the transcript file
  * @returns {Promise<Object>} Processing result
  */
+/**
+ * Get recent transcript processing results with full sync data.
+ * @returns {Promise<{results: Array}>}
+ */
+export async function getTranscriptWatcherResults() {
+  const res = await fetch(`${API_BASE}/transcript-watcher/results`);
+  if (!res.ok) throw new Error(`Failed to get watcher results: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Upload a transcript file for processing (drag-and-drop / file picker).
+ * @param {string} filename - Original filename
+ * @param {string} content - File content as text
+ * @returns {Promise<Object>} Processing result
+ */
+export async function uploadTranscriptFile(filename, content) {
+  const res = await fetch(`${API_BASE}/transcript-watcher/upload`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename, content }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Failed to upload file: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function processTranscriptFile(filePath) {
   const res = await fetch(`${API_BASE}/transcript-watcher/process`, {
     method: 'POST',

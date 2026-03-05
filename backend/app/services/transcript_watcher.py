@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 SUPPORTED_EXTENSIONS = {".vtt", ".srt", ".txt"}
 DEBOUNCE_SECONDS = 2.0
 MANIFEST_FILENAME = "transcript_manifest.json"
-MAX_RECENT_FILES = 20
+MAX_RECENT_FILES = 10
 
 
 class TranscriptWatcher:
@@ -186,8 +186,22 @@ class TranscriptWatcher:
             result["status"] = "processed"
             result["suggestion_count"] = len(sync_result.suggestions)
             result["session_id"] = sync_result.session_id
+            # Store full sync result for frontend display (Task 41)
+            result["sync_result"] = {
+                "suggestions": [
+                    s.dict() if hasattr(s, "dict") else s for s in sync_result.suggestions
+                ],
+                "input_type": sync_result.input_type,
+                "pii_detected": sync_result.pii_detected,
+                "session_id": sync_result.session_id,
+                "mode": sync_result.mode,
+            }
             if self._mode == "log_session":
                 result["lpd_update_count"] = len(sync_result.lpd_updates)
+                result["sync_result"]["lpd_updates"] = [
+                    u.dict() if hasattr(u, "dict") else u for u in sync_result.lpd_updates
+                ]
+                result["sync_result"]["session_summary"] = sync_result.session_summary
 
             # Update manifest
             self._manifest[str(path)] = {

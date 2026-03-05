@@ -89,9 +89,9 @@ class TestCreateClient:
         client = create_client(Provider.GEMINI)
         assert client.provider == Provider.GEMINI
 
-    def test_create_ollama_raises(self):
-        with pytest.raises(ValueError, match="not yet implemented"):
-            create_client(Provider.OLLAMA)
+    def test_create_ollama_client(self):
+        client = create_client(Provider.OLLAMA)
+        assert client.provider == Provider.OLLAMA
 
     def test_create_unknown_raises(self):
         with pytest.raises(ValueError, match="Unknown provider"):
@@ -187,9 +187,7 @@ class TestClaudeClient:
         assert call_kwargs["model"] == "claude-sonnet-4-5-20250929"
         assert call_kwargs["max_tokens"] == 2048
         assert call_kwargs["system"] == "System instructions."
-        assert call_kwargs["messages"] == [
-            {"role": "user", "content": "User input."}
-        ]
+        assert call_kwargs["messages"] == [{"role": "user", "content": "User input."}]
 
     @patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"})
     def test_estimate_tokens(self):
@@ -273,3 +271,228 @@ class TestGeminiClient:
         # Gemini uses ~4 chars/token
         assert client.estimate_tokens("a" * 40) == 10
         assert client.estimate_tokens("") == 1
+
+
+# ============================================================
+# TASK 38: OLLAMA ADAPTER
+# ============================================================
+
+
+class TestOllamaClient:
+    def test_creates_with_defaults(self):
+        from app.services.llm_ollama import DEFAULT_BASE_URL, DEFAULT_MODEL, OllamaClient
+
+        client = OllamaClient()
+        assert client.base_url == DEFAULT_BASE_URL
+        assert client.model == DEFAULT_MODEL
+        assert client.provider == Provider.OLLAMA
+
+    def test_creates_with_explicit_config(self):
+        from app.services.llm_ollama import OllamaClient
+
+        client = OllamaClient(base_url="http://myhost:11434", model="mistral")
+        assert client.base_url == "http://myhost:11434"
+        assert client.model == "mistral"
+
+    @patch.dict("os.environ", {"OLLAMA_BASE_URL": "http://env-host:11434", "OLLAMA_MODEL": "phi3"})
+    def test_creates_with_env_vars(self):
+        from app.services.llm_ollama import OllamaClient
+
+        client = OllamaClient()
+        assert client.base_url == "http://env-host:11434"
+        assert client.model == "phi3"
+
+    def test_explicit_overrides_env(self):
+        from app.services.llm_ollama import OllamaClient
+
+        client = OllamaClient(base_url="http://explicit:11434", model="llama3.1")
+        assert client.base_url == "http://explicit:11434"
+        assert client.model == "llama3.1"
+
+    def test_strips_trailing_slash(self):
+        from app.services.llm_ollama import OllamaClient
+
+        client = OllamaClient(base_url="http://localhost:11434/")
+        assert client.base_url == "http://localhost:11434"
+
+    @pytest.mark.asyncio
+    async def test_call_returns_text(self):
+        from app.services.llm_ollama import OllamaClient
+
+        client = OllamaClient()
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"response": "Ollama response text."}
+
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_instance = AsyncMock()
+            mock_instance.post.return_value = mock_response
+            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+            mock_instance.__aexit__ = AsyncMock(return_value=False)
+            MockClient.return_value = mock_instance
+
+            result = await client.call(
+                system_prompt="You are a PM assistant.",
+                user_prompt="Summarize these notes.",
+            )
+
+        assert result == "Ollama response text."
+
+    @pytest.mark.asyncio
+    async def test_call_passes_correct_params(self):
+        from app.services.llm_ollama import OllamaClient
+
+        client = OllamaClient(base_url="http://test:11434", model="llama3.2")
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"response": "response"}
+
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_instance = AsyncMock()
+            mock_instance.post.return_value = mock_response
+            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+            mock_instance.__aexit__ = AsyncMock(return_value=False)
+            MockClient.return_value = mock_instance
+
+            await client.call(
+                system_prompt="System instructions.",
+                user_prompt="User input.",
+                max_tokens=2048,
+            )
+
+            call_args = mock_instance.post.call_args
+            assert call_args[0][0] == "http://test:11434/api/generate"
+            payload = call_args[1]["json"]
+            assert payload["model"] == "llama3.2"
+            assert payload["system"] == "System instructions."
+            assert payload["prompt"] == "User input."
+            assert payload["stream"] is False
+            assert payload["options"]["num_predict"] == 2048
+
+    @pytest.mark.asyncio
+    async def test_call_raises_on_http_error(self):
+        from app.services.llm_ollama import OllamaClient
+
+        client = OllamaClient()
+
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_response.text = "Internal Server Error"
+
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_instance = AsyncMock()
+            mock_instance.post.return_value = mock_response
+            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+            mock_instance.__aexit__ = AsyncMock(return_value=False)
+            MockClient.return_value = mock_instance
+
+            with pytest.raises(LLMError, match="Ollama API error"):
+                await client.call("system", "prompt")
+
+    @pytest.mark.asyncio
+    async def test_call_raises_on_empty_response(self):
+        from app.services.llm_ollama import OllamaClient
+
+        client = OllamaClient()
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"response": ""}
+
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_instance = AsyncMock()
+            mock_instance.post.return_value = mock_response
+            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+            mock_instance.__aexit__ = AsyncMock(return_value=False)
+            MockClient.return_value = mock_instance
+
+            with pytest.raises(LLMError, match="empty response"):
+                await client.call("system", "prompt")
+
+    def test_estimate_tokens(self):
+        from app.services.llm_ollama import OllamaClient
+
+        client = OllamaClient()
+        # Ollama uses ~4 chars/token (same as Gemini)
+        assert client.estimate_tokens("a" * 40) == 10
+        assert client.estimate_tokens("") == 1
+
+
+class TestCheckOllamaStatus:
+    @pytest.mark.asyncio
+    async def test_returns_available_with_models(self):
+        from app.services.llm_ollama import check_ollama_status
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"models": [{"name": "llama3.2"}, {"name": "mistral"}]}
+
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_instance = AsyncMock()
+            mock_instance.get.return_value = mock_response
+            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+            mock_instance.__aexit__ = AsyncMock(return_value=False)
+            MockClient.return_value = mock_instance
+
+            result = await check_ollama_status()
+
+        assert result["available"] is True
+        assert result["models"] == ["llama3.2", "mistral"]
+        assert result["error"] is None
+
+    @pytest.mark.asyncio
+    async def test_returns_unavailable_on_connect_error(self):
+        import httpx as httpx_module
+        from app.services.llm_ollama import check_ollama_status
+
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_instance = AsyncMock()
+            mock_instance.get.side_effect = httpx_module.ConnectError("Connection refused")
+            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+            mock_instance.__aexit__ = AsyncMock(return_value=False)
+            MockClient.return_value = mock_instance
+
+            result = await check_ollama_status()
+
+        assert result["available"] is False
+        assert "Cannot connect" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_returns_unavailable_on_timeout(self):
+        import httpx as httpx_module
+        from app.services.llm_ollama import check_ollama_status
+
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_instance = AsyncMock()
+            mock_instance.get.side_effect = httpx_module.TimeoutException("timeout")
+            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+            mock_instance.__aexit__ = AsyncMock(return_value=False)
+            MockClient.return_value = mock_instance
+
+            result = await check_ollama_status()
+
+        assert result["available"] is False
+        assert "timed out" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_uses_custom_base_url(self):
+        from app.services.llm_ollama import check_ollama_status
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"models": []}
+
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_instance = AsyncMock()
+            mock_instance.get.return_value = mock_response
+            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+            mock_instance.__aexit__ = AsyncMock(return_value=False)
+            MockClient.return_value = mock_instance
+
+            result = await check_ollama_status("http://custom:11434")
+
+        assert result["available"] is True
+        call_args = mock_instance.get.call_args
+        assert "custom:11434" in call_args[0][0]

@@ -297,6 +297,57 @@ Started with three use cases (A: PM Interface Layer, B: Full Comms Platform, C: 
 
 ---
 
+## 2026-03-04 — Pre-Market Strategic Questions
+
+*Source: Strategy session analyzing distribution, open-source, and go-to-market. Skeptical PM reviewed all four topics — two got MAYBE, two got USE IT.*
+
+### Q21: How will other people run this tool? (Distribution model)
+- **Context**: PRD says local-only through Phase 3, web app in Phase 4 (months 10-13). But velocity is 4x ahead of plan, and "marketable" is ~3-4 weeks away. The gap: no distribution path exists between "clone repo + run terminal commands" and "full SaaS with auth."
+- **Options analyzed**:
+  - **A. Clone + run locally** — zero effort, developers only
+  - **B. Docker one-liner** — small effort (~1-2 days), still requires Docker (technical users)
+  - **C. Electron/Tauri desktop app** — medium effort (~4-6 weeks realistically), anyone can install, preserves privacy story
+  - **D. Hosted web app** — large effort (~3-4 weeks), anyone with browser, but **undermines privacy differentiator**
+  - **E. Hybrid (local + optional cloud)** — large effort, serves both audiences
+- **Skeptical PM verdict: MAYBE.** Key pushback:
+  - Docker is "developer brain" — target PMs don't have Docker installed
+  - Electron "1-2 weeks" is wildly optimistic for solo dev (code signing, auto-updates, OS-specific bugs = 4-6 weeks)
+  - Distribution format doesn't matter if nobody knows the tool exists
+  - Better approach: walk first 5-10 users through setup personally (screenshare). Their feedback tells you whether to package at all, and how.
+  - If must pick: Mac-only `.app` via PyInstaller/py2app is cheapest path (skip Electron complexity)
+- **Tension**: Privacy-first positioning favors local (Options A-C). Market reach favors web (Option D). Research market is more willing to install locally (they already run R/SPSS/NVivo).
+- **Revisit trigger**: After 5 people have tried the tool (regardless of how they ran it). Their feedback determines the right packaging investment.
+- **Status**: Open
+
+### Q22: Should this go on GitHub? Public, private, or open-core?
+- **Context**: Project has strong portfolio value (866 tests, 13 services, clean architecture, 46 documented decisions). Also has competitive value (prompt templates, market strategy, privacy implementation).
+- **Options analyzed**:
+  - **Full open source** — maximum portfolio exposure, minimum competitive moat
+  - **Open-core** — public engine + private prompts/templates. Shows capability, protects secret sauce. Creates maintenance burden (two repos or careful .gitignore).
+  - **Private repo, public demos** — protects everything, less verifiable to employers
+  - **Delayed open source** — ship commercially first, open source later for marketing
+- **Skeptical PM verdict: MAYBE.** Key pushback:
+  - Open-core is a business model for companies with users. Zero external users = zero fork risk. Could publish everything and risk is near-zero because nobody's watching yet.
+  - Open-core creates real maintenance overhead for one person (two configs, build scripts, CI for both).
+  - "Shows capability to recruiters" is a different goal than "builds a business." Pick one — the answer changes everything.
+  - If portfolio: publish it all, write great README, make demo video. If product: keep private, focus on users, open-source later as marketing play.
+  - Moat is execution speed and domain expertise, not code secrecy. By the time someone clones and understands, you're two phases ahead.
+- **Depends on Q23** (portfolio vs product intent).
+- **Revisit trigger**: When Q23 is answered, or when preparing to share with first external users.
+- **Status**: Open
+
+### Q23: Is this a portfolio piece or a product? (Intent question)
+- **Context**: The answer to this shapes distribution (Q21), open-source (Q22), and where to invest time. Both goals are valid but pull in different directions.
+  - **Portfolio**: Publish everything, optimize README and demo video, explain architecture decisions. Goal is demonstrating capability to employers/collaborators.
+  - **Product**: Keep private, focus on user experience and onboarding, find 5 paying users. Goal is revenue or market validation.
+  - **Both**: Possible but creates tension — portfolio wants maximum visibility, product wants competitive protection.
+- **Skeptical PM guidance**: "Finish Phase 2A, use it on a real project for a week, then show it to 5 people. Their reactions will answer this better than any planning session."
+- **No marketing plan needed yet** — Skeptical PM verdict: USE IT. Capture strategic thinking in QUESTIONS_LOG (here) and DECISIONS.md. Formal marketing plan earns its keep when there's something to market.
+- **Revisit trigger**: After Phase 2A complete and 1-2 weeks of daily use on a real project. The experience of using it (and showing it to others) will clarify intent.
+- **Status**: Open
+
+---
+
 ## Process Notes
 
 - **Check QUESTIONS_LOG.md at key development milestones** — review backlog ideas when starting new phases or features, and log new questions as they arise during development.

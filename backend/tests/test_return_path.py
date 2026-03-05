@@ -110,7 +110,7 @@ class TestUpdateLPDFromSuggestion:
         result = await update_lpd_from_suggestion(
             PROJECT_ID, "Risks", "- Vendor API may be delayed"
         )
-        assert result is True
+        assert result["updated"] is True
         lpd = await get_full_lpd(PROJECT_ID)
         assert "Vendor API may be delayed" in lpd["Risks"]
 
@@ -121,7 +121,7 @@ class TestUpdateLPDFromSuggestion:
         result = await update_lpd_from_suggestion(
             PROJECT_ID, "Decisions", "D5: Chose PostgreSQL for production"
         )
-        assert result is True
+        assert result["updated"] is True
         lpd = await get_full_lpd(PROJECT_ID)
         assert "Chose PostgreSQL for production" in lpd["Decisions"]
 
@@ -132,7 +132,7 @@ class TestUpdateLPDFromSuggestion:
         result = await update_lpd_from_suggestion(
             PROJECT_ID, "Action Items", "- Follow up on contract review"
         )
-        assert result is True
+        assert result["updated"] is True
         lpd = await get_full_lpd(PROJECT_ID)
         assert "Follow up on contract review" in lpd["Open Questions"]
 
@@ -143,7 +143,7 @@ class TestUpdateLPDFromSuggestion:
         result = await update_lpd_from_suggestion(
             PROJECT_ID, "Accomplishments", "- Completed database migration"
         )
-        assert result is True
+        assert result["updated"] is True
         lpd = await get_full_lpd(PROJECT_ID)
         assert "Completed database migration" in lpd["Overview"]
 
@@ -154,7 +154,7 @@ class TestUpdateLPDFromSuggestion:
         result = await update_lpd_from_suggestion(
             PROJECT_ID, "Blockers", "- Waiting on security review approval"
         )
-        assert result is True
+        assert result["updated"] is True
         lpd = await get_full_lpd(PROJECT_ID)
         assert "Waiting on security review approval" in lpd["Risks"]
 
@@ -163,7 +163,7 @@ class TestUpdateLPDFromSuggestion:
         """Section mapping is case-insensitive."""
         await initialize_lpd(PROJECT_ID)
         result = await update_lpd_from_suggestion(PROJECT_ID, "ACTION ITEMS", "- Review proposal")
-        assert result is True
+        assert result["updated"] is True
         lpd = await get_full_lpd(PROJECT_ID)
         assert "Review proposal" in lpd["Open Questions"]
 
@@ -172,13 +172,13 @@ class TestUpdateLPDFromSuggestion:
         """Sections without an LPD mapping are silently skipped."""
         await initialize_lpd(PROJECT_ID)
         result = await update_lpd_from_suggestion(PROJECT_ID, "Attendees", "- Alice, Bob")
-        assert result is False
+        assert result["updated"] is False
 
     @pytest.mark.asyncio
     async def test_no_lpd_returns_false(self):
         """Does nothing when LPD is not initialized."""
         result = await update_lpd_from_suggestion(PROJECT_ID, "Risks", "- Some risk")
-        assert result is False
+        assert result["updated"] is False
 
     @pytest.mark.asyncio
     async def test_duplicate_text_not_appended(self):
@@ -186,7 +186,7 @@ class TestUpdateLPDFromSuggestion:
         await initialize_lpd(PROJECT_ID)
         await update_lpd_from_suggestion(PROJECT_ID, "Risks", "- Budget risk")
         result = await update_lpd_from_suggestion(PROJECT_ID, "Risks", "- Budget risk")
-        assert result is False
+        assert result["updated"] is False
         lpd = await get_full_lpd(PROJECT_ID)
         assert lpd["Risks"].count("- Budget risk") == 1
 
@@ -199,6 +199,36 @@ class TestUpdateLPDFromSuggestion:
         lpd = await get_full_lpd(PROJECT_ID)
         assert "- Risk A" in lpd["Risks"]
         assert "- Risk B" in lpd["Risks"]
+
+    @pytest.mark.asyncio
+    async def test_returns_change_details(self):
+        """Successful update returns section and content preview."""
+        await initialize_lpd(PROJECT_ID)
+        result = await update_lpd_from_suggestion(
+            PROJECT_ID, "Risks", "- Vendor delay risk identified"
+        )
+        assert result["updated"] is True
+        assert result["section"] == "Risks"
+        assert result["content_added"] == "- Vendor delay risk identified"
+
+    @pytest.mark.asyncio
+    async def test_returns_truncated_content_for_long_text(self):
+        """Long content_added is truncated to 120 chars with ellipsis."""
+        await initialize_lpd(PROJECT_ID)
+        long_text = "A" * 200
+        result = await update_lpd_from_suggestion(PROJECT_ID, "Risks", long_text)
+        assert result["updated"] is True
+        assert len(result["content_added"]) == 120
+        assert result["content_added"].endswith("...")
+
+    @pytest.mark.asyncio
+    async def test_skip_returns_null_details(self):
+        """Skipped update returns null section and content_added."""
+        await initialize_lpd(PROJECT_ID)
+        result = await update_lpd_from_suggestion(PROJECT_ID, "Attendees", "- Alice")
+        assert result["updated"] is False
+        assert result["section"] is None
+        assert result["content_added"] is None
 
 
 # ============================================================
@@ -236,7 +266,7 @@ class TestSemanticDedupReturnPath:
             "- Vendor API might arrive late",
             client=client,
         )
-        assert result is False
+        assert result["updated"] is False
 
         lpd = await get_full_lpd(PROJECT_ID)
         assert "Vendor API might arrive late" not in lpd["Risks"]
@@ -255,7 +285,7 @@ class TestSemanticDedupReturnPath:
             "- Brand new risk item",
             client=client,
         )
-        assert result is True
+        assert result["updated"] is True
 
         lpd = await get_full_lpd(PROJECT_ID)
         assert "Brand new risk item" in lpd["Risks"]
@@ -273,7 +303,7 @@ class TestSemanticDedupReturnPath:
             "- PostgreSQL v16 with connection pooling",
             client=client,
         )
-        assert result is True
+        assert result["updated"] is True
 
         lpd = await get_full_lpd(PROJECT_ID)
         assert "PostgreSQL v16 with connection pooling" in lpd["Decisions"]
@@ -294,7 +324,7 @@ class TestSemanticDedupReturnPath:
                 client=client,
             )
 
-        assert result is True
+        assert result["updated"] is True
         lpd = await get_full_lpd(PROJECT_ID)
         assert "Switched to Vue for frontend" in lpd["Decisions"]
 
@@ -313,7 +343,7 @@ class TestSemanticDedupReturnPath:
             "- Different wording of same risk",
             client=None,
         )
-        assert result is True
+        assert result["updated"] is True
 
         lpd = await get_full_lpd(PROJECT_ID)
         assert "Different wording of same risk" in lpd["Risks"]
@@ -339,7 +369,7 @@ class TestSemanticDedupReturnPath:
             client=client,
         )
         # Falls back to exact match, which doesn't match → applied
-        assert result is True
+        assert result["updated"] is True
 
         lpd = await get_full_lpd(PROJECT_ID)
         assert "Vendor might be late (same risk)" in lpd["Risks"]
@@ -363,7 +393,7 @@ class TestSemanticDedupReturnPath:
             "- New risk item",
             client=client,
         )
-        assert result is True
+        assert result["updated"] is True
 
         lpd = await get_full_lpd(PROJECT_ID)
         assert "New risk item" in lpd["Risks"]
@@ -389,7 +419,7 @@ class TestSemanticDedupReturnPath:
             "- Exact same text",
             client=client,
         )
-        assert result is False
+        assert result["updated"] is False
 
     @pytest.mark.asyncio
     async def test_semantic_dedup_with_custom_terms(self):
@@ -419,7 +449,7 @@ class TestSemanticDedupReturnPath:
             client=client,
             custom_terms=["Acme Corp"],
         )
-        assert result is False
+        assert result["updated"] is False
 
     @pytest.mark.asyncio
     async def test_no_lpd_returns_false_with_client(self):
@@ -431,7 +461,7 @@ class TestSemanticDedupReturnPath:
             "- Some risk",
             client=client,
         )
-        assert result is False
+        assert result["updated"] is False
 
     @pytest.mark.asyncio
     async def test_unmapped_section_returns_false_with_client(self):
@@ -444,7 +474,7 @@ class TestSemanticDedupReturnPath:
             "- Alice, Bob",
             client=client,
         )
-        assert result is False
+        assert result["updated"] is False
 
 
 # ============================================================

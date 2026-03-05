@@ -1,7 +1,7 @@
 # VPMA — Decisions Log
 
-**Last Updated**: 2026-03-03
-**Current As Of**: 2026-03-03 (D41-D44 added — Phase 1B design decisions)
+**Last Updated**: 2026-03-04
+**Current As Of**: 2026-03-04 (D47 added — conversational API design)
 
 ---
 
@@ -405,3 +405,66 @@ Full plan documented in `QA_PLAN.md`. Rules integrated into `CLAUDE.md`.
 **Rationale**: Clean separation of concerns. The parser is a pure function (text in, text out) that can be tested independently with static fixtures. The watcher handles lifecycle, file detection, debouncing, and orchestration. This makes the parser reusable — the manual "process transcript file" endpoint uses the parser without the watcher.
 
 **Connects to**: D31 (meeting intelligence strategy), D43 (watcher architecture)
+
+### D45: Security Audit Baseline — Phase 1B Clean
+**Date**: 2026-03-03 (Phase 1B retrospective) | **Status**: Active
+
+**Decision**: First formal security audit completed at Phase 1B ship. Results: zero CVEs (pip-audit, npm audit), zero static analysis findings (bandit, 3,877 lines). Outdated dependencies noted but no urgent upgrades needed. Major version bumps (ESLint 10, protobuf 7, thinc 9) deferred until ecosystem stabilizes. Minor bumps (fastapi, anthropic, tailwindcss) scheduled for Phase 2A kickoff.
+
+**Rationale**: Establishes a clean security baseline for the project. The QA_PLAN.md requires periodic security scanning (monthly minimum or before releases). This audit confirms no accumulated security debt through three phases of development. The `en-core-web-sm` spaCy model was skipped by pip-audit (not on PyPI) — this is expected and acceptable since it's a model file, not a library with CVE tracking.
+
+**Connects to**: D26 (QA framework), Process Playbook Rule 16 (project audit)
+
+### D46: Multi-Market Strategy — PM First, Research Second
+**Date**: 2026-03-04 (Phase 2A planning) | **Status**: Active
+
+**Decision**: Finish the PM tool to a marketable state (Phase 2A minimum), then add Qualitative Research / UX Research as a second market with minimal additional engineering. Do NOT pivot away from PM; expand to Research as a second skin on the same engine.
+
+**Market Research Summary** (conducted 2026-03-04):
+Six markets evaluated against VPMA's core architecture (privacy proxy + document synthesis + persistent knowledge + transcript processing): PM tools, Legal, Sales Intelligence, Medical/Clinical, Qualitative Research, Compliance/GRC.
+
+**Why Research as the #2 market:**
+- Lowest pivot cost: new prompt templates (theme extraction, cross-interview synthesis), minimal code changes. Core engine is shared ~90%.
+- Zero competition in local-first + AI qualitative analysis. Atlas.ti desktop has local data but AI phones home to OpenAI. Every AI-native research tool (Dovetail, Notably, Marvin) is cloud-only.
+- Current security posture is already sufficient. Local processing + PII anonymization meets IRB compliance requirements without additional certifications. No SOC 2 needed for the academic segment.
+- Ollama integration (already planned for Phase 2A) is the killer differentiator — first-ever fully local AI research tool.
+- Academic credibility pathway: one published paper citing the tool under an IRB protocol = instant market legitimacy.
+
+**Markets evaluated and rejected (for now):**
+- **Legal**: Highest willingness to pay ($100-500+/mo) but requires SQLCipher encryption, security whitepaper, E&O insurance, and attorneys are extremely conservative adopters (3-6 month eval cycles). Viable future expansion if Research validates the multi-market approach.
+- **Sales Intelligence**: Gong has $584M in funding. Market is VC-dominated. Requires CRM/meeting platform integrations. Go-to-market paradox (need sales team to sell to sales teams). Pass.
+- **Medical/Clinical**: HIPAA compliance alone is $50-150K upfront. Competitors raised $2.75B+ (Abridge). EHR integration required. Solo developer infeasible.
+- **Compliance/GRC**: Interesting as a wedge product (AI audit report writer), but enterprise sales cycles (6-18 months) and SOC 2 expectations make it a later play.
+
+**Architecture implications for Phase 2A:**
+- Keep artifact types data-driven (template files, not hardcoded PM types) — already mostly true.
+- Keep prompt templates parameterized — LPD prompt system already supports this.
+- The "project" concept maps to "research study" with zero schema changes.
+- Avoid over-specializing PM language in the core engine where it's not necessary.
+
+**Security sufficiency by market:**
+| Market | Current security sufficient? | Gap |
+|--------|------------------------------|-----|
+| PM (SMB) | Yes | Security whitepaper |
+| Research (academic) | Yes | None — local processing is the gold standard for IRB |
+| Legal (solo) | Mostly | SQLCipher, file encryption, data retention policies |
+| Compliance (SMB) | Partially | SOC 2 for mid-market ($30-100K) |
+
+**Connects to**: D36 (dual-tool architecture), D32 (Ollama/local LLM), D5 (generality rules)
+
+### D47: Conversational API — Session-Aware Multi-Turn Design
+**Date**: 2026-03-04 (Phase 2A, Task 42) | **Status**: Planned (design only)
+
+**Decision**: Designed a conversational API with 4 endpoints (`POST /chat/{project_id}`, `GET /conversations`, `GET /conversations/{id}`, `DELETE /conversations/{id}`) and 2 new DB tables (`conversations`, `conversation_messages`). The chat interface shares the same data layer as artifact sync — Privacy Proxy, LPD context injection, content gate, and Suggestion model. New Pydantic models: `ChatRequest`, `ChatResponse`, `ConversationMessage`, `ConversationSession`.
+
+**Key design choices:**
+- Messages pass through Privacy Proxy (same as artifact sync) — no bypass
+- Conversation history managed with a recent-window strategy (last N messages in full, older messages summarized)
+- Assistant responses can include structured `Suggestion` objects alongside free text, enabling Apply flow from chat
+- Auto-title generation after first response (deferred to implementation)
+- Streaming deferred — start with request/response, add SSE later if latency matters
+
+**Rationale**: D36 established the dual-tool direction. This design ensures the chat API is architecturally consistent with existing services rather than a parallel system. By reusing `Suggestion`, `applySuggestionByType`, and the Privacy Proxy, the chat panel becomes a new interaction mode over the same engine, not a separate product.
+
+**Full design**: `docs/conversational_api_design.md`
+**Connects to**: D36 (dual-tool architecture), D15 (hybrid workflow — chat replaces Claude Code dependency), D34 (log session scope)

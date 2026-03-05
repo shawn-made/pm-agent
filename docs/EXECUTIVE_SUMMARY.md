@@ -1,7 +1,7 @@
 # VPMA — Executive Technical Summary
 
-**Version**: 0.3.0 — Phase 0 Complete, Phase 1A Complete, Phase 1B Complete
-**Last Updated**: 2026-03-03
+**Version**: 0.4.0 — Phase 0 Complete, Phase 1A Complete, Phase 1B Complete, Phase 2A Complete
+**Last Updated**: 2026-03-04
 
 ---
 
@@ -23,7 +23,7 @@ VPMA is a **two-process local application**:
 | **Backend** | Python FastAPI | localhost:8000 | Business logic — privacy, AI calls, artifact management |
 | **Database** | SQLite | ~/VPMA/vpma.db | Metadata storage — sessions, settings, PII vault |
 | **File Storage** | Markdown files | ~/VPMA/artifacts/ | Artifact content — the actual RAID logs, reports, notes |
-| **AI** | Claude or Gemini (cloud API) | Remote | Text analysis and suggestion generation |
+| **AI** | Claude, Gemini (cloud), or Ollama (local) | Remote or local | Text analysis and suggestion generation |
 
 **Why two processes?** Separation of concerns. The frontend handles user interaction only. The backend handles all sensitive operations (privacy, AI, storage). They communicate over HTTP on localhost. This is the standard pattern for modern web applications and makes each piece independently testable.
 
@@ -89,8 +89,8 @@ Copies or applies as needed.
 ### 1. Abstract LLM Client (Provider Switching)
 
 The app doesn't call Claude or Gemini directly. It calls an **abstract interface** (`LLMClient.call()`), and a factory creates the right provider. This means:
-- Switching from Claude to Gemini is a settings toggle, not a code change
-- Adding Ollama (local AI, Phase 2) just means implementing one more adapter
+- Switching between Claude, Gemini, and Ollama is a settings toggle, not a code change
+- Adding a new provider just means implementing one more adapter
 - Business logic never knows or cares which AI provider is active
 
 **Engineering term**: *Strategy pattern* / *dependency injection*
@@ -163,6 +163,12 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 | LPD update toast feedback | Complete | `ArtifactSync.jsx`, `LogSessionCard.jsx` |
 | VTT/SRT transcript parser | Complete | `vtt_parser.py` |
 | Transcript file watcher service | Complete | `transcript_watcher.py`, Settings page |
+| Ollama local LLM adapter | Complete | `llm_ollama.py`, Settings page |
+| Markdown/clipboard export | Complete | `ProjectDoc.jsx`, `ArtifactSync.jsx`, `routes.py` |
+| LPD change summary on Apply | Complete | `lpd_manager.py`, suggestion cards |
+| Transcript watcher results view | Complete | Settings page (expandable results) |
+| Transcript drag-and-drop upload | Complete | Settings page (drop zone), `routes.py` |
+| Conversational API design | Complete | `docs/conversational_api_design.md`, `schemas.py` |
 
 ---
 
@@ -172,7 +178,8 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 |-------|-------|--------------|
 | **Phase 1A** | Living Project Document | ~~LPD with section-based storage, context injection, return path, project intake~~ DONE |
 | **Phase 1B** | Fit & Finish + Transcripts | ~~Semantic dedup, result persistence, transcript watcher, UX polish~~ DONE |
-| **Phase 2** | Intelligence | Ollama (local AI), deep strategy analysis, multi-project |
+| **Phase 2A** | Workflow Completion | ~~Ollama adapter, export, change summary, results view, drag-drop, conv. API design~~ DONE |
+| **Phase 2B** | Deep Analysis | Deep strategy tab, folder browser, AI risk prediction, cross-section reconciliation |
 | **Phase 3** | Proactive | Daily planner, project initiation wizard, history search |
 | **Phase 4** | Commercial | Google auth, security hardening, integrations, HR planning |
 
@@ -180,9 +187,9 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 
 ## Codebase Statistics
 
-- **Backend**: 13 service modules, 8 database tables, 18 API endpoints
+- **Backend**: 14 service modules, 8 database tables, 22 API endpoints
 - **Frontend**: 7 components, 4 pages, 1 hook, 1 API service module
-- **Tests**: 866 total (719 backend + 147 frontend)
+- **Tests**: 907 total (745 backend + 162 frontend)
 - **Lines of code**: ~8,500 backend Python, ~3,200 frontend JavaScript (estimated)
 
 ---

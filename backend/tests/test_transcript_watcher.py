@@ -322,3 +322,150 @@ class TestTranscriptWatcherAPI:
 
         assert response.status_code == 400
         assert "file_path" in response.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_results_endpoint(self):
+        """GET /api/transcript-watcher/results returns results list."""
+        from app.main import app
+        from httpx import ASGITransport, AsyncClient
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get("/api/transcript-watcher/results")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "results" in data
+        assert isinstance(data["results"], list)
+
+    @pytest.mark.asyncio
+    async def test_upload_endpoint_success(self, monkeypatch):
+        """POST /api/transcript-watcher/upload processes file content."""
+        from unittest.mock import MagicMock
+
+        from app.main import app
+        from httpx import ASGITransport, AsyncClient
+
+        mock_result = MagicMock()
+        mock_result.suggestions = []
+        mock_result.session_id = "sess-upload"
+        mock_result.input_type = "transcript"
+        mock_result.pii_detected = False
+        mock_result.mode = "extract"
+        mock_result.lpd_updates = []
+
+        monkeypatch.setattr(
+            "app.services.transcript_watcher.run_artifact_sync",
+            AsyncMock(return_value=mock_result),
+        )
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/api/transcript-watcher/upload",
+                json={
+                    "filename": "meeting.vtt",
+                    "content": "WEBVTT\n\n00:00:01.000 --> 00:00:05.000\nNotes here.\n",
+                },
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "processed"
+        assert data["file"] == "meeting.vtt"
+
+    @pytest.mark.asyncio
+    async def test_upload_endpoint_empty_content(self):
+        """POST /api/transcript-watcher/upload rejects empty content."""
+        from app.main import app
+        from httpx import ASGITransport, AsyncClient
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/api/transcript-watcher/upload",
+                json={"filename": "empty.vtt", "content": ""},
+            )
+
+        assert response.status_code == 400
+        assert "content" in response.json()["detail"].lower()
+
+    @pytest.mark.asyncio
+    async def test_upload_endpoint_unsupported_type(self):
+        """POST /api/transcript-watcher/upload rejects unsupported file types."""
+        from app.main import app
+        from httpx import ASGITransport, AsyncClient
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/api/transcript-watcher/upload",
+                json={"filename": "doc.pdf", "content": "some content"},
+            )
+
+        assert response.status_code == 400
+        assert "Unsupported" in response.json()["detail"]
+
+
+class TestSyncResultStorage:
+    """Tests that process_file stores full sync_result data (Task 41)."""
+
+    @pytest.mark.asyncio
+    async def test_sync_result_stored_on_process(self, tmp_path, monkeypatch):
+        """Processed file stores sync_result with suggestions in recent_files."""
+        vtt_file = tmp_path / "meeting.vtt"
+        vtt_file.write_text("WEBVTT\n\n00:00:01.000 --> 00:00:05.000\nDiscuss budget.\n")
+
+        mock_suggestion = MagicMock()
+        mock_suggestion.dict.return_value = {
+            "artifact_type": "raid_log",
+            "proposed_text": "Risk: budget",
+        }
+        mock_result = MagicMock()
+        mock_result.suggestions = [mock_suggestion]
+        mock_result.session_id = "sess-sync"
+        mock_result.input_type = "transcript"
+        mock_result.pii_detected = False
+        mock_result.mode = "extract"
+        mock_result.lpd_updates = []
+
+        monkeypatch.setattr(
+            "app.services.transcript_watcher.run_artifact_sync",
+            AsyncMock(return_value=mock_result),
+        )
+
+        watcher = TranscriptWatcher()
+        result = await watcher.process_file(str(vtt_file))
+
+        assert result["status"] == "processed"
+        assert "sync_result" in result
+        assert len(result["sync_result"]["suggestions"]) == 1
+        assert result["sync_result"]["suggestions"][0]["artifact_type"] == "raid_log"
+        assert result["sync_result"]["session_id"] == "sess-sync"
+        assert result["sync_result"]["mode"] == "extract"
+
+    @pytest.mark.asyncio
+    async def test_sync_result_includes_lpd_updates_in_log_session(self, tmp_path, monkeypatch):
+        """Log session mode stores lpd_updates and session_summary."""
+        vtt_file = tmp_path / "session.vtt"
+        vtt_file.write_text("WEBVTT\n\n00:00:01.000 --> 00:00:05.000\nSession notes.\n")
+
+        mock_update = MagicMock()
+        mock_update.dict.return_value = {"section": "Risks", "content": "New risk"}
+        mock_result = MagicMock()
+        mock_result.suggestions = []
+        mock_result.session_id = "sess-log"
+        mock_result.input_type = "transcript"
+        mock_result.pii_detected = False
+        mock_result.mode = "log_session"
+        mock_result.lpd_updates = [mock_update]
+        mock_result.session_summary = "Discussed project risks"
+
+        monkeypatch.setattr(
+            "app.services.transcript_watcher.run_artifact_sync",
+            AsyncMock(return_value=mock_result),
+        )
+
+        watcher = TranscriptWatcher()
+        watcher._mode = "log_session"
+        result = await watcher.process_file(str(vtt_file))
+
+        assert "sync_result" in result
+        assert len(result["sync_result"]["lpd_updates"]) == 1
+        assert result["sync_result"]["session_summary"] == "Discussed project risks"

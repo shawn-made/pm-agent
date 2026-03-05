@@ -75,9 +75,11 @@ export default function DocumentDraftCard({ artifactType, suggestions, onApplyAl
       setApplying(true)
       const results = onApplyAll ? await onApplyAll(suggestions) : []
       setApplied(true)
-      const kbUpdates = (results || []).filter(r => r?.lpd_updated).length
-      if (kbUpdates > 0) {
-        toast.success(`Applied ${suggestions.length} items to ${artifactType} + ${kbUpdates} knowledge base update${kbUpdates !== 1 ? 's' : ''}`)
+      const kbResults = (results || []).filter(r => r?.lpd_updated)
+      if (kbResults.length > 0) {
+        const sections = [...new Set(kbResults.map(r => r?.lpd_change?.section).filter(Boolean))]
+        const sectionInfo = sections.length > 0 ? ` (${sections.join(', ')})` : ''
+        toast.success(`Applied ${suggestions.length} items to ${artifactType} + ${kbResults.length} KB update${kbResults.length !== 1 ? 's' : ''}${sectionInfo}`)
       } else {
         toast.success(`Applied ${suggestions.length} items to ${artifactType}`)
       }

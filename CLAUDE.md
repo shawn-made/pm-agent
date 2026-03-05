@@ -28,6 +28,7 @@ backend/                # Python FastAPI application
       lpd_manager.py    # Living Project Document management (Phase 1A)
       intake.py         # Bulk project file intake (Phase 1A)
       content_gate.py   # LPD content quality gate — dedup/contradiction detection (Phase 1A)
+      llm_ollama.py     # Ollama local LLM adapter (Phase 2A)
       vtt_parser.py     # VTT/SRT/TXT transcript parser (Phase 1B)
       transcript_watcher.py # File watcher for auto-processing transcripts (Phase 1B)
       crud.py           # Database CRUD operations
@@ -98,6 +99,18 @@ Fit-and-finish polish + transcript integration:
 - VTT/SRT transcript parser (pure-function module)
 - Transcript file watcher with auto-processing
 - New endpoints: 4 transcript watcher endpoints under `/api/transcript-watcher/`
+
+## Phase 2A Scope (Complete)
+
+Workflow completion + infrastructure:
+- Ollama LLM Adapter: local LLM support via `llm_ollama.py`, settings UI, status check
+- Markdown/Clipboard Export: download LPD/artifacts as .md, copy results to clipboard
+- LPD Change Summary on Apply: enriched apply response with section name + content preview
+- Transcript Watcher Results View: expandable results panel with Apply buttons in Settings
+- Conversational API Design: `docs/conversational_api_design.md`, Pydantic models, DB schema (D47)
+- Transcript File Drag-and-Drop: drop zone in Settings, upload endpoint, inline results
+- New endpoints: 3 new (`/export`, `/upload`, `/results`) — 21 total API endpoints
+- New service: `llm_ollama.py` — 14 service modules total
 
 ## Rules
 
@@ -187,13 +200,13 @@ npm run dev  # → http://localhost:3000
 ## Debugging
 
 ```bash
-# Run backend tests (719+ tests)
+# Run backend tests (745+ tests)
 cd backend && source venv/bin/activate && python -m pytest tests/ -v
 
 # Run backend tests with coverage
 cd backend && python -m pytest tests/ -v --cov=app --cov-report=term-missing
 
-# Run frontend tests (147+ tests)
+# Run frontend tests (162+ tests)
 cd frontend && npm test
 
 # Run smoke tests only (pre-commit gate)

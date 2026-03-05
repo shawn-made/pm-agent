@@ -47,13 +47,22 @@ async def get_llm_client() -> LLMClient:
     provider_str = await get_setting("llm_provider") or "gemini"
     provider = Provider(provider_str)
 
-    # Get API key from settings (overrides .env if set)
+    # Get provider-specific config from settings (overrides .env if set)
     if provider == Provider.CLAUDE:
         api_key = await get_setting("anthropic_api_key")
         return create_client(provider, api_key=api_key) if api_key else create_client(provider)
     elif provider == Provider.GEMINI:
         api_key = await get_setting("google_ai_api_key")
         return create_client(provider, api_key=api_key) if api_key else create_client(provider)
+    elif provider == Provider.OLLAMA:
+        base_url = await get_setting("ollama_base_url")
+        model = await get_setting("ollama_model")
+        kwargs = {}
+        if base_url:
+            kwargs["base_url"] = base_url
+        if model:
+            kwargs["model"] = model
+        return create_client(provider, **kwargs)
     else:
         return create_client(provider)
 

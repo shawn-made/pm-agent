@@ -6,9 +6,13 @@ import { useToast } from '../components/ToastContext'
 import {
   getSettings,
   updateSettings,
+  getOllamaStatus,
   getTranscriptWatcherStatus,
   startTranscriptWatcher,
   stopTranscriptWatcher,
+  applySuggestionByType,
+  getTranscriptWatcherResults,
+  uploadTranscriptFile,
 } from '../services/api'
 
 /** Settings page — loads current config on mount, saves changes via PUT /api/settings. */
@@ -17,6 +21,9 @@ export default function Settings() {
   const [anthropicKey, setAnthropicKey] = useState('')
   const [geminiKey, setGeminiKey] = useState('')
   const [sensitiveTerms, setSensitiveTerms] = useState('')
+  const [ollamaBaseUrl, setOllamaBaseUrl] = useState('')
+  const [ollamaModel, setOllamaModel] = useState('')
+  const [ollamaStatus, setOllamaStatus] = useState(null)
   const [showAnthropicKey, setShowAnthropicKey] = useState(false)
   const [showGeminiKey, setShowGeminiKey] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -27,6 +34,12 @@ export default function Settings() {
   const [watchMode, setWatchMode] = useState('extract')
   const [watcherStatus, setWatcherStatus] = useState(null)
   const [isTogglingWatcher, setIsTogglingWatcher] = useState(false)
+  const [expandedFile, setExpandedFile] = useState(null)
+  const [watcherResults, setWatcherResults] = useState(null)
+  const [applyingIdx, setApplyingIdx] = useState(null)
+  const [isDragOver, setIsDragOver] = useState(false)
+  const [uploadResult, setUploadResult] = useState(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   const toast = useToast()
 
@@ -53,8 +66,16 @@ export default function Settings() {
       setAnthropicKey(s.anthropic_api_key || '')
       setGeminiKey(s.google_ai_api_key || '')
       setSensitiveTerms(s.sensitive_terms || '')
+      setOllamaBaseUrl(s.ollama_base_url || '')
+      setOllamaModel(s.ollama_model || '')
       setWatchFolder(s.transcript_watch_folder || '')
       setWatchMode(s.transcript_auto_mode || 'extract')
+      // Auto-check Ollama status when it's the active provider
+      if ((s.llm_provider || 'claude') === 'ollama') {
+        getOllamaStatus()
+          .then(setOllamaStatus)
+          .catch(() => setOllamaStatus({ available: false, models: [], error: 'Failed to check status' }))
+      }
     } catch {
       toast.error('Failed to load settings')
     } finally {
@@ -70,6 +91,8 @@ export default function Settings() {
       const payload = {
         llm_provider: llmProvider,
         sensitive_terms: sensitiveTerms,
+        ollama_base_url: ollamaBaseUrl || undefined,
+        ollama_model: ollamaModel || undefined,
         transcript_watch_folder: watchFolder || undefined,
         transcript_auto_mode: watchMode,
       }
@@ -114,6 +137,7 @@ export default function Settings() {
             {[
               { value: 'claude', label: 'Claude' },
               { value: 'gemini', label: 'Gemini' },
+              { value: 'ollama', label: 'Ollama (Local)' },
             ].map(opt => (
               <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -121,7 +145,15 @@ export default function Settings() {
                   name="llm_provider"
                   value={opt.value}
                   checked={llmProvider === opt.value}
-                  onChange={(e) => setLlmProvider(e.target.value)}
+                  onChange={(e) => {
+                    setLlmProvider(e.target.value)
+                    if (e.target.value === 'ollama') {
+                      // Check Ollama status when selected
+                      getOllamaStatus()
+                        .then(setOllamaStatus)
+                        .catch(() => setOllamaStatus({ available: false, models: [], error: 'Failed to check status' }))
+                    }
+                  }}
                   className="text-gray-900 focus:ring-gray-900"
                 />
                 <span className="text-sm text-gray-700">{opt.label}</span>
@@ -182,6 +214,80 @@ export default function Settings() {
             </div>
           </div>
         </div>
+
+        {/* Ollama Configuration (visible when Ollama selected) */}
+        {llmProvider === 'ollama' && (
+          <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-700">Ollama Configuration</h3>
+              {ollamaStatus && (
+                <span className={`flex items-center gap-1.5 text-xs ${
+                  ollamaStatus.available ? 'text-green-600' : 'text-red-500'
+                }`}>
+                  <span className={`inline-block w-2 h-2 rounded-full ${
+                    ollamaStatus.available ? 'bg-green-500' : 'bg-red-400'
+                  }`} data-testid="ollama-status-dot" />
+                  {ollamaStatus.available
+                    ? `Connected (${ollamaStatus.models?.length || 0} model${ollamaStatus.models?.length !== 1 ? 's' : ''})`
+                    : ollamaStatus.error || 'Not connected'}
+                </span>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="ollama-model" className="block text-xs text-gray-500 mb-1">
+                Model Name
+              </label>
+              <input
+                id="ollama-model"
+                type="text"
+                value={ollamaModel}
+                onChange={(e) => setOllamaModel(e.target.value)}
+                placeholder="llama3.2"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              />
+              {ollamaStatus?.available && ollamaStatus?.models?.length > 0 && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Available: {ollamaStatus.models.join(', ')}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="ollama-url" className="block text-xs text-gray-500 mb-1">
+                Base URL
+              </label>
+              <input
+                id="ollama-url"
+                type="text"
+                value={ollamaBaseUrl}
+                onChange={(e) => setOllamaBaseUrl(e.target.value)}
+                placeholder="http://localhost:11434"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const status = await getOllamaStatus()
+                  setOllamaStatus(status)
+                  if (status.available) {
+                    toast.success(`Ollama connected: ${status.models.length} model(s) available`)
+                  } else {
+                    toast.error(status.error || 'Cannot connect to Ollama')
+                  }
+                } catch {
+                  toast.error('Failed to check Ollama status')
+                }
+              }}
+              className="text-xs text-gray-500 hover:text-gray-700 underline"
+            >
+              Test Connection
+            </button>
+          </div>
+        )}
 
         {/* Sensitive Terms */}
         <div>
@@ -321,13 +427,224 @@ export default function Settings() {
               <h4 className="text-xs font-medium text-gray-500 mb-2">Recent Files</h4>
               <ul className="space-y-1">
                 {watcherStatus.recent_files.slice(0, 5).map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-xs">
-                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${
-                      f.status === 'processed' ? 'bg-green-400' :
-                      f.status === 'skipped' ? 'bg-yellow-400' : 'bg-red-400'
-                    }`} />
-                    <span className="text-gray-700 truncate">{f.file}</span>
-                    <span className="text-gray-400">{f.status}</span>
+                  <li key={i} className="text-xs">
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 w-full text-left hover:bg-gray-50 rounded px-1 py-0.5"
+                      onClick={async () => {
+                        if (expandedFile === i) {
+                          setExpandedFile(null)
+                        } else {
+                          setExpandedFile(i)
+                          // Fetch full results if not already loaded
+                          if (!watcherResults) {
+                            try {
+                              const data = await getTranscriptWatcherResults()
+                              setWatcherResults(data.results)
+                            } catch {
+                              // Fall back to status data
+                            }
+                          }
+                        }
+                      }}
+                    >
+                      <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                        f.status === 'processed' ? 'bg-green-400' :
+                        f.status === 'skipped' ? 'bg-yellow-400' : 'bg-red-400'
+                      }`} />
+                      <span className="text-gray-700 truncate flex-1">{f.file}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                        f.status === 'processed' ? 'bg-green-50 text-green-700' :
+                        f.status === 'skipped' ? 'bg-yellow-50 text-yellow-700' : 'bg-red-50 text-red-700'
+                      }`}>{f.status}</span>
+                      <span className="text-gray-400">{expandedFile === i ? '\u25B2' : '\u25BC'}</span>
+                    </button>
+
+                    {/* Expanded results panel */}
+                    {expandedFile === i && (
+                      <div className="mt-1 ml-4 p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-2">
+                        {f.status === 'error' && (
+                          <p className="text-xs text-red-600">{f.reason || 'Processing failed'}</p>
+                        )}
+                        {f.status === 'skipped' && (
+                          <p className="text-xs text-yellow-600">{f.reason || 'Skipped'}</p>
+                        )}
+                        {f.status === 'processed' && (() => {
+                          const result = watcherResults?.[i] || f
+                          const suggestions = result.sync_result?.suggestions || []
+                          return (
+                            <>
+                              <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                                <span>Mode: {result.mode}</span>
+                                <span>{result.suggestion_count ?? suggestions.length} suggestion{(result.suggestion_count ?? suggestions.length) !== 1 ? 's' : ''}</span>
+                                {result.lpd_update_count != null && (
+                                  <span>{result.lpd_update_count} KB update{result.lpd_update_count !== 1 ? 's' : ''}</span>
+                                )}
+                              </div>
+                              {suggestions.length > 0 && (
+                                <ul className="space-y-1.5">
+                                  {suggestions.map((s, si) => (
+                                    <li key={si} className="bg-white rounded border border-gray-200 p-2">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="flex-1 min-w-0">
+                                          <span className="text-[10px] font-medium text-gray-400 uppercase">
+                                            {s.artifact_type?.replace(/_/g, ' ')}
+                                          </span>
+                                          <p className="text-xs text-gray-700 mt-0.5 line-clamp-2">
+                                            {s.proposed_text?.slice(0, 150)}{s.proposed_text?.length > 150 ? '...' : ''}
+                                          </p>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          disabled={applyingIdx === `${i}-${si}`}
+                                          onClick={async () => {
+                                            setApplyingIdx(`${i}-${si}`)
+                                            try {
+                                              const applyResult = await applySuggestionByType(s)
+                                              if (applyResult.lpd_updated) {
+                                                toast.success(`Applied to ${s.artifact_type?.replace(/_/g, ' ')}${applyResult.lpd_change ? ` + KB "${applyResult.lpd_change.section}"` : ''}`)
+                                              } else {
+                                                toast.success(`Applied to ${s.artifact_type?.replace(/_/g, ' ')}`)
+                                              }
+                                            } catch {
+                                              toast.error('Failed to apply suggestion')
+                                            } finally {
+                                              setApplyingIdx(null)
+                                            }
+                                          }}
+                                          className="flex-shrink-0 px-2 py-1 text-[10px] font-medium bg-gray-900 text-white rounded hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                        >
+                                          {applyingIdx === `${i}-${si}` ? '...' : 'Apply'}
+                                        </button>
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                              {suggestions.length === 0 && (
+                                <p className="text-xs text-gray-400 italic">No suggestions generated</p>
+                              )}
+                              {result.sync_result?.session_summary && (
+                                <div className="mt-2 pt-2 border-t border-gray-200">
+                                  <span className="text-[10px] font-medium text-gray-400 uppercase">Session Summary</span>
+                                  <p className="text-xs text-gray-600 mt-0.5">{result.sync_result.session_summary}</p>
+                                </div>
+                              )}
+                            </>
+                          )
+                        })()}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Drag-and-Drop Upload */}
+          <div
+            className={`mt-4 border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+              isDragOver
+                ? 'border-gray-900 bg-gray-50'
+                : 'border-gray-300 hover:border-gray-400'
+            }`}
+            data-testid="drop-zone"
+            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={async (e) => {
+              e.preventDefault()
+              setIsDragOver(false)
+              const file = e.dataTransfer.files?.[0]
+              if (!file) return
+
+              const ext = file.name.split('.').pop()?.toLowerCase()
+              if (!['vtt', 'srt', 'txt'].includes(ext)) {
+                toast.error('Unsupported file type. Accepted: .vtt, .srt, .txt')
+                return
+              }
+
+              setIsUploading(true)
+              setUploadResult(null)
+              try {
+                const content = await file.text()
+                const result = await uploadTranscriptFile(file.name, content)
+                setUploadResult(result)
+                if (result.status === 'processed') {
+                  toast.success(`Processed ${file.name}: ${result.suggestion_count ?? 0} suggestion(s)`)
+                } else {
+                  toast.error(result.reason || `File ${result.status}`)
+                }
+                // Refresh watcher status to show in recent files
+                await loadWatcherStatus()
+              } catch (err) {
+                toast.error(err.message || 'Failed to process file')
+              } finally {
+                setIsUploading(false)
+              }
+            }}
+          >
+            {isUploading ? (
+              <p className="text-sm text-gray-500">Processing...</p>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500">
+                  Drop a transcript file here (.vtt, .srt, .txt)
+                </p>
+                <p className="text-xs text-gray-400 mt-1">or use the watched folder above</p>
+              </>
+            )}
+          </div>
+
+          {/* Upload Result */}
+          {uploadResult?.status === 'processed' && uploadResult.sync_result?.suggestions?.length > 0 && (
+            <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-2" data-testid="upload-result">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-medium text-gray-600">
+                  {uploadResult.file} — {uploadResult.sync_result.suggestions.length} suggestion{uploadResult.sync_result.suggestions.length !== 1 ? 's' : ''}
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => setUploadResult(null)}
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                >
+                  Dismiss
+                </button>
+              </div>
+              <ul className="space-y-1.5">
+                {uploadResult.sync_result.suggestions.map((s, si) => (
+                  <li key={si} className="bg-white rounded border border-gray-200 p-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[10px] font-medium text-gray-400 uppercase">
+                          {s.artifact_type?.replace(/_/g, ' ')}
+                        </span>
+                        <p className="text-xs text-gray-700 mt-0.5 line-clamp-2">
+                          {s.proposed_text?.slice(0, 150)}{s.proposed_text?.length > 150 ? '...' : ''}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={applyingIdx === `upload-${si}`}
+                        onClick={async () => {
+                          setApplyingIdx(`upload-${si}`)
+                          try {
+                            const applyResult = await applySuggestionByType(s)
+                            if (applyResult.lpd_updated) {
+                              toast.success(`Applied to ${s.artifact_type?.replace(/_/g, ' ')}${applyResult.lpd_change ? ` + KB "${applyResult.lpd_change.section}"` : ''}`)
+                            } else {
+                              toast.success(`Applied to ${s.artifact_type?.replace(/_/g, ' ')}`)
+                            }
+                          } catch {
+                            toast.error('Failed to apply suggestion')
+                          } finally {
+                            setApplyingIdx(null)
+                          }
+                        }}
+                        className="flex-shrink-0 px-2 py-1 text-[10px] font-medium bg-gray-900 text-white rounded hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                      >
+                        {applyingIdx === `upload-${si}` ? '...' : 'Apply'}
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>

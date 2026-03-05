@@ -606,6 +606,149 @@ New files: `backend/app/services/vtt_parser.py`, `backend/app/services/transcrip
 
 ---
 
+## Phase 2A: Workflow Completion
+
+**Status**: Complete — v0.4.0
+**Scope**: Export, Ollama adapter, watcher results view, LPD change summary, conversational API design, drag-drop
+**Backlog Review 2**: V40 → Slot Phase 3. No promotions to 2A.
+**Skeptical PM Review**: USE IT — simplified diffs to change summary, keep conv. API minimal, drag-drop is stretch
+**Design decisions**: D47 (conversational API design)
+
+### Progress
+
+| Group | Tasks | Done | Status |
+|-------|-------|------|--------|
+| LLM & Infrastructure | 38, 42 | 2/2 | Complete |
+| User-Facing Features | 39-41 | 3/3 | Complete |
+| Stretch | 43 | 1/1 | Complete |
+| Integration | 44 | 1/1 | Complete |
+
+### Dependency Graph
+```
+Task 38 (Ollama, M)           ─┐
+Task 39 (Export, S-M)          ├── Task 44 (E2E, M)
+Task 40 (Change summary, S-M)  │
+Task 41 (Watcher results, M)   │
+Task 42 (Conv. API design, S)  │
+Task 43 (Drag-drop, S/stretch)─┘
+```
+
+---
+
+### Task 38: Ollama LLM Adapter
+**Complexity**: M | **Sessions**: 2-3 | **Dependencies**: None
+
+New file: `backend/app/services/llm_ollama.py`
+
+- [x] `OllamaClient` inheriting from `LLMClient` — httpx async, configurable base_url/model
+- [x] Update `create_client()` factory in `llm_client.py`
+- [x] Settings DB: `ollama_base_url`, `ollama_model` keys
+- [x] Settings API: add to `allowed_keys` in `routes.py`
+- [x] Connection test endpoint: `GET /api/settings/ollama-status`
+- [x] Frontend Settings: Ollama radio button, model input, base URL, connection indicator + auto-check on load
+- [x] `.env.example` updated
+- [x] Privacy Proxy stays ON for all providers (D32)
+- [x] `get_llm_client()` in artifact_sync.py wired for Ollama provider
+- [x] Architecture tests updated (llm_ollama.py in provider list)
+- [x] Tests: 14 backend (adapter, factory, status check, env vars) + 7 frontend (Ollama settings UI)
+
+**Files**: `llm_ollama.py` (new), `llm_client.py`, `routes.py`, `artifact_sync.py`, `Settings.jsx`, `api.js`, `.env.example`, `test_llm_client.py`, `Settings.test.jsx`
+**Done when**: Select Ollama in Settings → artifact sync runs → results display. Graceful fallback when Ollama not running.
+**Status**: Complete
+
+### Task 39: Markdown/Clipboard Export
+**Complexity**: S-M | **Sessions**: 1-2 | **Dependencies**: None
+
+- [x] Backend: `GET /api/artifacts/{project_id}/export` → combined artifact markdown
+- [x] ProjectDoc: "Download Markdown" button → LPD as .md file download
+- [x] ArtifactSync: "Export Results" button → results as .md download + clipboard ("Copy Results" + "Export .md")
+- [x] ProjectDoc: "Export Artifacts" button → calls backend endpoint
+- [x] Auto-check Ollama status on settings load when Ollama is active provider
+- [x] Frontend api: `exportArtifacts()` function
+- [x] Results formatted as markdown per mode (extract: grouped by artifact, analyze: items, log_session: summary + updates)
+- [x] Tests: 3 backend (export empty, with artifacts, nonexistent project) + 7 frontend Ollama tests
+
+**Files**: `routes.py`, `ArtifactSync.jsx`, `ProjectDoc.jsx`, `api.js`, `test_integration.py`, `Settings.test.jsx`
+**Done when**: Can download LPD as .md, download results as .md, copy aggregated results to clipboard.
+**Status**: Complete
+
+### Task 40: LPD Change Summary on Apply
+**Complexity**: S-M | **Sessions**: 1-2 | **Dependencies**: None
+
+- [x] `update_lpd_from_suggestion()` returns `{updated, section, content_added}` instead of `bool`
+- [x] Apply response adds `lpd_change: {section, content_added}` when LPD updated
+- [x] Apply toast shows section name (SuggestionCard, LogSessionCard)
+- [x] DocumentDraftCard Apply All shows sections in aggregated toast
+- [x] Content preview truncated to 120 chars with ellipsis
+- [x] Tests: 3 new (change details, truncation, skip returns null) + all existing tests updated for dict return
+- [ ] ~~LPDUpdate model adds `existing_snippet` field~~ (deferred — contradiction items rarely hit in practice)
+- [ ] ~~Contradiction items show existing content for comparison~~ (deferred — same reason)
+
+**Files**: `lpd_manager.py`, `routes.py`, `SuggestionCard.jsx`, `DocumentDraftCard.jsx`, `LogSessionCard.jsx`, `test_return_path.py`, `test_e2e_phase1a.py`
+**Done when**: Apply shows what was added and where. PM understands what changed without navigating to ProjectDoc.
+**Status**: Complete
+
+### Task 41: Transcript Watcher Results View (V42)
+**Complexity**: M | **Sessions**: 2 | **Dependencies**: None
+
+- [x] Store full `ArtifactSyncResponse` in watcher `recent_files` (cap at 10)
+- [x] `GET /api/transcript-watcher/results` → recent files with full data
+- [x] Settings: clickable file entries → expandable panel with suggestions/updates
+- [x] Apply button per suggestion (reuses `applySuggestionByType`)
+- [x] Status badges: processed/failed/processing
+- [x] Tests: results storage, API, frontend, apply flow (10 tests)
+
+**Files**: `transcript_watcher.py`, `routes.py`, `Settings.jsx`, `api.js`, `Settings.test.jsx`, `test_transcript_watcher.py`
+**Done when**: Watcher processes transcript → PM sees suggestions in Settings → can Apply directly.
+**Status**: Complete
+
+### Task 42: Conversational API Design (D36)
+**Complexity**: S | **Sessions**: 1 | **Dependencies**: None
+
+Design-only. No endpoint implementation, no UI.
+
+- [x] Design doc: `docs/conversational_api_design.md`
+- [x] Pydantic models: `ConversationMessage`, `ConversationSession`, `ChatRequest`, `ChatResponse`
+- [x] DB table design: `conversations`, `conversation_messages`
+- [x] Document decisions in `DECISIONS.md` (D47)
+
+**Files**: `docs/conversational_api_design.md` (new), `schemas.py`, `DECISIONS.md`
+**Done when**: Design doc complete, models defined, DB schema documented.
+**Status**: Complete
+
+### Task 43: Transcript File Drag-and-Drop (Stretch)
+**Complexity**: S | **Sessions**: 0.5-1 | **Dependencies**: None
+
+- [x] Drop zone component in Settings (accepts .vtt/.srt/.txt) with drag-over visual feedback
+- [x] Upload file content to backend via `POST /api/transcript-watcher/upload`
+- [x] Backend: validates file type, writes temp file, processes through watcher pipeline, cleans up
+- [x] Show results inline (reuses Task 41 suggestion card display with Apply buttons)
+- [x] Tests: 3 backend (upload success, empty content, unsupported type) + 4 frontend (render, process, reject, error)
+
+**Files**: `Settings.jsx`, `routes.py`, `api.js`, `Settings.test.jsx`, `test_transcript_watcher.py`
+**Done when**: Drag .vtt onto Settings → processes → shows results.
+**Status**: Complete
+
+### Task 44: Phase 2A E2E Integration & Polish
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: All
+
+- [x] Regression: all prior tests pass (745 backend + 162 frontend = 907 total)
+- [x] Version bump → 0.4.0 (pyproject.toml, main.py, routes.py, package.json)
+- [x] CLAUDE.md updated (Phase 2A scope, test counts, project structure, service modules)
+- [x] EXECUTIVE_SUMMARY.md updated (version, stats, features, roadmap)
+- [x] Architecture tests include llm_ollama (done in Task 38)
+- [x] Smoke tests for new critical paths (5 new: export, upload, results, Ollama client, conv. models)
+- [x] Full test suite pass + lint clean + doc freshness check
+- [x] TASKS.md updated with all task completions
+- [ ] ~~E2E validation with real data~~ (requires live LLM — manual test outside automated suite)
+- [ ] ~~Ollama live test~~ (requires Ollama installed — manual validation)
+- [ ] ~~D32 LLM evaluation checkpoint~~ (requires real workload data — deferred to post-deploy)
+
+**Done when**: All tests pass, v0.4.0, docs current.
+**Status**: Complete
+
+---
+
 ## Backlog-Sourced Additions (from Review 1, 2026-02-27)
 
 Items promoted or slotted from VPMA_BACKLOG.md based on real PM workflow validation. See D36 (dual-tool architecture) and D37 (backlog consumption protocol) for strategic context. Full dispositions in `~/Projects/PM Sandbox/VPMA_BACKLOG.md` Review Log.

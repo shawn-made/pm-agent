@@ -256,7 +256,7 @@ class TestReturnPathE2E:
             artifact_section="Risks",
             proposed_text="| R-NEW | Budget overrun risk | High | High | Monthly reviews | CFO | Open |",
         )
-        assert lpd_updated is True
+        assert lpd_updated["updated"] is True
 
         lpd = await get_full_lpd(PROJECT_ID)
         assert "Budget overrun risk" in lpd["Risks"]
@@ -301,8 +301,8 @@ class TestReturnPathE2E:
         first = await update_lpd_from_suggestion(PROJECT_ID, "Risks", text)
         second = await update_lpd_from_suggestion(PROJECT_ID, "Risks", text)
 
-        assert first is True
-        assert second is False  # Dedup caught it
+        assert first["updated"] is True
+        assert second["updated"] is False  # Dedup caught it
 
         lpd = await get_full_lpd(PROJECT_ID)
         assert lpd["Risks"].count("Critical dependency") == 1
@@ -461,7 +461,7 @@ class TestFullLifecycle:
             artifact_section="Risks",
             proposed_text="| R-NEW | SSO blocked on identity provider docs | Medium | High | Escalate | Lisa | Open |",
         )
-        assert lpd_updated is True
+        assert lpd_updated["updated"] is True
 
         # 4. Session 2: Log session mode — adds decisions
         _patch_llm(

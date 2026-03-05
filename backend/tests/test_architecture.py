@@ -171,7 +171,7 @@ class TestPrivacyBoundaries:
 
     def test_llm_providers_only_import_base_client(self):
         """LLM provider adapters must only import from llm_client base, not other services."""
-        for provider_file in ["llm_claude.py", "llm_gemini.py"]:
+        for provider_file in ["llm_claude.py", "llm_gemini.py", "llm_ollama.py"]:
             path = APP_DIR / "services" / provider_file
             if not path.exists():
                 continue
