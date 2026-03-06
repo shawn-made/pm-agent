@@ -192,6 +192,14 @@ class TestDeepStrategyCriticalPaths:
         # Fewer than 2 artifacts should be rejected (400)
         assert resp.status_code == 400
 
+    async def test_available_artifacts_endpoint(self, async_client):
+        async with async_client as client:
+            resp = await client.get("/api/deep-strategy/available-artifacts/default")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "items" in data
+        assert isinstance(data["items"], list)
+
     async def test_deep_strategy_parsers_importable(self):
         from app.services.deep_strategy import (
             _parse_dependency_graph,

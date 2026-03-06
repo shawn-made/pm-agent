@@ -1,12 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import ArtifactUploader from './ArtifactUploader'
+
+// Mock the API module
+vi.mock('../services/api', () => ({
+  getAvailableArtifacts: vi.fn(),
+}))
+
+import { getAvailableArtifacts } from '../services/api'
 
 describe('ArtifactUploader', () => {
   let onAnalyze
 
   beforeEach(() => {
     onAnalyze = vi.fn()
+    vi.clearAllMocks()
   })
 
   it('renders two empty artifact inputs by default', () => {
@@ -85,5 +93,139 @@ describe('ArtifactUploader', () => {
   it('shows Analyzing when isLoading is true', () => {
     render(<ArtifactUploader onAnalyze={onAnalyze} isLoading={true} />)
     expect(screen.getByText('Analyzing...')).toBeInTheDocument()
+  })
+
+  // Load from VPMA tests
+  describe('Load from VPMA', () => {
+    it('renders Load from VPMA button', () => {
+      render(<ArtifactUploader onAnalyze={onAnalyze} />)
+      expect(screen.getByText('Load from VPMA')).toBeInTheDocument()
+    })
+
+    it('opens loader panel and fetches available artifacts', async () => {
+      getAvailableArtifacts.mockResolvedValue({
+        items: [
+          { name: 'Raid Log', content: 'Risk content', source: 'artifact' },
+          { name: 'LPD: Overview', content: 'Overview text', source: 'lpd' },
+        ],
+      })
+
+      render(<ArtifactUploader onAnalyze={onAnalyze} />)
+      fireEvent.click(screen.getByText('Load from VPMA'))
+
+      await waitFor(() => {
+        expect(screen.getByText('Raid Log')).toBeInTheDocument()
+        expect(screen.getByText('LPD: Overview')).toBeInTheDocument()
+      })
+
+      expect(getAvailableArtifacts).toHaveBeenCalled()
+    })
+
+    it('shows source badges (Artifact vs LPD)', async () => {
+      getAvailableArtifacts.mockResolvedValue({
+        items: [
+          { name: 'Raid Log', content: 'content', source: 'artifact' },
+          { name: 'LPD: Risks', content: 'content', source: 'lpd' },
+        ],
+      })
+
+      render(<ArtifactUploader onAnalyze={onAnalyze} />)
+      fireEvent.click(screen.getByText('Load from VPMA'))
+
+      await waitFor(() => {
+        expect(screen.getByText('Artifact')).toBeInTheDocument()
+        expect(screen.getByText('LPD')).toBeInTheDocument()
+      })
+    })
+
+    it('shows empty message when no artifacts exist', async () => {
+      getAvailableArtifacts.mockResolvedValue({ items: [] })
+
+      render(<ArtifactUploader onAnalyze={onAnalyze} />)
+      fireEvent.click(screen.getByText('Load from VPMA'))
+
+      await waitFor(() => {
+        expect(screen.getByText(/No artifacts or LPD sections found/)).toBeInTheDocument()
+      })
+    })
+
+    it('shows error on API failure', async () => {
+      getAvailableArtifacts.mockRejectedValue(new Error('Network error'))
+
+      render(<ArtifactUploader onAnalyze={onAnalyze} />)
+      fireEvent.click(screen.getByText('Load from VPMA'))
+
+      await waitFor(() => {
+        expect(screen.getByText('Network error')).toBeInTheDocument()
+      })
+    })
+
+    it('loads selected items into empty artifact slots', async () => {
+      getAvailableArtifacts.mockResolvedValue({
+        items: [
+          { name: 'Raid Log', content: 'Risk content here', source: 'artifact' },
+          { name: 'LPD: Overview', content: 'Overview text here', source: 'lpd' },
+        ],
+      })
+
+      render(<ArtifactUploader onAnalyze={onAnalyze} />)
+      fireEvent.click(screen.getByText('Load from VPMA'))
+
+      await waitFor(() => {
+        expect(screen.getByText('Raid Log')).toBeInTheDocument()
+      })
+
+      // Select both items
+      const checkboxes = screen.getAllByRole('checkbox')
+      fireEvent.click(checkboxes[0])
+      fireEvent.click(checkboxes[1])
+
+      // Click load
+      fireEvent.click(screen.getByText('Load 2 items'))
+
+      // Verify artifacts were populated
+      await waitFor(() => {
+        const nameInputs = screen.getAllByPlaceholderText(/Artifact \d+ name/i)
+        expect(nameInputs[0].value).toBe('Raid Log')
+        expect(nameInputs[1].value).toBe('LPD: Overview')
+      })
+    })
+
+    it('disables load button when nothing selected', async () => {
+      getAvailableArtifacts.mockResolvedValue({
+        items: [
+          { name: 'Raid Log', content: 'content', source: 'artifact' },
+        ],
+      })
+
+      render(<ArtifactUploader onAnalyze={onAnalyze} />)
+      fireEvent.click(screen.getByText('Load from VPMA'))
+
+      await waitFor(() => {
+        expect(screen.getByText('Select items to load')).toBeInTheDocument()
+      })
+
+      const loadButton = screen.getByText('Select items to load')
+      expect(loadButton).toBeDisabled()
+    })
+
+    it('closes loader panel on X button', async () => {
+      getAvailableArtifacts.mockResolvedValue({
+        items: [
+          { name: 'Raid Log', content: 'content', source: 'artifact' },
+        ],
+      })
+
+      render(<ArtifactUploader onAnalyze={onAnalyze} />)
+      fireEvent.click(screen.getByText('Load from VPMA'))
+
+      await waitFor(() => {
+        expect(screen.getByText('Raid Log')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByLabelText('Close loader'))
+
+      expect(screen.queryByText('Raid Log')).not.toBeInTheDocument()
+    })
   })
 })

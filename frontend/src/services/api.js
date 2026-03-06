@@ -335,6 +335,17 @@ export async function processTranscriptFile(filePath) {
 // ============================================================
 
 /**
+ * Get available artifacts and LPD sections for loading into Deep Strategy.
+ * @param {string} [projectId='default'] - Project scope
+ * @returns {Promise<{items: Array<{name: string, content: string, source: string}>}>}
+ */
+export async function getAvailableArtifacts(projectId = 'default') {
+  const res = await fetch(`${API_BASE}/deep-strategy/available-artifacts/${encodeURIComponent(projectId)}`);
+  if (!res.ok) throw new Error(`Failed to load available artifacts: ${res.status}`);
+  return res.json();
+}
+
+/**
  * Run 4-pass Deep Strategy analysis on uploaded artifacts.
  * @param {Array<{name: string, content: string, priority: number}>} artifacts - Artifacts to analyze
  * @param {string} [projectId='default'] - Project scope

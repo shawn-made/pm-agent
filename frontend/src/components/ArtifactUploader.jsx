@@ -1,8 +1,9 @@
 /**
  * Multi-artifact uploader for Deep Strategy analysis.
- * Supports pasting text or uploading .md/.txt files, with priority ordering.
+ * Supports pasting text, uploading .md/.txt files, loading from VPMA, with priority ordering.
  */
 import { useState, useRef } from 'react'
+import { getAvailableArtifacts } from '../services/api'
 
 const MIN_ARTIFACTS = 2
 const MAX_ARTIFACTS = 10
@@ -20,6 +21,11 @@ export default function ArtifactUploader({ onAnalyze, isLoading = false }) {
   const [artifacts, setArtifacts] = useState([createEmptyArtifact(), createEmptyArtifact()])
   const fileInputRef = useRef(null)
   const [addingIndex, setAddingIndex] = useState(null)
+  const [showVPMALoader, setShowVPMALoader] = useState(false)
+  const [availableItems, setAvailableItems] = useState([])
+  const [selectedItems, setSelectedItems] = useState({})
+  const [isLoadingItems, setIsLoadingItems] = useState(false)
+  const [loadError, setLoadError] = useState(null)
 
   function updateArtifact(index, field, value) {
     setArtifacts(prev => prev.map((a, i) => i === index ? { ...a, [field]: value } : a))
@@ -76,6 +82,56 @@ export default function ArtifactUploader({ onAnalyze, isLoading = false }) {
     e.target.value = '' // Reset for re-upload
   }
 
+  async function handleOpenVPMALoader() {
+    setShowVPMALoader(true)
+    setIsLoadingItems(true)
+    setLoadError(null)
+    setSelectedItems({})
+    try {
+      const data = await getAvailableArtifacts()
+      setAvailableItems(data.items || [])
+      if ((data.items || []).length === 0) {
+        setLoadError('No artifacts or LPD sections found. Create some content first.')
+      }
+    } catch (err) {
+      setLoadError(err.message)
+    } finally {
+      setIsLoadingItems(false)
+    }
+  }
+
+  function toggleItem(index) {
+    setSelectedItems(prev => ({ ...prev, [index]: !prev[index] }))
+  }
+
+  function handleLoadSelected() {
+    const selected = availableItems.filter((_, i) => selectedItems[i])
+    if (selected.length === 0) return
+
+    // Build new artifacts list: replace empty slots first, then add
+    const newArtifacts = [...artifacts]
+    let slotIndex = 0
+
+    for (const item of selected) {
+      // Find next empty slot
+      while (slotIndex < newArtifacts.length && newArtifacts[slotIndex].content.trim()) {
+        slotIndex++
+      }
+
+      if (slotIndex < newArtifacts.length) {
+        // Fill empty slot
+        newArtifacts[slotIndex] = { name: item.name, content: item.content, priority: 0 }
+        slotIndex++
+      } else if (newArtifacts.length < MAX_ARTIFACTS) {
+        // Add new slot
+        newArtifacts.push({ name: item.name, content: item.content, priority: 0 })
+      }
+    }
+
+    setArtifacts(newArtifacts)
+    setShowVPMALoader(false)
+  }
+
   function handleSubmit() {
     const prepared = artifacts.map((a, i) => ({
       name: a.name || `Artifact ${i + 1}`,
@@ -86,6 +142,7 @@ export default function ArtifactUploader({ onAnalyze, isLoading = false }) {
   }
 
   const canSubmit = artifacts.filter(a => a.content.trim()).length >= MIN_ARTIFACTS && !isLoading
+  const selectedCount = Object.values(selectedItems).filter(Boolean).length
 
   return (
     <div className="space-y-4">
@@ -93,14 +150,97 @@ export default function ArtifactUploader({ onAnalyze, isLoading = false }) {
         <p className="text-xs text-gray-500">
           Order = source-of-truth priority. Top artifact wins when two disagree.
         </p>
-        <button
-          onClick={addArtifact}
-          disabled={artifacts.length >= MAX_ARTIFACTS}
-          className="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:text-gray-300 disabled:border-gray-200 transition-colors"
-        >
-          + Add Artifact
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleOpenVPMALoader}
+            className="px-3 py-1.5 text-xs font-medium rounded border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white transition-colors"
+          >
+            Load from VPMA
+          </button>
+          <button
+            onClick={addArtifact}
+            disabled={artifacts.length >= MAX_ARTIFACTS}
+            className="px-3 py-1.5 text-xs font-medium rounded border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:text-gray-300 disabled:border-gray-200 transition-colors"
+          >
+            + Add Artifact
+          </button>
+        </div>
       </div>
+
+      {/* VPMA Loader Modal */}
+      {showVPMALoader && (
+        <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-gray-700">Load from VPMA</h3>
+            <button
+              onClick={() => setShowVPMALoader(false)}
+              className="text-gray-400 hover:text-gray-600"
+              aria-label="Close loader"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {isLoadingItems && (
+            <p className="text-xs text-gray-500">Loading available artifacts...</p>
+          )}
+
+          {loadError && (
+            <p className="text-xs text-red-600">{loadError}</p>
+          )}
+
+          {!isLoadingItems && availableItems.length > 0 && (
+            <>
+              <p className="text-xs text-gray-500">
+                Select artifacts and LPD sections to load into the uploader.
+              </p>
+              <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                {availableItems.map((item, i) => (
+                  <label
+                    key={i}
+                    className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
+                      selectedItems[i] ? 'bg-gray-200' : 'hover:bg-gray-100'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!!selectedItems[i]}
+                      onChange={() => toggleItem(i)}
+                      className="text-gray-900 rounded focus:ring-gray-900"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-gray-700">{item.name}</span>
+                      <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                        item.source === 'artifact'
+                          ? 'bg-blue-50 text-blue-600'
+                          : 'bg-green-50 text-green-600'
+                      }`}>
+                        {item.source === 'artifact' ? 'Artifact' : 'LPD'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-gray-400 flex-shrink-0">
+                      {item.content.length.toLocaleString()} chars
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              <button
+                onClick={handleLoadSelected}
+                disabled={selectedCount === 0}
+                className="w-full py-2 text-xs font-medium rounded bg-gray-900 text-white hover:bg-gray-800 disabled:bg-gray-300 transition-colors"
+              >
+                {selectedCount === 0
+                  ? 'Select items to load'
+                  : `Load ${selectedCount} item${selectedCount !== 1 ? 's' : ''}`
+                }
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {artifacts.map((artifact, index) => (
         <div

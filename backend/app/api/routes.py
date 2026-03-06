@@ -479,6 +479,45 @@ async def transcript_watcher_stop():
 # ============================================================
 
 
+@router.get("/deep-strategy/available-artifacts/{project_id}")
+async def deep_strategy_available_artifacts(project_id: str):
+    """List existing VPMA artifacts and LPD sections for loading into Deep Strategy.
+
+    Returns artifacts (RAID Log, Status Report, Meeting Notes) and LPD sections
+    that have non-empty content, ready to be pre-populated into the uploader.
+    """
+    from app.services.artifact_manager import list_project_artifacts
+
+    items = []
+
+    # Existing artifacts
+    artifacts = await list_project_artifacts(project_id)
+    for artifact in artifacts:
+        content = await read_artifact_content(artifact.artifact_id)
+        if content and content.strip():
+            items.append(
+                {
+                    "name": artifact.artifact_type.replace("_", " ").title(),
+                    "content": content.strip(),
+                    "source": "artifact",
+                }
+            )
+
+    # LPD sections
+    lpd_sections = await get_full_lpd(project_id)
+    for section_name, content in lpd_sections.items():
+        if content and content.strip():
+            items.append(
+                {
+                    "name": f"LPD: {section_name}",
+                    "content": content.strip(),
+                    "source": "lpd",
+                }
+            )
+
+    return {"items": items}
+
+
 @router.post("/deep-strategy/analyze", response_model=DeepStrategyResponse)
 async def deep_strategy_analyze(request: DeepStrategyRequest):
     """Run 4-pass Deep Strategy analysis on uploaded artifacts.
