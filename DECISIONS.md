@@ -1,7 +1,7 @@
 # VPMA — Decisions Log
 
-**Last Updated**: 2026-03-04
-**Current As Of**: 2026-03-04 (D47 added — conversational API design)
+**Last Updated**: 2026-03-12
+**Current As Of**: 2026-03-12 (D54 added — Skeptical PM post-ship review priorities)
 
 ---
 
@@ -487,3 +487,18 @@ Frontend shows 4 contextual states: Not Installed (link to ollama.com), Installe
 **Skeptical PM verdict**: USE IT for detection + start button. The detection is table-stakes (don't show a cryptic error when the real problem is "not installed"). The start button removes a real friction point (one click vs. opening a terminal). No close prompt — let Ollama run independently.
 
 **Connects to**: D32 (Ollama/local LLM), D46 (multi-market strategy — Ollama is the privacy differentiator for Research market)
+
+### D54: Skeptical PM Post-Ship Review — Phase 2B Priorities
+**Date**: 2026-03-12 (Phase 2B complete, v0.5.0) | **Status**: Active
+
+**Decision**: Ran Skeptical PM persona review of shipped Phase 2B features. Verdict: USE IT. Three actionable priorities accepted for pre-Phase 3 work:
+
+1. **UX-3 before Phase 3 features** — naming/IA clarity is highest-leverage fix. Every feature is useful, but a first-time user can't tell what any of them do. Do this pass before adding more features.
+2. **Empty-state coaching** — when Risk Prediction or Reconciliation returns nothing, explain *why* and what the user should do ("Add more content to your project knowledge base to enable risk detection"). Currently feels broken rather than "not enough data yet."
+3. **Proactive nudges over manual buttons** — even a simple "3 sections haven't been updated in 2+ weeks" banner on Project Doc would be more useful than requiring the user to remember to click "Predict Risks."
+
+**What validated well**: Deep Strategy confirmed as cross-document consistency checker (pre-steering-committee use case). UX polish (dismiss, auto-expiry, clear) prevents "tried it once, annoying" churn. Folder browser fixed real friction.
+
+**What raised concerns**: Deep Strategy naming unclear ("Deep Strategy" suggests strategic planning, not document cross-checking). 5-minute XHR timeout means PMs won't use it casually — needs expectation-setting or speed improvement. Reconciliation requires mature LPD to be useful.
+
+**Connects to**: UX-1/UX-2/UX-3 (UX backlog), D46 (multi-market — naming clarity matters even more when serving both PM and Research users)

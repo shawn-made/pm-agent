@@ -346,6 +346,94 @@ Started with three use cases (A: PM Interface Layer, B: Full Comms Platform, C: 
 - **Revisit trigger**: After Phase 2A complete and 1-2 weeks of daily use on a real project. The experience of using it (and showing it to others) will clarify intent.
 - **Status**: Open
 
+### Q24: Suite Vision — Modular Architecture for PA/VPMA/WAT/Future Apps
+- **Context**: Vision is emerging for a suite of apps sharing one back-end with multiple front-ends differentiated by role/purpose (Personal Assistant, VPMA, WAT, future apps). Key architectural questions to brainstorm and document:
+  - **Shared entry point**: Anonymization layer (VPN?) + profile-based view generation — what the user sees is shaped by their profile
+  - **Modular frontends**: Can VPMA front-end be a reusable shell where the artifact layer swaps out per use case? Each front-end modular and stackable.
+  - **Shared core infrastructure**: VPN layer, local LLM (Ollama), Proton file sync
+  - **Device syncing**: How to handle device syncing across the suite
+  - **Local LLM complexity progression**: Web app + Ollama is recommended starting point — calls local when on network, falls back to API when remote, abstract LLM client handles switching (pattern already proven in VPMA). VPN layer unlocks mobile viability. Progression: web app + local LLM (medium) → VPN layer (medium) → mobile + local LLM via VPN (medium-high, mostly already solved by VPN layer)
+  - **Claude Code guardrails**: Define how Claude Code sessions coexist with the suite without conflicts — keep VPMA light enough given cost, processing power, and Ollama limitations
+  - **Cost and resource management as design constraint**: Which LLMs for which tasks, when to switch to local, when to compress, how to manage token costs across the suite
+- **Open questions**:
+  - Does the "reusable shell" approach create more complexity than separate lightweight frontends?
+  - What's the minimum viable shared backend (auth, anonymization, LLM routing)?
+  - How does the VPN layer interact with Proton file sync?
+- **Depends on**: Q17 (PA/VPMA convergence), Q23 (portfolio vs product intent)
+- **Phase consideration**: Post-Phase 2A. This is strategic architecture — brainstorm now, build later.
+- **Revisit trigger**: When starting any new frontend or when VPN/mobile becomes a priority.
+- **Status**: Open
+- **Source**: PA Brain Dump #4 (2026-03-05)
+
+---
+
+## 2026-03-12 — Design Questions & Feature Ideas
+
+### Q25: Should VPMA have configurable workflow profiles?
+- **Context**: As features accumulate (digest, KB, transcript watcher, export, stakeholder outreach), not every PM will use every feature. Without configuration, unused features become noise — exactly what the tool is supposed to reduce. Example: a PM who only uses VPMA for analysis doesn't need digest notifications or RAID log artifacts cluttering the UI.
+- **Observation**: This is a design principle, not a single feature. It should influence how every new feature is built going forward.
+- **Connections**:
+  - D46 (multi-market strategy): PM users vs. Research users want fundamentally different feature sets from the same engine. Already noted: "keep artifact types data-driven, prompt templates parameterized."
+  - Session 4 core insight: "We don't need all the jargon and endless views/interfaces for project data."
+  - Daily Digest idea: only valuable if the user opted into the signals it surfaces
+  - Artifact types are already somewhat configurable (choose which to generate per sync)
+- **Design spectrum**:
+  - Too granular: 30 individual toggles in Settings = Settings bloat, nobody configures
+  - Too coarse: 3 preset profiles = doesn't fit anyone
+  - Sweet spot: Preset workflow profiles with per-feature overrides (e.g., "Start with Analysis workflow, enable digest, disable RAID log artifacts")
+- **Possible profiles**: "Full PM" (all features), "Analysis Only" (LPD + artifact sync, no outreach/digest), "Research Mode" (transcripts + theme coding + LPD, no PM artifacts), custom
+- **Implementation could be simple**: A settings object that gates which tabs/features are visible and which artifact types appear in dropdowns. No architectural change — just a filter layer.
+- **Design rule going forward**: Every new feature should have an enable/disable path. Don't hardwire features as always-on.
+- **Phase consideration**: Design the profile concept during Phase 2B or 3. But apply the principle now — any feature built from here on should be togglable.
+- **Status**: Open — design principle to apply immediately, formal profiles deferred to Phase 2B/3
+
+---
+
+## 2026-03-12 — Feature Ideas (Brain Dump)
+
+### Idea: HTML Viewer for Formatted Content
+- **Source**: Brain dump (2026-03-12)
+- **Concept**: Render markdown artifacts/results as formatted HTML for preview and for high-fidelity copy-paste into external tools (Google Docs, Word, email, etc.). Toggle on existing result cards or a dedicated preview mode.
+- **Value**: Standalone preview of how artifacts look when formatted. More importantly, copying formatted HTML into external docs preserves headings, tables, bold, lists — raw markdown paste does not.
+- **Alignment**: Strong. Extends Phase 2A export story. Skeptical PM flagged export as table-stakes gap. Low implementation cost (react-markdown or similar). Solves 80% of the "get content into other tools" problem at 5% of the cost of API integrations.
+- **Phase consideration**: Phase 2B or early Phase 3. Small enough to bundle with other work.
+- **Status**: Open — approved for backlog
+
+### Idea: Google Docs/Sheets/Email/Calendar Integration
+- **Source**: Brain dump (2026-03-12)
+- **Concept**: Programmatically edit Google Docs/Sheets, compose emails, or create calendar events from VPMA output.
+- **Value**: High convenience if it worked — skip manual paste step entirely.
+- **Alignment**: Poor for current phase. Contradicts privacy-first positioning (data goes through Google APIs). Session 4 strategic direction: "Don't replace Slack, Zoom, or email." Integration maintenance tax identified as a risk. Requires OAuth2 + Google Workspace API — significant complexity for solo dev.
+- **Mitigated by**: HTML Viewer idea (above) solves most of the same user need with much less effort and no privacy tradeoff.
+- **Better framing**: If revisited, the plugin model (VPMA accessed FROM other tools) is the strategic direction, not VPMA writing TO other tools.
+- **Phase consideration**: Phase 4+ at earliest, per PRD roadmap. Only if users request it.
+- **Status**: Open — deferred, revisit at Phase 4 or with user demand
+
+### Idea: Configurable Daily Digest
+- **Source**: Brain dump (2026-03-12)
+- **Concept**: A proactive daily brief surfacing the top 3-5 things a PM should address. Goal: lower cognitive load, not add clutter. "Morning standup with yourself."
+- **What it could surface**: Stale LPD sections (staleness tracking already built), unresolved open questions, overdue action items, artifact gaps ("no status report in 2 weeks"), upcoming milestones.
+- **Value**: Shifts VPMA from reactive (paste input → get output) to proactive (here's what needs your attention). Aligns with "elite partnership" PRD pillar and Architecture Insights Pattern 5 (weekly cadence).
+- **Design challenge**: Signal-to-noise ratio. Must be 3-5 items max, ranked by urgency, dismissable. If it surfaces 15 things daily it becomes noise. Needs configurable thresholds (staleness days, priority filters).
+- **Implementation progression**:
+  - **v1 (low effort)**: Staleness alerts + open item counts — data already in DB, just a query + summary view
+  - **v2 (medium effort)**: LLM-powered daily brief — reads LPD state, generates prioritized narrative
+  - **v3 (higher effort)**: Schedule-aware — flag upcoming milestones, slipped dates (requires timeline data in LPD)
+- **Prerequisite**: LPD must be well-populated from real use first. A digest over empty data is useless.
+- **Phase consideration**: Phase 3. v1 could be earlier if LPD has enough data.
+- **Status**: Open — approved for backlog, needs design pass before implementation
+
+### Idea: Stakeholder Input Requests (Email/Slack Outreach)
+- **Source**: Brain dump (2026-03-12)
+- **Concept**: PM identifies an input need → VPMA drafts and sends an email/Slack message to a stakeholder → stakeholder responds via reply or simple web form → response queues for PM review/approval → approved input enters the knowledge base.
+- **Value**: High. Session 4 competitive finding #2: "Stakeholder access point is real and underserved. Most tools are PM-facing." This opens the project to non-PM contributors without requiring them to learn VPMA.
+- **Alignment**: Fits the "stakeholder access" strategic theme. The approval workflow concept is valuable independently — a "pending input queue" could serve multiple intake paths (email, form, future integrations).
+- **Complexity**: High. Email requires SMTP/API (moves away from local-only). Response capture needs either email parsing (unreliable) or hosted web form (requires external endpoint, contradicts local-first). Slack needs OAuth + webhooks. Privacy proxy must work bidirectionally.
+- **Most viable path**: Unique-link web form — stakeholder fills in simple form, responses queue for PM review. But requires hosting something externally (Phase 4 architectural shift).
+- **Near-term alternative**: HTML Viewer (backlog idea above) + well-structured request templates. VPMA drafts the ask, PM sends manually, pastes response back. Cheaper, preserves local-first, and may be sufficient for Phase 2-3.
+- **Phase consideration**: Phase 4+ (requires hosted component). Approval workflow pattern could be designed earlier as a general concept.
+- **Status**: Open — deferred, revisit at Phase 4. Near-term: template-based manual approach.
+
 ---
 
 ## Process Notes

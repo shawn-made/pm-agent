@@ -751,10 +751,11 @@ Design-only. No endpoint implementation, no UI.
 
 ## Phase 2B: Deep Analysis
 
-**Status**: In Progress
+**Status**: Complete (v0.5.0, shipped 2026-03-12)
 **Scope**: Deep Strategy multi-artifact analysis, AI Risk Prediction, Cross-Section LPD Reconciliation, Folder Browser
 **Backlog Review 2**: V5 (bottleneck detection → feeds risk prediction), V14 (cross-artifact dependency → IS Deep Strategy), V40 (concept refinement cascade → cross-section reconciliation). V17 (provenance) deferred.
-**Skeptical PM Review**: USE IT — Deep Strategy passes Tuesday afternoon test if quality is good. Risk Prediction + Reconciliation are lighter-weight wins. Folder Browser is friction fix. Caveats: context window limits at scale, priority ordering UX, simulated progress bar, risk prediction nudge.
+**Skeptical PM Review (pre-build)**: USE IT — Deep Strategy passes Tuesday afternoon test if quality is good. Risk Prediction + Reconciliation are lighter-weight wins. Folder Browser is friction fix. Caveats: context window limits at scale, priority ordering UX, simulated progress bar, risk prediction nudge.
+**Skeptical PM Review (post-ship)**: USE IT — Deep Strategy confirmed as cross-document consistency checker (pre-steering-committee use case). UX polish (dismiss, auto-expiry, clear) prevents "tried it once, annoying" churn. Three actionable items: (1) do UX-3 naming/IA pass before Phase 3 features, (2) add empty-state coaching to Risk Prediction + Reconciliation, (3) move toward proactive nudges over manual buttons. See D54.
 **Design decisions**: D48 (markdown + text only for DS input), D49 (synchronous endpoint with long timeout), D50 (Apply: VPMA artifacts → write, uploaded → clipboard), D51 (reconciliation + risk = manual triggers, not auto-run), D52 (DS standalone — no LPD requirement)
 
 ### Progress
@@ -930,24 +931,24 @@ Task 52 (S, folder browser)   ──┘  (independent track)
 ### Task 53: Phase 2B E2E Integration & Polish
 **Complexity**: M | **Sessions**: 2-3 | **Dependencies**: All (45-52)
 
-- [ ] Frontend testing: all Phase 2B components pass test suite
-- [ ] E2E: Deep Strategy with real LLM (3+ artifact scenario)
-- [ ] E2E: Risk Prediction with populated LPD
-- [ ] E2E: Reconciliation with known cross-section relationships
-- [ ] E2E: Folder Browser with real filesystem
-- [ ] Regression: all Phase 0 + 1A + 1B + 2A tests pass
-- [ ] Architecture tests include `deep_strategy`, `risk_prediction`, `reconciliation`
-- [ ] Smoke tests for new critical paths
-- [ ] Security: folder browser path traversal verification
-- [ ] Nav: Deep Strategy tab + Project Doc action buttons work correctly
-- [ ] Version bump (coordinate with 2A merge)
-- [ ] CLAUDE.md updated (project structure, test counts, endpoint counts, new services)
-- [ ] docs/EXECUTIVE_SUMMARY.md updated
-- [ ] Full test suite pass
-- [ ] Skeptical PM review of shipped features
+- [x] Frontend testing: all Phase 2B components pass test suite
+- [x] E2E: Deep Strategy with real LLM (3+ artifact scenario)
+- [x] E2E: Risk Prediction with populated LPD
+- [x] E2E: Reconciliation with known cross-section relationships
+- [x] E2E: Folder Browser with real filesystem
+- [x] Regression: all Phase 0 + 1A + 1B + 2A tests pass
+- [x] Architecture tests include `deep_strategy`, `risk_prediction`, `reconciliation`
+- [x] Smoke tests for new critical paths
+- [x] Security: folder browser path traversal verification
+- [x] Nav: Deep Strategy tab + Project Doc action buttons work correctly
+- [x] Version bump (coordinate with 2A merge)
+- [x] CLAUDE.md updated (project structure, test counts, endpoint counts, new services)
+- [x] docs/EXECUTIVE_SUMMARY.md updated
+- [x] Full test suite pass (915 backend + 284 frontend = 1,199 total)
+- [x] Skeptical PM review of shipped features (D54)
 
 **Done when**: All features work E2E with real LLM, all tests pass, docs current.
-**Status**: In Progress
+**Status**: Complete
 
 ---
 
@@ -987,6 +988,14 @@ Items promoted or slotted from VPMA_BACKLOG.md based on real PM workflow validat
 | V37 | Session 25 | **Cross-document synthesis** — "build alignment package for Topic X." Requires chat panel + good LPD context. |
 | V31 | 3 projects | **Decision journal with pattern learning** — extend DECISIONS.md pattern into VPMA with temporal detection ("you delay X-type decisions by 2 weeks"). |
 | V12 | Session 3 | **Meeting prep generation** — auto-generate agenda, talking points, data references from KB + meeting cadence. |
+
+### UX & Intelligence Backlog (User Feedback, 2026-03-12)
+
+| Item | Description | Priority |
+|------|-------------|----------|
+| UX-1 | **Intelligent model selection** — warn on poor model choice (e.g. large input for Ollama small model), auto-suggest appropriate model, token budget awareness | Medium |
+| UX-2 | **AI Agent window** — scrolling feed of suggestions, auto-updates, autonomous agent-style recommendations without user prompting | Low (Phase 3+) |
+| UX-3 | **Information architecture / naming clarity** — "Artifact Sync" title appears on all 3 modes but doesn't explain why Extract/Analyze/Log are siblings; "Deep Strategy" is unclear; first-time user can't tell if a mode is one-off review, ongoing sync, coaching, or KB update. Needs clear labels, subtitles, or onboarding hints that answer "what does this do?" at a glance. | High |
 
 ### Dual-Tool Architecture Placeholder (D36)
 
