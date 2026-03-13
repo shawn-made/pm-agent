@@ -496,3 +496,127 @@ class TestCheckOllamaStatus:
         assert result["available"] is True
         call_args = mock_instance.get.call_args
         assert "custom:11434" in call_args[0][0]
+
+
+class TestCheckOllamaInstalled:
+    def test_returns_installed_when_binary_found(self):
+        from app.services.llm_ollama import check_ollama_installed
+
+        with patch("shutil.which", return_value="/usr/local/bin/ollama"):
+            result = check_ollama_installed()
+
+        assert result["installed"] is True
+        assert result["path"] == "/usr/local/bin/ollama"
+
+    def test_returns_not_installed_when_binary_missing(self):
+        from app.services.llm_ollama import check_ollama_installed
+
+        with patch("shutil.which", return_value=None):
+            result = check_ollama_installed()
+
+        assert result["installed"] is False
+        assert result["path"] is None
+
+
+class TestGetOllamaInfo:
+    @pytest.mark.asyncio
+    async def test_returns_full_info_when_running(self):
+        from app.services.llm_ollama import get_ollama_info
+
+        with patch(
+            "app.services.llm_ollama.check_ollama_installed",
+            return_value={"installed": True, "path": "/usr/local/bin/ollama"},
+        ):
+            with patch(
+                "app.services.llm_ollama.check_ollama_status",
+                new_callable=AsyncMock,
+                return_value={"available": True, "models": ["llama3.2"], "error": None},
+            ):
+                result = await get_ollama_info()
+
+        assert result["installed"] is True
+        assert result["install_path"] == "/usr/local/bin/ollama"
+        assert result["running"] is True
+        assert result["models"] == ["llama3.2"]
+        assert result["error"] is None
+
+    @pytest.mark.asyncio
+    async def test_returns_not_installed_not_running(self):
+        from app.services.llm_ollama import get_ollama_info
+
+        with patch(
+            "app.services.llm_ollama.check_ollama_installed",
+            return_value={"installed": False, "path": None},
+        ):
+            with patch(
+                "app.services.llm_ollama.check_ollama_status",
+                new_callable=AsyncMock,
+                return_value={"available": False, "models": [], "error": "Cannot connect"},
+            ):
+                result = await get_ollama_info()
+
+        assert result["installed"] is False
+        assert result["install_path"] is None
+        assert result["running"] is False
+
+    @pytest.mark.asyncio
+    async def test_installed_but_not_running(self):
+        from app.services.llm_ollama import get_ollama_info
+
+        with patch(
+            "app.services.llm_ollama.check_ollama_installed",
+            return_value={"installed": True, "path": "/opt/homebrew/bin/ollama"},
+        ):
+            with patch(
+                "app.services.llm_ollama.check_ollama_status",
+                new_callable=AsyncMock,
+                return_value={"available": False, "models": [], "error": "Cannot connect"},
+            ):
+                result = await get_ollama_info()
+
+        assert result["installed"] is True
+        assert result["running"] is False
+
+
+class TestStartOllamaServe:
+    def test_returns_error_when_not_installed(self):
+        from app.services.llm_ollama import start_ollama_serve
+
+        with patch(
+            "app.services.llm_ollama.check_ollama_installed",
+            return_value={"installed": False, "path": None},
+        ):
+            result = start_ollama_serve()
+
+        assert result["started"] is False
+        assert "not installed" in result["error"]
+
+    def test_starts_ollama_when_installed(self):
+        from app.services.llm_ollama import start_ollama_serve
+
+        with patch(
+            "app.services.llm_ollama.check_ollama_installed",
+            return_value={"installed": True, "path": "/usr/local/bin/ollama"},
+        ):
+            with patch("subprocess.Popen") as mock_popen:
+                result = start_ollama_serve()
+
+        assert result["started"] is True
+        assert result["error"] is None
+        mock_popen.assert_called_once()
+        call_args = mock_popen.call_args
+        assert call_args[0][0] == ["ollama", "serve"]
+        assert call_args[1]["start_new_session"] is True
+
+    def test_returns_error_on_subprocess_failure(self):
+        from app.services.llm_ollama import start_ollama_serve
+
+        with patch(
+            "app.services.llm_ollama.check_ollama_installed",
+            return_value={"installed": True, "path": "/usr/local/bin/ollama"},
+        ):
+            with patch("subprocess.Popen", side_effect=OSError("Permission denied")):
+                result = start_ollama_serve()
+
+        assert result["started"] is False
+        assert "Failed to start" in result["error"]

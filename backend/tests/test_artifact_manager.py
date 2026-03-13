@@ -82,9 +82,7 @@ class TestArtifactFilename:
 class TestGetOrCreateArtifact:
     @pytest.mark.asyncio
     async def test_creates_new_artifact(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(
-            "app.services.artifact_manager.ARTIFACTS_DIR", tmp_path
-        )
+        monkeypatch.setattr("app.services.artifact_manager.ARTIFACTS_DIR", tmp_path)
         artifact = await get_or_create_artifact("default", ArtifactType.RAID_LOG)
 
         assert artifact.project_id == "default"
@@ -93,9 +91,7 @@ class TestGetOrCreateArtifact:
 
     @pytest.mark.asyncio
     async def test_creates_file_on_disk(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(
-            "app.services.artifact_manager.ARTIFACTS_DIR", tmp_path
-        )
+        monkeypatch.setattr("app.services.artifact_manager.ARTIFACTS_DIR", tmp_path)
         artifact = await get_or_create_artifact("default", ArtifactType.RAID_LOG)
 
         from pathlib import Path
@@ -106,9 +102,7 @@ class TestGetOrCreateArtifact:
 
     @pytest.mark.asyncio
     async def test_returns_existing_artifact(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(
-            "app.services.artifact_manager.ARTIFACTS_DIR", tmp_path
-        )
+        monkeypatch.setattr("app.services.artifact_manager.ARTIFACTS_DIR", tmp_path)
         a1 = await get_or_create_artifact("default", ArtifactType.RAID_LOG)
         a2 = await get_or_create_artifact("default", ArtifactType.RAID_LOG)
 
@@ -118,9 +112,7 @@ class TestGetOrCreateArtifact:
 class TestReadWriteArtifact:
     @pytest.mark.asyncio
     async def test_read_artifact_content(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(
-            "app.services.artifact_manager.ARTIFACTS_DIR", tmp_path
-        )
+        monkeypatch.setattr("app.services.artifact_manager.ARTIFACTS_DIR", tmp_path)
         artifact = await get_or_create_artifact("default", ArtifactType.STATUS_REPORT)
         content = await read_artifact_content(artifact.artifact_id)
 
@@ -129,9 +121,7 @@ class TestReadWriteArtifact:
 
     @pytest.mark.asyncio
     async def test_write_artifact_content(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(
-            "app.services.artifact_manager.ARTIFACTS_DIR", tmp_path
-        )
+        monkeypatch.setattr("app.services.artifact_manager.ARTIFACTS_DIR", tmp_path)
         artifact = await get_or_create_artifact("default", ArtifactType.MEETING_NOTES)
 
         new_content = "# Updated Meeting Notes\n\nNew content here."
@@ -160,9 +150,7 @@ class TestListProjectArtifacts:
 
     @pytest.mark.asyncio
     async def test_list_after_creation(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(
-            "app.services.artifact_manager.ARTIFACTS_DIR", tmp_path
-        )
+        monkeypatch.setattr("app.services.artifact_manager.ARTIFACTS_DIR", tmp_path)
         await get_or_create_artifact("default", ArtifactType.RAID_LOG)
         await get_or_create_artifact("default", ArtifactType.STATUS_REPORT)
 

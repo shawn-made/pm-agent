@@ -40,6 +40,7 @@ export default function DeepStrategy() {
   const [isApplying, setIsApplying] = useState(false)
   const [results, setResults] = useState(null)
   const [error, setError] = useState(null)
+  const [uploaderKey, setUploaderKey] = useState(0)
   const toast = useToast()
   const progress = useSimulatedProgress()
 
@@ -59,7 +60,7 @@ export default function DeepStrategy() {
         toast.success('Analysis complete — no inconsistencies found')
       } else {
         toast.success(
-          `Found ${result.summary.inconsistencies_found} inconsistency${result.summary.inconsistencies_found > 1 ? 'ies' : 'y'}, ` +
+          `Found ${result.summary.inconsistencies_found} inconsistenc${result.summary.inconsistencies_found > 1 ? 'ies' : 'y'}, ` +
           `${result.summary.updates_proposed} update${result.summary.updates_proposed !== 1 ? 's' : ''} proposed`
         )
       }
@@ -106,10 +107,10 @@ export default function DeepStrategy() {
         </p>
       </div>
 
-      {/* Upload section */}
-      {!results && !isAnalyzing && (
-        <ArtifactUploader onAnalyze={handleAnalyze} isLoading={isAnalyzing} />
-      )}
+      {/* Upload section — kept mounted but hidden to preserve content on error */}
+      <div className={results || isAnalyzing ? 'hidden' : ''}>
+        <ArtifactUploader key={uploaderKey} onAnalyze={handleAnalyze} isLoading={isAnalyzing} />
+      </div>
 
       {/* Progress bar during analysis */}
       {isAnalyzing && (
@@ -149,7 +150,7 @@ export default function DeepStrategy() {
 
           {/* New analysis button */}
           <button
-            onClick={() => { setResults(null); progress.reset() }}
+            onClick={() => { setResults(null); progress.reset(); setUploaderKey(k => k + 1) }}
             className="text-xs text-gray-500 hover:text-gray-700 underline"
           >
             Start new analysis

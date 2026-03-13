@@ -749,6 +749,208 @@ Design-only. No endpoint implementation, no UI.
 
 ---
 
+## Phase 2B: Deep Analysis
+
+**Status**: In Progress
+**Scope**: Deep Strategy multi-artifact analysis, AI Risk Prediction, Cross-Section LPD Reconciliation, Folder Browser
+**Backlog Review 2**: V5 (bottleneck detection → feeds risk prediction), V14 (cross-artifact dependency → IS Deep Strategy), V40 (concept refinement cascade → cross-section reconciliation). V17 (provenance) deferred.
+**Skeptical PM Review**: USE IT — Deep Strategy passes Tuesday afternoon test if quality is good. Risk Prediction + Reconciliation are lighter-weight wins. Folder Browser is friction fix. Caveats: context window limits at scale, priority ordering UX, simulated progress bar, risk prediction nudge.
+**Design decisions**: D48 (markdown + text only for DS input), D49 (synchronous endpoint with long timeout), D50 (Apply: VPMA artifacts → write, uploaded → clipboard), D51 (reconciliation + risk = manual triggers, not auto-run), D52 (DS standalone — no LPD requirement)
+
+### Progress
+
+| Group | Tasks | Done | Status |
+|-------|-------|------|--------|
+| DS Infrastructure | 45-46 | 2/2 | Complete |
+| DS Engine + Frontend | 47-48 | 2/2 | Complete |
+| Complementary Features | 49-52 | 4/4 | Complete |
+| Integration | 53 | 0/1 | In Progress |
+
+### Dependency Graph
+```
+Task 45 (S, models)           ──┐
+Task 46 (M, prompts)          ──┤
+                                 ↓
+Task 47 (L, DS engine + API)  ──┤
+                                 ↓
+Task 48 (L, DS frontend)      ──┤
+                                 │
+Task 49 (M, risk prediction)  ──┤  (independent track)
+                                 ├──→ Task 53 (M, E2E)
+Task 50 (M, risk + recon FE)  ──┤
+                                 │
+Task 51 (M, cross-section)    ──┤  (independent track)
+                                 │
+Task 52 (S, folder browser)   ──┘  (independent track)
+```
+
+---
+
+### GROUP 1: DEEP STRATEGY INFRASTRUCTURE (Tasks 45-46)
+
+### Task 45: Deep Strategy Data Models
+**Complexity**: S | **Sessions**: 1 | **Dependencies**: None
+
+- [x] `DeepStrategyArtifact` — name, content, priority (input)
+- [x] `DependencyEdge` — source, target, relationship
+- [x] `DependencyGraph` — artifacts list, edges, summary (Pass 1 output)
+- [x] `Inconsistency` — id, source/target artifacts, description, severity, excerpts (Pass 2 output)
+- [x] `ProposedUpdate` — inconsistency_id, artifact_name, section, current_text, proposed_text, change_type, rationale (Pass 3 output)
+- [x] `ValidationCheck` — artifact_name, check_description, passed, detail (Pass 4 output)
+- [x] `DeepStrategySummary` — artifacts_analyzed, inconsistencies_found, updates_proposed, validation_passed, consistency_score
+- [x] `DeepStrategyRequest` / `DeepStrategyResponse` — full request/response models
+- [x] `DeepStrategyApplyRequest` / `DeepStrategyApplyResponse` — apply flow models
+- [x] `PredictedRisk` — risk prediction output (for Task 49)
+- [x] `RiskPredictionResponse` — predictions, project_health, pii_detected, session_id
+- [x] `CrossSectionImpact` — source_section, target_section, impact_type, description, excerpts, suggested_action (for Task 51)
+- [x] `ReconciliationResponse` — impacts, sections_analyzed, pii_detected, session_id
+- [x] Architecture tests pass (no service imports in models)
+
+**Files**: `backend/app/models/schemas.py`
+**Status**: Complete
+
+---
+
+### Task 46: Deep Strategy + Risk + Reconciliation Prompts
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: None
+
+- [x] `PASS1_DEPENDENCY_GRAPH` — build relationship map between artifacts
+- [x] `PASS2_INCONSISTENCY_DETECTION` — cross-reference artifact pairs for conflicts
+- [x] `PASS3_PROPOSED_UPDATES` — generate specific text fixes per inconsistency
+- [x] `PASS4_CROSS_VALIDATION` — re-read artifacts with proposed changes, verify consistency
+- [x] `RISK_PREDICTION_PROMPT` — identify missing/predicted risks from project health
+- [x] `CROSS_SECTION_RECONCILIATION_PROMPT` — detect cross-section impacts in LPD
+- [x] All prompts specify JSON output format matching Pydantic models
+- [x] Anti-vagueness rules (D10 pattern) and few-shot examples included
+- [x] Prompt structure regression tests
+
+**Files**: `deep_strategy_prompts.py` (new), `risk_prediction_prompts.py` (new), `lpd_prompts.py` (extend)
+**Status**: Complete
+
+---
+
+### GROUP 2: DEEP STRATEGY ENGINE + FRONTEND (Tasks 47-48)
+
+### Task 47: Deep Strategy Engine Service + API
+**Complexity**: L | **Sessions**: 2-3 | **Dependencies**: Tasks 45, 46
+
+- [x] `run_deep_strategy()` — full 4-pass pipeline (dependency graph → inconsistency detection → proposed updates → cross-validation)
+- [x] `apply_deep_strategy_updates()` — VPMA artifacts → write to file, uploaded → clipboard content
+- [x] Privacy proxy on all 4 passes (anonymize → LLM → reidentify)
+- [x] Session logging (`tab_used="deep_strategy"`)
+- [x] Helper parsers for each pass output
+- [x] `POST /api/deep-strategy/analyze` endpoint
+- [x] `POST /api/deep-strategy/apply` endpoint
+- [x] Architecture tests include `deep_strategy`
+- [x] Tests: parsers, pipeline, privacy, session logging, apply logic, edge cases
+
+**Files**: `deep_strategy.py` (new), `routes.py` (extend)
+**Status**: Complete
+
+---
+
+### Task 48: Deep Strategy Frontend
+**Complexity**: L | **Sessions**: 2-3 | **Dependencies**: Tasks 45, 47
+
+- [x] `DeepStrategy.jsx` page — full workflow UI
+- [x] `ArtifactUploader.jsx` — paste/upload text areas + name field + priority ordering
+- [x] `DeepStrategyResults.jsx` — tabbed view per artifact with diff display + accept/reject
+- [x] `PassProgressBar.jsx` — 4-step indicator with simulated progress
+- [x] "Load from VPMA" feature — load existing VPMA artifacts directly
+- [x] API client: `deepStrategyAnalyze()`, `deepStrategyApply()`
+- [x] Navigation: "Deep Strategy" as 4th tab in App.jsx at `/deep-strategy`
+- [x] Frontend tests
+
+**Files**: `DeepStrategy.jsx`, `ArtifactUploader.jsx`, `DeepStrategyResults.jsx`, `PassProgressBar.jsx` (new), `App.jsx`, `api.js` (extend)
+**Status**: Complete
+
+---
+
+### GROUP 3: COMPLEMENTARY FEATURES (Tasks 49-52)
+
+### Task 49: AI Risk Prediction Engine + API
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: None
+
+- [x] `predict_risks()` — LPD + staleness + RAID Log → LLM → predicted risks
+- [x] Risk categories: timeline, stakeholder gaps, scope creep, stale sections, unresolved questions, missing deadlines
+- [x] Privacy proxy applied to all content
+- [x] Session logging
+- [x] `POST /api/risk-prediction/{project_id}` endpoint
+- [x] Tests: prediction parsing, pipeline, empty LPD, privacy integration
+
+**Files**: `risk_prediction.py` (new), `risk_prediction_prompts.py` (from Task 46), `routes.py` (extend)
+**Status**: Complete
+
+---
+
+### Task 50: Risk Prediction + Reconciliation Frontend
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: Tasks 49, 51
+
+- [x] `RiskPredictionPanel.jsx` — loading spinner, predicted risk cards with severity/confidence, "Add to RAID Log" button
+- [x] `ReconciliationPanel.jsx` — cross-section impacts grouped by type, color-coded (resolves/contradicts/requires_update)
+- [x] "Predict Risks" and "Reconcile" buttons on ProjectDoc.jsx
+- [x] API client: `predictRisks()`, `reconcileLPD()`
+- [x] Frontend tests
+
+**Files**: `RiskPredictionPanel.jsx`, `ReconciliationPanel.jsx` (new), `ProjectDoc.jsx`, `api.js` (extend)
+**Status**: Complete
+
+---
+
+### Task 51: Cross-Section LPD Reconciliation Engine (D39)
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: None
+
+- [x] `reconcile_lpd_sections()` — fetch all 7 LPD sections, anonymize, single LLM call, parse impacts
+- [x] Impact types: resolves, contradicts, supersedes, requires_update
+- [x] `POST /api/lpd/{project_id}/reconcile` endpoint
+- [x] Reuses content gate pattern + LPD manager + privacy proxy
+- [x] Tests: parsing, empty LPD, full reconciliation
+
+**Files**: `reconciliation.py` (new), `lpd_prompts.py`, `routes.py` (extend)
+**Status**: Complete
+
+---
+
+### Task 52: Folder Browser (V41)
+**Complexity**: S | **Sessions**: 1 | **Dependencies**: None
+
+- [x] `GET /api/settings/browse-folders` — directory listing endpoint
+- [x] Security: restricted to home directory, no symlinks, hidden dirs filtered, path traversal blocked
+- [x] `FolderBrowser.jsx` — modal with directory navigation + select
+- [x] "Browse" button in Settings next to transcript watch folder input
+- [x] Tests: backend security (path traversal, symlinks, hidden dirs) + frontend (browse modal, navigation, select)
+
+**Files**: `routes.py` (extend), `FolderBrowser.jsx` (new), `Settings.jsx` (extend), `api.js` (extend)
+**Status**: Complete
+
+---
+
+### GROUP 4: INTEGRATION
+
+### Task 53: Phase 2B E2E Integration & Polish
+**Complexity**: M | **Sessions**: 2-3 | **Dependencies**: All (45-52)
+
+- [ ] Frontend testing: all Phase 2B components pass test suite
+- [ ] E2E: Deep Strategy with real LLM (3+ artifact scenario)
+- [ ] E2E: Risk Prediction with populated LPD
+- [ ] E2E: Reconciliation with known cross-section relationships
+- [ ] E2E: Folder Browser with real filesystem
+- [ ] Regression: all Phase 0 + 1A + 1B + 2A tests pass
+- [ ] Architecture tests include `deep_strategy`, `risk_prediction`, `reconciliation`
+- [ ] Smoke tests for new critical paths
+- [ ] Security: folder browser path traversal verification
+- [ ] Nav: Deep Strategy tab + Project Doc action buttons work correctly
+- [ ] Version bump (coordinate with 2A merge)
+- [ ] CLAUDE.md updated (project structure, test counts, endpoint counts, new services)
+- [ ] docs/EXECUTIVE_SUMMARY.md updated
+- [ ] Full test suite pass
+- [ ] Skeptical PM review of shipped features
+
+**Done when**: All features work E2E with real LLM, all tests pass, docs current.
+**Status**: In Progress
+
+---
+
 ## Backlog-Sourced Additions (from Review 1, 2026-02-27)
 
 Items promoted or slotted from VPMA_BACKLOG.md based on real PM workflow validation. See D36 (dual-tool architecture) and D37 (backlog consumption protocol) for strategic context. Full dispositions in `~/Projects/PM Sandbox/VPMA_BACKLOG.md` Review Log.

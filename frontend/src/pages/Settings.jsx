@@ -7,7 +7,8 @@ import FolderBrowser from '../components/FolderBrowser'
 import {
   getSettings,
   updateSettings,
-  getOllamaStatus,
+  getOllamaInfo,
+  startOllama,
   getTranscriptWatcherStatus,
   startTranscriptWatcher,
   stopTranscriptWatcher,
@@ -25,6 +26,8 @@ export default function Settings() {
   const [ollamaBaseUrl, setOllamaBaseUrl] = useState('')
   const [ollamaModel, setOllamaModel] = useState('')
   const [ollamaStatus, setOllamaStatus] = useState(null)
+  const [ollamaInfo, setOllamaInfo] = useState(null)
+  const [ollamaStarting, setOllamaStarting] = useState(false)
   const [showAnthropicKey, setShowAnthropicKey] = useState(false)
   const [showGeminiKey, setShowGeminiKey] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -74,9 +77,15 @@ export default function Settings() {
       setWatchMode(s.transcript_auto_mode || 'extract')
       // Auto-check Ollama status when it's the active provider
       if ((s.llm_provider || 'claude') === 'ollama') {
-        getOllamaStatus()
-          .then(setOllamaStatus)
-          .catch(() => setOllamaStatus({ available: false, models: [], error: 'Failed to check status' }))
+        getOllamaInfo()
+          .then((info) => {
+            setOllamaInfo(info)
+            setOllamaStatus({ available: info.running, models: info.models, error: info.error })
+          })
+          .catch(() => {
+            setOllamaInfo(null)
+            setOllamaStatus({ available: false, models: [], error: 'Failed to check status' })
+          })
       }
     } catch {
       toast.error('Failed to load settings')
@@ -150,10 +159,16 @@ export default function Settings() {
                   onChange={(e) => {
                     setLlmProvider(e.target.value)
                     if (e.target.value === 'ollama') {
-                      // Check Ollama status when selected
-                      getOllamaStatus()
-                        .then(setOllamaStatus)
-                        .catch(() => setOllamaStatus({ available: false, models: [], error: 'Failed to check status' }))
+                      // Check Ollama info when selected
+                      getOllamaInfo()
+                        .then((info) => {
+                          setOllamaInfo(info)
+                          setOllamaStatus({ available: info.running, models: info.models, error: info.error })
+                        })
+                        .catch(() => {
+                          setOllamaInfo(null)
+                          setOllamaStatus({ available: false, models: [], error: 'Failed to check status' })
+                        })
                     }
                   }}
                   className="text-gray-900 focus:ring-gray-900"
@@ -162,6 +177,16 @@ export default function Settings() {
               </label>
             ))}
           </div>
+          {llmProvider === 'claude' && !anthropicKey && (
+            <p className="mt-2 text-xs text-amber-600" data-testid="missing-key-warning">
+              Anthropic API key required to use Claude. Add it below.
+            </p>
+          )}
+          {llmProvider === 'gemini' && !geminiKey && (
+            <p className="mt-2 text-xs text-amber-600" data-testid="missing-key-warning">
+              Google AI API key required to use Gemini. Add it below.
+            </p>
+          )}
         </fieldset>
 
         {/* API Keys */}
@@ -231,10 +256,84 @@ export default function Settings() {
                   }`} data-testid="ollama-status-dot" />
                   {ollamaStatus.available
                     ? `Connected (${ollamaStatus.models?.length || 0} model${ollamaStatus.models?.length !== 1 ? 's' : ''})`
-                    : ollamaStatus.error || 'Not connected'}
+                    : ollamaInfo?.installed === false
+                      ? 'Not installed'
+                      : 'Not running'}
                 </span>
               )}
             </div>
+
+            {/* State: Not installed */}
+            {ollamaInfo && !ollamaInfo.installed && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg" data-testid="ollama-not-installed">
+                <p className="text-sm text-amber-800 font-medium">Ollama is not installed</p>
+                <p className="text-xs text-amber-700 mt-1">
+                  Download and install Ollama from{' '}
+                  <a href="https://ollama.com" target="_blank" rel="noopener noreferrer"
+                    className="underline font-medium">ollama.com</a>, then pull a model:
+                </p>
+                <code className="block mt-2 text-xs bg-amber-100 px-2 py-1 rounded font-mono text-amber-900">
+                  ollama pull llama3.2
+                </code>
+              </div>
+            )}
+
+            {/* State: Installed but not running */}
+            {ollamaInfo && ollamaInfo.installed && !ollamaInfo.running && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg" data-testid="ollama-not-running">
+                <p className="text-sm text-blue-800 font-medium">Ollama is installed but not running</p>
+                <div className="flex items-center gap-3 mt-2">
+                  <button
+                    type="button"
+                    disabled={ollamaStarting}
+                    onClick={async () => {
+                      setOllamaStarting(true)
+                      try {
+                        const result = await startOllama()
+                        if (result.started || result.message) {
+                          toast.success('Starting Ollama...')
+                          // Wait a moment for Ollama to boot, then re-check
+                          setTimeout(async () => {
+                            try {
+                              const info = await getOllamaInfo()
+                              setOllamaInfo(info)
+                              setOllamaStatus({ available: info.running, models: info.models, error: info.error })
+                              if (info.running) {
+                                toast.success(`Ollama running: ${info.models.length} model(s) available`)
+                              }
+                            } catch { /* ignore */ }
+                            setOllamaStarting(false)
+                          }, 2000)
+                        } else {
+                          toast.error(result.error || 'Failed to start Ollama')
+                          setOllamaStarting(false)
+                        }
+                      } catch {
+                        toast.error('Failed to start Ollama')
+                        setOllamaStarting(false)
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {ollamaStarting ? 'Starting...' : 'Start Ollama'}
+                  </button>
+                  <span className="text-xs text-blue-600">
+                    or run <code className="bg-blue-100 px-1.5 py-0.5 rounded font-mono">ollama serve</code> in a terminal
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* State: Running but no models */}
+            {ollamaInfo && ollamaInfo.running && ollamaInfo.models?.length === 0 && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg" data-testid="ollama-no-models">
+                <p className="text-sm text-amber-800 font-medium">Ollama is running but no models are installed</p>
+                <p className="text-xs text-amber-700 mt-1">Pull a model to get started:</p>
+                <code className="block mt-2 text-xs bg-amber-100 px-2 py-1 rounded font-mono text-amber-900">
+                  ollama pull llama3.2
+                </code>
+              </div>
+            )}
 
             <div>
               <label htmlFor="ollama-model" className="block text-xs text-gray-500 mb-1">
@@ -273,12 +372,15 @@ export default function Settings() {
               type="button"
               onClick={async () => {
                 try {
-                  const status = await getOllamaStatus()
-                  setOllamaStatus(status)
-                  if (status.available) {
-                    toast.success(`Ollama connected: ${status.models.length} model(s) available`)
+                  const info = await getOllamaInfo()
+                  setOllamaInfo(info)
+                  setOllamaStatus({ available: info.running, models: info.models, error: info.error })
+                  if (info.running) {
+                    toast.success(`Ollama connected: ${info.models.length} model(s) available`)
+                  } else if (!info.installed) {
+                    toast.error('Ollama is not installed')
                   } else {
-                    toast.error(status.error || 'Cannot connect to Ollama')
+                    toast.error('Ollama is not running')
                   }
                 } catch {
                   toast.error('Failed to check Ollama status')

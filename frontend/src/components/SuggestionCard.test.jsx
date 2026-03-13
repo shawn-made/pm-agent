@@ -129,6 +129,24 @@ describe('SuggestionCard', () => {
     })
   })
 
+  it('shows dismiss button when onDismiss is provided', () => {
+    const onDismiss = vi.fn()
+    renderCard({ onDismiss })
+    expect(screen.getByText('Dismiss')).toBeInTheDocument()
+  })
+
+  it('hides dismiss button when onDismiss is not provided', () => {
+    renderCard()
+    expect(screen.queryByText('Dismiss')).not.toBeInTheDocument()
+  })
+
+  it('calls onDismiss with suggestion when dismiss is clicked', () => {
+    const onDismiss = vi.fn()
+    renderCard({ onDismiss })
+    fireEvent.click(screen.getByText('Dismiss'))
+    expect(onDismiss).toHaveBeenCalledWith(baseSuggestion)
+  })
+
   it('applies correct color class for each artifact type', () => {
     const { rerender } = render(
       <ToastProvider>

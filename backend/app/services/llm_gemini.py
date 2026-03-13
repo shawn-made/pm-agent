@@ -55,7 +55,9 @@ class GeminiClient(LLMClient):
                 config=config,
             )
             if response.text is None:
-                raise LLMError("Gemini returned empty response (model may have used all tokens for thinking)")
+                raise LLMError(
+                    "Gemini returned empty response (model may have used all tokens for thinking)"
+                )
             return response.text
 
         return await _retry_with_backoff(_do_call)

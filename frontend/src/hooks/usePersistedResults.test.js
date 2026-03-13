@@ -38,8 +38,12 @@ describe('usePersistedResults', () => {
     expect(result.current.results).toEqual(data)
     expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
       'vpma_results_extract',
-      JSON.stringify(data)
+      expect.stringContaining('"suggestions"')
     )
+    // Verify _savedAt was added
+    const stored = JSON.parse(mockLocalStorage.setItem.mock.calls[0][1])
+    expect(stored._savedAt).toBeDefined()
+    expect(stored.suggestions).toEqual(data.suggestions)
   })
 
   it('restores results from localStorage on mount', () => {
@@ -118,5 +122,44 @@ describe('usePersistedResults', () => {
 
     const { result } = renderHook(() => usePersistedResults('extract'))
     expect(result.current.results).toBeNull()
+  })
+
+  it('includes _savedAt timestamp when saving', () => {
+    const { result } = renderHook(() => usePersistedResults('extract'))
+    const data = { suggestions: [{ text: 'test' }] }
+
+    act(() => {
+      result.current.setResults(data)
+    })
+
+    const stored = JSON.parse(store['vpma_results_extract'])
+    expect(stored._savedAt).toBeDefined()
+    expect(typeof stored._savedAt).toBe('number')
+  })
+
+  it('auto-expires results older than 24 hours', () => {
+    const data = { suggestions: [{ text: 'old' }], _savedAt: Date.now() - 25 * 60 * 60 * 1000 }
+    store['vpma_results_extract'] = JSON.stringify(data)
+
+    const { result } = renderHook(() => usePersistedResults('extract'))
+    expect(result.current.results).toBeNull()
+    // Should have been removed from storage
+    expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('vpma_results_extract')
+  })
+
+  it('keeps results newer than 24 hours', () => {
+    const data = { suggestions: [{ text: 'recent' }], _savedAt: Date.now() - 1000 }
+    store['vpma_results_extract'] = JSON.stringify(data)
+
+    const { result } = renderHook(() => usePersistedResults('extract'))
+    expect(result.current.results).toEqual(data)
+  })
+
+  it('keeps legacy results without _savedAt (no expiry metadata)', () => {
+    const data = { suggestions: [{ text: 'legacy' }] }
+    store['vpma_results_extract'] = JSON.stringify(data)
+
+    const { result } = renderHook(() => usePersistedResults('extract'))
+    expect(result.current.results).toEqual(data)
   })
 })

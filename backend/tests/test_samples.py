@@ -48,19 +48,18 @@ Action Items:
         "expected_type": "meeting_notes",
         "expected_artifacts": ["RAID Log", "Status Report", "Meeting Notes"],
         "expected_sections": [
-            "Accomplishments",       # auth module complete
-            "In Progress",           # dashboard redesign, API work
-            "Upcoming",              # stakeholder demo, optimization sprint
-            "Blockers / Risks",      # API SLA, Stripe breaking change
-            "Risks",                 # Stripe API change deadline
-            "Dependencies",          # Stripe migration
-            "Action Items",          # 4 explicit action items
-            "Decisions",             # 3 explicit decisions
-            "Discussion",            # key topics
+            "Accomplishments",  # auth module complete
+            "In Progress",  # dashboard redesign, API work
+            "Upcoming",  # stakeholder demo, optimization sprint
+            "Blockers / Risks",  # API SLA, Stripe breaking change
+            "Risks",  # Stripe API change deadline
+            "Dependencies",  # Stripe migration
+            "Action Items",  # 4 explicit action items
+            "Decisions",  # 3 explicit decisions
+            "Discussion",  # key topics
         ],
         "notes": "Rich input — should produce 10+ suggestions. Stripe breaking change is both a Risk and Dependency. API SLA miss is an Issue.",
     },
-
     # ---------------------------------------------------------------
     # Sample 2: Raw transcript with speaker labels
     # ---------------------------------------------------------------
@@ -84,18 +83,17 @@ Jordan: Perfect. That simplifies things a lot.""",
         "expected_type": "transcript",
         "expected_artifacts": ["RAID Log", "Status Report", "Meeting Notes"],
         "expected_sections": [
-            "Accomplishments",       # email notification system
-            "In Progress",           # search indexing, mobile refactor
-            "Upcoming",              # PDF export
-            "Blockers / Risks",      # Elasticsearch bug, SSL cert
-            "Risks",                 # SSL cert expiry
-            "Issues",                # Elasticsearch special chars bug
-            "Assumptions",           # iOS 16+, Android 13+
-            "Action Items",          # Sam renew SSL, Jordan pair with Sam
+            "Accomplishments",  # email notification system
+            "In Progress",  # search indexing, mobile refactor
+            "Upcoming",  # PDF export
+            "Blockers / Risks",  # Elasticsearch bug, SSL cert
+            "Risks",  # SSL cert expiry
+            "Issues",  # Elasticsearch special chars bug
+            "Assumptions",  # iOS 16+, Android 13+
+            "Action Items",  # Sam renew SSL, Jordan pair with Sam
         ],
         "notes": "Conversational tone — LLM must extract structured data from dialogue. SSL cert is time-sensitive. The mobile support assumption should be captured.",
     },
-
     # ---------------------------------------------------------------
     # Sample 3: Status update email style
     # ---------------------------------------------------------------
@@ -126,16 +124,15 @@ Rachel""",
         "expected_type": "status_update",
         "expected_artifacts": ["RAID Log", "Status Report"],
         "expected_sections": [
-            "Accomplishments",       # 3 items shipped
-            "In Progress",           # 2 items
-            "Blockers / Risks",      # Legal review, AWS costs
-            "Risks",                 # AWS cost spike, QA contractor ending
-            "Dependencies",          # Outside counsel for legal review
-            "Issues",                # Legal review blocking launch
+            "Accomplishments",  # 3 items shipped
+            "In Progress",  # 2 items
+            "Blockers / Risks",  # Legal review, AWS costs
+            "Risks",  # AWS cost spike, QA contractor ending
+            "Dependencies",  # Outside counsel for legal review
+            "Issues",  # Legal review blocking launch
         ],
         "notes": "No meeting notes expected (this is an email, not a meeting). Should capture the AWS cost spike as a risk. QA contractor decision is a risk/upcoming item.",
     },
-
     # ---------------------------------------------------------------
     # Sample 4: Ad-hoc notes — messy, incomplete
     # ---------------------------------------------------------------
@@ -154,15 +151,14 @@ Rachel""",
         "expected_type": "general_text",
         "expected_artifacts": ["RAID Log", "Status Report", "Meeting Notes"],
         "expected_sections": [
-            "Risks",                 # Competitor threat, data migration complexity
-            "Dependencies",          # NDA for test env, Okta SSO
-            "Assumptions",           # Q1 deadline, $150K budget
-            "Action Items",          # SOW draft, migration workshop
-            "Upcoming",              # Phase 2, executive summary view
+            "Risks",  # Competitor threat, data migration complexity
+            "Dependencies",  # NDA for test env, Okta SSO
+            "Assumptions",  # Q1 deadline, $150K budget
+            "Action Items",  # SOW draft, migration workshop
+            "Upcoming",  # Phase 2, executive summary view
         ],
         "notes": "Messy input with abbreviations — tests how well the LLM handles informal text. Competitor mention is a risk. Budget approval is positive news. NDA is a dependency.",
     },
-
     # ---------------------------------------------------------------
     # Sample 5: Technical post-mortem
     # ---------------------------------------------------------------
@@ -201,15 +197,14 @@ Lessons Learned:
         "expected_type": "meeting_notes",
         "expected_artifacts": ["RAID Log", "Status Report", "Meeting Notes"],
         "expected_sections": [
-            "Issues",                # Connection pool exhaustion, $45K impact
-            "Risks",                 # Staging doesn't simulate realistic conditions
-            "Action Items",          # 5 explicit action items
-            "Accomplishments",       # Incident resolved
-            "Blockers / Risks",      # CI pipeline gap, on-call escalation gap
+            "Issues",  # Connection pool exhaustion, $45K impact
+            "Risks",  # Staging doesn't simulate realistic conditions
+            "Action Items",  # 5 explicit action items
+            "Accomplishments",  # Incident resolved
+            "Blockers / Risks",  # CI pipeline gap, on-call escalation gap
         ],
         "notes": "Post-mortem format — structured with clear action items. All 5 action items should be captured. Lessons learned should map to Risks or Issues. The $45K impact should be noted.",
     },
-
     # ---------------------------------------------------------------
     # Sample 6: Minimal input — tests edge case
     # ---------------------------------------------------------------
@@ -219,13 +214,12 @@ Lessons Learned:
         "expected_type": "general_text",
         "expected_artifacts": ["Status Report", "Meeting Notes"],
         "expected_sections": [
-            "Decisions",             # Postpone launch
-            "Upcoming",              # Launch now in April
-            "Risks",                 # Possibly — launch delay risk
+            "Decisions",  # Postpone launch
+            "Upcoming",  # Launch now in April
+            "Risks",  # Possibly — launch delay risk
         ],
         "notes": "Minimal input — should still produce something useful. At minimum a Decision and Status Report update. Should not hallucinate details not in the input.",
     },
-
     # ---------------------------------------------------------------
     # Sample 7: Mixed content — combines different types
     # ---------------------------------------------------------------
@@ -248,15 +242,15 @@ Next steps:
         "expected_type": "status_update",
         "expected_artifacts": ["RAID Log", "Status Report", "Meeting Notes"],
         "expected_sections": [
-            "Accomplishments",       # Checkout flow, A/B results
-            "In Progress",           # K8s migration
-            "Upcoming",              # Recommendation engine, runbook, hiring
-            "Blockers / Risks",      # Engineer attrition, budget, Redis dependency
-            "Risks",                 # Attrition, budget, legacy Redis
-            "Dependencies",          # ML model by March 1, Redis cluster
-            "Issues",                # 15% over budget, 2 engineers leaving
-            "Decisions",             # Keep new checkout flow as default
-            "Action Items",          # 3 next steps
+            "Accomplishments",  # Checkout flow, A/B results
+            "In Progress",  # K8s migration
+            "Upcoming",  # Recommendation engine, runbook, hiring
+            "Blockers / Risks",  # Engineer attrition, budget, Redis dependency
+            "Risks",  # Attrition, budget, legacy Redis
+            "Dependencies",  # ML model by March 1, Redis cluster
+            "Issues",  # 15% over budget, 2 engineers leaving
+            "Decisions",  # Keep new checkout flow as default
+            "Action Items",  # 3 next steps
         ],
         "notes": "Rich, multi-topic input that should produce many suggestions across all 3 artifact types. The engineer attrition is both a Risk and an Issue. Budget overage is an Issue. The 12% conversion improvement is a key accomplishment.",
     },
@@ -349,8 +343,12 @@ if __name__ == "__main__":
                 # Print each suggestion
                 for j, s in enumerate(result.get("suggestions", []), 1):
                     conf = s.get("confidence", 0)
-                    print(f"  [{j}] {s['artifact_type']} > {s['section']} ({s['change_type']}, conf={conf:.2f})")
-                    print(f"      {s['proposed_text'][:100]}{'...' if len(s.get('proposed_text', '')) > 100 else ''}")
+                    print(
+                        f"  [{j}] {s['artifact_type']} > {s['section']} ({s['change_type']}, conf={conf:.2f})"
+                    )
+                    print(
+                        f"      {s['proposed_text'][:100]}{'...' if len(s.get('proposed_text', '')) > 100 else ''}"
+                    )
 
                 print(f"\n  Evaluation notes: {sample['notes']}")
 

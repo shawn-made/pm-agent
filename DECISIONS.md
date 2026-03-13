@@ -468,3 +468,22 @@ Six markets evaluated against VPMA's core architecture (privacy proxy + document
 
 **Full design**: `docs/conversational_api_design.md`
 **Connects to**: D36 (dual-tool architecture), D15 (hybrid workflow — chat replaces Claude Code dependency), D34 (log session scope)
+
+### D53: Ollama Onboarding — Detect + Start, No Shutdown Management
+**Date**: 2026-03-05 (Phase 2B, Task 53 polish) | **Status**: Active
+
+**Decision**: Add contextual Ollama onboarding to Settings with two new backend endpoints:
+1. `GET /settings/ollama-info` — returns `{installed, running, models, install_path}` using `shutil.which("ollama")` for install detection and existing status check for running state.
+2. `POST /settings/ollama-start` — spawns `ollama serve` as a detached subprocess if installed and not already running. Does NOT track the process or attempt to stop it on shutdown.
+
+Frontend shows 4 contextual states: Not Installed (link to ollama.com), Installed/Not Running (Start button + command), Running/No Models (pull instructions), Running with Models (green status + model list).
+
+**What was rejected**:
+- Auto-start via launch script (`vpma.command`) — process ownership complexity, port conflicts, platform-specific
+- "Pull Model" button — scope creep into LLM management; adds streaming UI complexity for a one-time action
+- Shutdown management / close prompt — Ollama idle uses <50MB RAM / 0% CPU; not worth the complexity of process tracking and shutdown hooks
+- `ollama_auto_start` setting — deferred; adds minimal value since Ollama stays running once started
+
+**Skeptical PM verdict**: USE IT for detection + start button. The detection is table-stakes (don't show a cryptic error when the real problem is "not installed"). The start button removes a real friction point (one click vs. opening a terminal). No close prompt — let Ollama run independently.
+
+**Connects to**: D32 (Ollama/local LLM), D46 (multi-market strategy — Ollama is the privacy differentiator for Research market)

@@ -6,6 +6,15 @@ import {
   updateSettings,
   applySuggestion,
   applySuggestionByType,
+  deepStrategyAnalyze,
+  deepStrategyApply,
+  getAvailableArtifacts,
+  predictRisks,
+  reconcileLPD,
+  browseFolders,
+  getOllamaInfo,
+  startOllama,
+  exportArtifacts,
 } from './api'
 
 // There are 6 exported functions (healthCheck was counted twice in the spec —
@@ -163,5 +172,262 @@ describe('applySuggestionByType', () => {
   it('throws on failure', async () => {
     mockFetch({}, false, 500)
     await expect(applySuggestionByType({})).rejects.toThrow('Failed to apply suggestion: 500')
+  })
+})
+
+// ============================================================
+// Phase 2B API functions
+// ============================================================
+
+describe('deepStrategyAnalyze (XHR)', () => {
+  let xhrInstances
+
+  class MockXHR {
+    constructor() {
+      this.open = vi.fn()
+      this.setRequestHeader = vi.fn()
+      this.send = vi.fn()
+      this.timeout = 0
+      this.onload = null
+      this.onerror = null
+      this.ontimeout = null
+      this.status = 0
+      this.responseText = ''
+      xhrInstances.push(this)
+    }
+  }
+
+  function setupXHR(responseBody, status = 200) {
+    xhrInstances = []
+    const OrigSend = MockXHR.prototype.send
+    vi.stubGlobal('XMLHttpRequest', class extends MockXHR {
+      constructor() {
+        super()
+        this.send = vi.fn(() => {
+          this.status = status
+          this.responseText = JSON.stringify(responseBody)
+          this.onload?.()
+        })
+      }
+    })
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('posts artifacts and returns analysis result', async () => {
+    const artifacts = [{ name: 'A', content: 'text', priority: 1 }]
+    const response = { summary: {}, inconsistencies: [], proposed_updates: [] }
+    setupXHR(response)
+    const result = await deepStrategyAnalyze(artifacts)
+    expect(result).toEqual(response)
+    expect(xhrInstances[0].open).toHaveBeenCalledWith('POST', '/api/deep-strategy/analyze')
+    expect(xhrInstances[0].send).toHaveBeenCalledWith(
+      JSON.stringify({ artifacts, project_id: 'default' })
+    )
+    expect(xhrInstances[0].timeout).toBe(300000)
+  })
+
+  it('sends custom project_id', async () => {
+    setupXHR({})
+    await deepStrategyAnalyze([], 'proj-x')
+    expect(xhrInstances[0].send).toHaveBeenCalledWith(
+      JSON.stringify({ artifacts: [], project_id: 'proj-x' })
+    )
+  })
+
+  it('throws with error detail from response', async () => {
+    setupXHR({ detail: 'Need at least 2 artifacts' }, 422)
+    await expect(deepStrategyAnalyze([])).rejects.toThrow('Need at least 2 artifacts')
+  })
+
+  it('throws on network error', async () => {
+    xhrInstances = []
+    vi.stubGlobal('XMLHttpRequest', class extends MockXHR {
+      constructor() {
+        super()
+        this.send = vi.fn(() => { this.onerror?.() })
+      }
+    })
+    await expect(deepStrategyAnalyze([])).rejects.toThrow('Network error')
+  })
+
+  it('throws on timeout', async () => {
+    xhrInstances = []
+    vi.stubGlobal('XMLHttpRequest', class extends MockXHR {
+      constructor() {
+        super()
+        this.send = vi.fn(() => { this.ontimeout?.() })
+      }
+    })
+    await expect(deepStrategyAnalyze([])).rejects.toThrow('Request timed out')
+  })
+})
+
+describe('deepStrategyApply', () => {
+  it('posts updates and returns apply result', async () => {
+    const updates = [{ target: 'A', change_type: 'modify' }]
+    const response = { applied: [{ status: 'applied' }], copied_to_clipboard: [] }
+    mockFetch(response)
+    const result = await deepStrategyApply(updates)
+    expect(result).toEqual(response)
+    expect(fetch).toHaveBeenCalledWith('/api/deep-strategy/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updates, project_id: 'default' }),
+    })
+  })
+
+  it('throws on failure', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false, status: 500,
+      json: () => Promise.reject(new Error('parse error')),
+    })
+    await expect(deepStrategyApply([])).rejects.toThrow('Request failed: 500')
+  })
+})
+
+describe('getAvailableArtifacts', () => {
+  it('fetches available artifacts for default project', async () => {
+    const response = { items: [{ name: 'RAID Log', content: 'stuff', source: 'artifact' }] }
+    mockFetch(response)
+    const result = await getAvailableArtifacts()
+    expect(result).toEqual(response)
+    expect(fetch).toHaveBeenCalledWith('/api/deep-strategy/available-artifacts/default')
+  })
+
+  it('encodes custom project_id', async () => {
+    mockFetch({ items: [] })
+    await getAvailableArtifacts('my project')
+    expect(fetch).toHaveBeenCalledWith('/api/deep-strategy/available-artifacts/my%20project')
+  })
+
+  it('throws on failure', async () => {
+    mockFetch({}, false, 500)
+    await expect(getAvailableArtifacts()).rejects.toThrow('Failed to load available artifacts: 500')
+  })
+})
+
+describe('predictRisks', () => {
+  it('posts risk prediction request', async () => {
+    const response = { predictions: [], project_health: 'healthy', pii_detected: 0 }
+    mockFetch(response)
+    const result = await predictRisks()
+    expect(result).toEqual(response)
+    expect(fetch).toHaveBeenCalledWith('/api/risk-prediction/default', { method: 'POST' })
+  })
+
+  it('encodes custom project_id', async () => {
+    mockFetch({})
+    await predictRisks('proj-2')
+    expect(fetch).toHaveBeenCalledWith('/api/risk-prediction/proj-2', { method: 'POST' })
+  })
+
+  it('throws with error detail from response', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false, status: 422,
+      json: () => Promise.resolve({ detail: 'LPD not initialized' }),
+    })
+    await expect(predictRisks()).rejects.toThrow('LPD not initialized')
+  })
+})
+
+describe('reconcileLPD', () => {
+  it('posts reconciliation request', async () => {
+    const response = { impacts: [], sections_analyzed: 5, pii_detected: 0 }
+    mockFetch(response)
+    const result = await reconcileLPD()
+    expect(result).toEqual(response)
+    expect(fetch).toHaveBeenCalledWith('/api/lpd/default/reconcile', { method: 'POST' })
+  })
+
+  it('encodes custom project_id', async () => {
+    mockFetch({})
+    await reconcileLPD('proj-3')
+    expect(fetch).toHaveBeenCalledWith('/api/lpd/proj-3/reconcile', { method: 'POST' })
+  })
+
+  it('throws on failure', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false, status: 500,
+      json: () => Promise.reject(new Error('parse error')),
+    })
+    await expect(reconcileLPD()).rejects.toThrow('Request failed: 500')
+  })
+})
+
+describe('browseFolders', () => {
+  it('fetches default path when no path provided', async () => {
+    const response = { current_path: '/home', parent_path: null, directories: [] }
+    mockFetch(response)
+    const result = await browseFolders()
+    expect(result).toEqual(response)
+    expect(fetch).toHaveBeenCalledWith('/api/settings/browse-folders')
+  })
+
+  it('encodes path parameter', async () => {
+    mockFetch({ current_path: '/tmp/my folder', parent_path: '/tmp', directories: [] })
+    await browseFolders('/tmp/my folder')
+    expect(fetch).toHaveBeenCalledWith('/api/settings/browse-folders?path=%2Ftmp%2Fmy%20folder')
+  })
+
+  it('throws with error detail from response', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false, status: 403,
+      json: () => Promise.resolve({ detail: 'Permission denied' }),
+    })
+    await expect(browseFolders('/root')).rejects.toThrow('Permission denied')
+  })
+})
+
+describe('getOllamaInfo', () => {
+  it('fetches Ollama info', async () => {
+    const response = { installed: true, install_path: '/usr/bin/ollama', running: true, models: ['llama3.2'], error: null }
+    mockFetch(response)
+    const result = await getOllamaInfo()
+    expect(result).toEqual(response)
+    expect(fetch).toHaveBeenCalledWith('/api/settings/ollama-info')
+  })
+
+  it('throws on failure', async () => {
+    mockFetch({}, false, 500)
+    await expect(getOllamaInfo()).rejects.toThrow('Failed to get Ollama info: 500')
+  })
+})
+
+describe('startOllama', () => {
+  it('posts start request', async () => {
+    const response = { started: true, error: null }
+    mockFetch(response)
+    const result = await startOllama()
+    expect(result).toEqual(response)
+    expect(fetch).toHaveBeenCalledWith('/api/settings/ollama-start', { method: 'POST' })
+  })
+
+  it('throws on failure', async () => {
+    mockFetch({}, false, 500)
+    await expect(startOllama()).rejects.toThrow('Failed to start Ollama: 500')
+  })
+})
+
+describe('exportArtifacts', () => {
+  it('fetches export for default project', async () => {
+    const response = { markdown: '# RAID Log\n...', artifact_count: 3 }
+    mockFetch(response)
+    const result = await exportArtifacts()
+    expect(result).toEqual(response)
+    expect(fetch).toHaveBeenCalledWith('/api/artifacts/default/export')
+  })
+
+  it('encodes custom project_id', async () => {
+    mockFetch({ markdown: '', artifact_count: 0 })
+    await exportArtifacts('proj-x')
+    expect(fetch).toHaveBeenCalledWith('/api/artifacts/proj-x/export')
+  })
+
+  it('throws on failure', async () => {
+    mockFetch({}, false, 500)
+    await expect(exportArtifacts()).rejects.toThrow('Failed to export artifacts: 500')
   })
 })

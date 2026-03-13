@@ -6,6 +6,7 @@
 import { useState, useCallback } from 'react'
 
 const STORAGE_PREFIX = 'vpma_results_'
+const EXPIRY_MS = 24 * 60 * 60 * 1000 // 24 hours
 
 function getStorageKey(mode) {
   return `${STORAGE_PREFIX}${mode}`
@@ -15,7 +16,13 @@ function loadFromStorage(mode) {
   try {
     const raw = localStorage.getItem(getStorageKey(mode))
     if (!raw) return null
-    return JSON.parse(raw)
+    const parsed = JSON.parse(raw)
+    // Auto-expire results older than 24 hours
+    if (parsed._savedAt && Date.now() - parsed._savedAt > EXPIRY_MS) {
+      localStorage.removeItem(getStorageKey(mode))
+      return null
+    }
+    return parsed
   } catch {
     return null
   }
@@ -23,7 +30,7 @@ function loadFromStorage(mode) {
 
 function saveToStorage(mode, data) {
   try {
-    localStorage.setItem(getStorageKey(mode), JSON.stringify(data))
+    localStorage.setItem(getStorageKey(mode), JSON.stringify({ ...data, _savedAt: Date.now() }))
   } catch {
     // localStorage full or unavailable — silently ignore
   }

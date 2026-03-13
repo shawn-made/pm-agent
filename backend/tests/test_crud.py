@@ -55,9 +55,7 @@ async def test_ensure_default_project_idempotent():
 
 @pytest.mark.asyncio
 async def test_create_and_get_project():
-    project = await create_project(
-        ProjectCreate(project_id="proj-1", project_name="Test Project")
-    )
+    project = await create_project(ProjectCreate(project_id="proj-1", project_name="Test Project"))
     assert project.project_id == "proj-1"
     assert project.project_name == "Test Project"
 
@@ -210,12 +208,8 @@ async def test_get_artifact_versions():
             file_path="raid.md",
         )
     )
-    await create_artifact_version(
-        ArtifactVersionCreate(artifact_id="multi-ver", version_number=1)
-    )
-    await create_artifact_version(
-        ArtifactVersionCreate(artifact_id="multi-ver", version_number=2)
-    )
+    await create_artifact_version(ArtifactVersionCreate(artifact_id="multi-ver", version_number=1))
+    await create_artifact_version(ArtifactVersionCreate(artifact_id="multi-ver", version_number=2))
     versions = await get_artifact_versions("multi-ver")
     assert len(versions) == 2
     assert versions[0].version_number == 2  # newest first
@@ -233,14 +227,10 @@ async def test_get_latest_version_number():
     )
     assert await get_latest_version_number("latest-ver") == 0
 
-    await create_artifact_version(
-        ArtifactVersionCreate(artifact_id="latest-ver", version_number=1)
-    )
+    await create_artifact_version(ArtifactVersionCreate(artifact_id="latest-ver", version_number=1))
     assert await get_latest_version_number("latest-ver") == 1
 
-    await create_artifact_version(
-        ArtifactVersionCreate(artifact_id="latest-ver", version_number=2)
-    )
+    await create_artifact_version(ArtifactVersionCreate(artifact_id="latest-ver", version_number=2))
     assert await get_latest_version_number("latest-ver") == 2
 
 

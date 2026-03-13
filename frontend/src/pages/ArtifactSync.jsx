@@ -32,6 +32,16 @@ export default function ArtifactSync() {
   const logSession = results?.logSession || null
   const meta = results?.meta || null
 
+  function handleDismiss(suggestion) {
+    if (!results?.suggestions) return
+    const remaining = results.suggestions.filter(s => s !== suggestion)
+    if (remaining.length === 0) {
+      clearResults()
+    } else {
+      setResults({ ...results, suggestions: remaining })
+    }
+  }
+
   async function handleApply(suggestion) {
     const result = await applySuggestionByType(suggestion)
     return result
@@ -235,6 +245,9 @@ export default function ArtifactSync() {
               <button onClick={handleExportResults} className="text-gray-400 hover:text-gray-600 transition-colors">
                 Export .md
               </button>
+              <button onClick={() => { clearResults(); toast.success('Results cleared') }} className="text-red-400 hover:text-red-600 transition-colors">
+                Clear
+              </button>
             </span>
           )}
         </div>
@@ -265,7 +278,7 @@ export default function ArtifactSync() {
                 </h4>
                 {type === 'RAID Log' ? (
                   groups[type].map((s, i) => (
-                    <SuggestionCard key={`${type}-${i}`} suggestion={s} onApply={handleApply} />
+                    <SuggestionCard key={`${type}-${i}`} suggestion={s} onApply={handleApply} onDismiss={handleDismiss} />
                   ))
                 ) : (
                   <DocumentDraftCard

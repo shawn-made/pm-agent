@@ -191,9 +191,9 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 
 ## Codebase Statistics
 
-- **Backend**: 17 service modules, 8 database tables, 28 API endpoints
+- **Backend**: 17 service modules, 8 database tables, 30 API endpoints
 - **Frontend**: 13 components, 5 pages, 1 hook, 1 API service module
-- **Tests**: 1,084+ total (875+ backend + 209+ frontend)
+- **Tests**: 1,199+ total (915+ backend + 284+ frontend)
 - **Lines of code**: ~8,500 backend Python, ~3,200 frontend JavaScript (estimated)
 
 ---

@@ -7,6 +7,8 @@ vi.mock('../services/api', () => ({
   getSettings: vi.fn(),
   updateSettings: vi.fn(),
   getOllamaStatus: vi.fn(),
+  getOllamaInfo: vi.fn(),
+  startOllama: vi.fn(),
   getTranscriptWatcherStatus: vi.fn(),
   startTranscriptWatcher: vi.fn(),
   stopTranscriptWatcher: vi.fn(),
@@ -18,7 +20,8 @@ vi.mock('../services/api', () => ({
 import {
   getSettings,
   updateSettings,
-  getOllamaStatus,
+  getOllamaInfo,
+  startOllama,
   getTranscriptWatcherStatus,
   startTranscriptWatcher,
   stopTranscriptWatcher,
@@ -122,6 +125,35 @@ describe('Settings', () => {
     })
   })
 
+  it('shows warning when Claude selected without API key', async () => {
+    getSettings.mockResolvedValue({ settings: { llm_provider: 'claude' } })
+    renderSettings()
+    await waitFor(() => {
+      expect(screen.getByTestId('missing-key-warning')).toBeInTheDocument()
+      expect(screen.getByText(/Anthropic API key required/)).toBeInTheDocument()
+    })
+  })
+
+  it('shows warning when Gemini selected without API key', async () => {
+    getSettings.mockResolvedValue({ settings: { llm_provider: 'gemini' } })
+    renderSettings()
+    await waitFor(() => {
+      expect(screen.getByTestId('missing-key-warning')).toBeInTheDocument()
+      expect(screen.getByText(/Google AI API key required/)).toBeInTheDocument()
+    })
+  })
+
+  it('hides warning when API key is present', async () => {
+    getSettings.mockResolvedValue({
+      settings: { llm_provider: 'claude', anthropic_api_key: 'sk-ant-real-key' },
+    })
+    renderSettings()
+    await waitFor(() => {
+      expect(screen.queryByText('Loading settings...')).not.toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('missing-key-warning')).not.toBeInTheDocument()
+  })
+
   it('does not send masked API keys', async () => {
     getSettings.mockResolvedValue({
       settings: {
@@ -168,7 +200,7 @@ describe('Settings — Ollama', () => {
 
   it('shows Ollama config panel when Ollama is selected', async () => {
     getSettings.mockResolvedValue({ settings: { llm_provider: 'ollama', ollama_model: 'llama3.2' } })
-    getOllamaStatus.mockResolvedValue({ available: true, models: ['llama3.2'], error: null })
+    getOllamaInfo.mockResolvedValue({ installed: true, install_path: '/usr/local/bin/ollama', running: true, models: ['llama3.2'], error: null })
     renderSettings()
     await waitFor(() => {
       expect(screen.getByText('Ollama Configuration')).toBeInTheDocument()
@@ -185,9 +217,9 @@ describe('Settings — Ollama', () => {
     })
   })
 
-  it('checks Ollama status when selecting Ollama', async () => {
+  it('checks Ollama info when selecting Ollama', async () => {
     getSettings.mockResolvedValue({ settings: { llm_provider: 'claude' } })
-    getOllamaStatus.mockResolvedValue({ available: true, models: ['llama3.2', 'mistral'], error: null })
+    getOllamaInfo.mockResolvedValue({ installed: true, install_path: '/usr/local/bin/ollama', running: true, models: ['llama3.2', 'mistral'], error: null })
     renderSettings()
     await waitFor(() => {
       expect(screen.queryByText('Loading settings...')).not.toBeInTheDocument()
@@ -195,23 +227,23 @@ describe('Settings — Ollama', () => {
 
     fireEvent.click(screen.getByDisplayValue('ollama'))
     await waitFor(() => {
-      expect(getOllamaStatus).toHaveBeenCalled()
+      expect(getOllamaInfo).toHaveBeenCalled()
     })
   })
 
   it('auto-checks status when Ollama is loaded as active provider', async () => {
     getSettings.mockResolvedValue({ settings: { llm_provider: 'ollama' } })
-    getOllamaStatus.mockResolvedValue({ available: true, models: ['llama3.2', 'mistral'], error: null })
+    getOllamaInfo.mockResolvedValue({ installed: true, install_path: '/usr/local/bin/ollama', running: true, models: ['llama3.2', 'mistral'], error: null })
     renderSettings()
     await waitFor(() => {
-      expect(getOllamaStatus).toHaveBeenCalled()
+      expect(getOllamaInfo).toHaveBeenCalled()
       expect(screen.getByTestId('ollama-status-dot')).toBeInTheDocument()
     })
   })
 
   it('shows Test Connection button', async () => {
     getSettings.mockResolvedValue({ settings: { llm_provider: 'ollama' } })
-    getOllamaStatus.mockResolvedValue({ available: false, models: [], error: 'Cannot connect' })
+    getOllamaInfo.mockResolvedValue({ installed: true, install_path: '/usr/local/bin/ollama', running: false, models: [], error: 'Cannot connect' })
     renderSettings()
     await waitFor(() => {
       expect(screen.getByText('Test Connection')).toBeInTheDocument()
@@ -222,7 +254,7 @@ describe('Settings — Ollama', () => {
     getSettings.mockResolvedValue({
       settings: { llm_provider: 'ollama', ollama_base_url: 'http://myhost:11434', ollama_model: 'phi3' },
     })
-    getOllamaStatus.mockResolvedValue({ available: true, models: ['phi3'], error: null })
+    getOllamaInfo.mockResolvedValue({ installed: true, install_path: '/usr/local/bin/ollama', running: true, models: ['phi3'], error: null })
     updateSettings.mockResolvedValue({ success: true })
     renderSettings()
     await waitFor(() => {
@@ -234,6 +266,52 @@ describe('Settings — Ollama', () => {
       const payload = updateSettings.mock.calls[0][0]
       expect(payload.ollama_base_url).toBe('http://myhost:11434')
       expect(payload.ollama_model).toBe('phi3')
+    })
+  })
+
+  it('shows not-installed state when Ollama is not installed', async () => {
+    getSettings.mockResolvedValue({ settings: { llm_provider: 'ollama' } })
+    getOllamaInfo.mockResolvedValue({ installed: false, install_path: null, running: false, models: [], error: 'Cannot connect' })
+    renderSettings()
+    await waitFor(() => {
+      expect(screen.getByTestId('ollama-not-installed')).toBeInTheDocument()
+      expect(screen.getByText('Ollama is not installed')).toBeInTheDocument()
+      expect(screen.getByText('ollama.com')).toBeInTheDocument()
+    })
+  })
+
+  it('shows start button when Ollama is installed but not running', async () => {
+    getSettings.mockResolvedValue({ settings: { llm_provider: 'ollama' } })
+    getOllamaInfo.mockResolvedValue({ installed: true, install_path: '/usr/local/bin/ollama', running: false, models: [], error: 'Cannot connect' })
+    renderSettings()
+    await waitFor(() => {
+      expect(screen.getByTestId('ollama-not-running')).toBeInTheDocument()
+      expect(screen.getByText('Start Ollama')).toBeInTheDocument()
+    })
+  })
+
+  it('shows no-models state when Ollama is running with no models', async () => {
+    getSettings.mockResolvedValue({ settings: { llm_provider: 'ollama' } })
+    getOllamaInfo.mockResolvedValue({ installed: true, install_path: '/usr/local/bin/ollama', running: true, models: [], error: null })
+    renderSettings()
+    await waitFor(() => {
+      expect(screen.getByTestId('ollama-no-models')).toBeInTheDocument()
+      expect(screen.getByText(/no models are installed/)).toBeInTheDocument()
+    })
+  })
+
+  it('starts Ollama when start button is clicked', async () => {
+    getSettings.mockResolvedValue({ settings: { llm_provider: 'ollama' } })
+    getOllamaInfo.mockResolvedValue({ installed: true, install_path: '/usr/local/bin/ollama', running: false, models: [], error: 'Cannot connect' })
+    startOllama.mockResolvedValue({ started: true, error: null })
+    renderSettings()
+    await waitFor(() => {
+      expect(screen.getByText('Start Ollama')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByText('Start Ollama'))
+    await waitFor(() => {
+      expect(startOllama).toHaveBeenCalled()
     })
   })
 })

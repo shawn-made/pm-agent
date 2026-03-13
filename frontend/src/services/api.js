@@ -106,6 +106,26 @@ export async function getOllamaStatus() {
 }
 
 /**
+ * Get comprehensive Ollama info: installed, running, models.
+ * @returns {Promise<{installed: boolean, install_path: string|null, running: boolean, models: string[], error: string|null}>}
+ */
+export async function getOllamaInfo() {
+  const res = await fetch(`${API_BASE}/settings/ollama-info`);
+  if (!res.ok) throw new Error(`Failed to get Ollama info: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Start Ollama server if installed and not already running.
+ * @returns {Promise<{started: boolean, error: string|null}>}
+ */
+export async function startOllama() {
+  const res = await fetch(`${API_BASE}/settings/ollama-start`, { method: 'POST' });
+  if (!res.ok) throw new Error(`Failed to start Ollama: ${res.status}`);
+  return res.json();
+}
+
+/**
  * Export all artifacts for a project as combined Markdown.
  * @param {string} projectId - Project scope
  * @returns {Promise<{markdown: string, artifact_count: number}>}
@@ -347,21 +367,37 @@ export async function getAvailableArtifacts(projectId = 'default') {
 
 /**
  * Run 4-pass Deep Strategy analysis on uploaded artifacts.
+ *
+ * Uses XMLHttpRequest instead of fetch because WebKit (Safari/DuckDuckGo)
+ * enforces a ~60s resource load timeout on fetch that cannot be extended.
+ * Deep Strategy's 4 sequential LLM passes can take 2-4 minutes with large artifacts.
+ *
  * @param {Array<{name: string, content: string, priority: number}>} artifacts - Artifacts to analyze
  * @param {string} [projectId='default'] - Project scope
  * @returns {Promise<Object>} DeepStrategyResponse with all pass results and summary
  */
 export async function deepStrategyAnalyze(artifacts, projectId = 'default') {
-  const res = await fetch(`${API_BASE}/deep-strategy/analyze`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ artifacts, project_id: projectId }),
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.timeout = 300000; // 5 minutes
+    xhr.open('POST', `${API_BASE}/deep-strategy/analyze`);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(JSON.parse(xhr.responseText));
+      } else {
+        try {
+          const err = JSON.parse(xhr.responseText);
+          reject(new Error(err.detail || `Request failed: ${xhr.status}`));
+        } catch {
+          reject(new Error(`Request failed: ${xhr.status}`));
+        }
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.ontimeout = () => reject(new Error('Request timed out — try with smaller artifacts'));
+    xhr.send(JSON.stringify({ artifacts, project_id: projectId }));
   });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
-    throw new Error(error.detail || `Request failed: ${res.status}`);
-  }
-  return res.json();
 }
 
 /**

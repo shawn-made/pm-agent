@@ -26,7 +26,7 @@ const CHANGE_LABELS = {
  * @param {string} props.suggestion.reasoning - Why this suggestion was generated
  * @param {function} props.onApply - Callback when user clicks Apply (receives suggestion)
  */
-export default function SuggestionCard({ suggestion, onApply }) {
+export default function SuggestionCard({ suggestion, onApply, onDismiss }) {
   const [expanded, setExpanded] = useState(false)
   const [applied, setApplied] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -119,6 +119,14 @@ export default function SuggestionCard({ suggestion, onApply }) {
         >
           {applied ? 'Applied' : 'Apply'}
         </button>
+        {onDismiss && (
+          <button
+            onClick={() => onDismiss(suggestion)}
+            className="px-3 py-1.5 text-xs font-medium rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors ml-auto"
+          >
+            Dismiss
+          </button>
+        )}
       </div>
     </div>
   )

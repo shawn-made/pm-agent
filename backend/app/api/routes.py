@@ -31,7 +31,7 @@ from app.services.crud import get_all_settings, get_setting, upsert_setting, ver
 from app.services.deep_strategy import apply_deep_strategy_updates, run_deep_strategy
 from app.services.intake import apply_intake_draft, generate_intake_draft
 from app.services.llm_client import LLMError
-from app.services.llm_ollama import check_ollama_status
+from app.services.llm_ollama import check_ollama_status, get_ollama_info, start_ollama_serve
 from app.services.lpd_manager import (
     get_full_lpd,
     get_section_staleness,
@@ -286,6 +286,26 @@ async def ollama_status():
     """Check Ollama connectivity and list available models."""
     base_url = await get_setting("ollama_base_url")
     result = await check_ollama_status(base_url or None)
+    return result
+
+
+@router.get("/settings/ollama-info")
+async def ollama_info():
+    """Get comprehensive Ollama status: installed, running, models."""
+    base_url = await get_setting("ollama_base_url")
+    return await get_ollama_info(base_url or None)
+
+
+@router.post("/settings/ollama-start")
+async def ollama_start():
+    """Start Ollama server if installed and not already running."""
+    # Check if already running first
+    base_url = await get_setting("ollama_base_url")
+    status = await check_ollama_status(base_url or None)
+    if status["available"]:
+        return {"started": False, "error": None, "message": "Ollama is already running"}
+
+    result = start_ollama_serve()
     return result
 
 

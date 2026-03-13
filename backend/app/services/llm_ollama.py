@@ -1,6 +1,8 @@
 """VPMA LLM Client — Ollama (Local LLM) Adapter."""
 
 import os
+import shutil
+import subprocess  # nosec B404 — used only for hardcoded 'ollama serve' command
 
 import httpx
 
@@ -131,4 +133,68 @@ async def check_ollama_status(base_url: str | None = None) -> dict:
             "available": False,
             "models": [],
             "error": str(e),
+        }
+
+
+def check_ollama_installed() -> dict:
+    """Check if the Ollama binary is installed on the system.
+
+    Returns:
+        Dict with 'installed' (bool) and 'path' (str or None).
+    """
+    path = shutil.which("ollama")
+    return {
+        "installed": path is not None,
+        "path": path,
+    }
+
+
+async def get_ollama_info(base_url: str | None = None) -> dict:
+    """Get comprehensive Ollama status: installed, running, models.
+
+    Returns:
+        Dict with 'installed' (bool), 'install_path' (str|None),
+        'running' (bool), 'models' (list), 'error' (str|None).
+    """
+    install_info = check_ollama_installed()
+    status = await check_ollama_status(base_url)
+
+    return {
+        "installed": install_info["installed"],
+        "install_path": install_info["path"],
+        "running": status["available"],
+        "models": status["models"],
+        "error": status["error"],
+    }
+
+
+def start_ollama_serve(base_url: str | None = None) -> dict:
+    """Start Ollama server as a detached subprocess.
+
+    Returns:
+        Dict with 'started' (bool) and 'error' (str|None).
+    """
+    install_info = check_ollama_installed()
+    if not install_info["installed"]:
+        return {
+            "started": False,
+            "error": "Ollama is not installed. Download it from https://ollama.com",
+        }
+
+    try:
+        # Start ollama serve as a detached process (not tracked by VPMA)
+        subprocess.Popen(  # nosec B603 B607 — hardcoded command, no user input
+            ["ollama", "serve"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        return {
+            "started": True,
+            "error": None,
+        }
+    except Exception as e:
+        return {
+            "started": False,
+            "error": f"Failed to start Ollama: {e}",
         }
