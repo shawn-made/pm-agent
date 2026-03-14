@@ -1,5 +1,5 @@
 /**
- * Multi-artifact uploader for Deep Strategy analysis.
+ * Multi-artifact uploader for Document Consistency analysis.
  * Supports pasting text, uploading .md/.txt files, loading from VPMA, with priority ordering.
  */
 import { useState, useRef } from 'react'

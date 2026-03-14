@@ -44,9 +44,16 @@ describe('ArtifactSync', () => {
 
   it('renders heading and empty state', () => {
     renderPage()
-    expect(screen.getByText('Artifact Sync')).toBeInTheDocument()
+    expect(screen.getByText('Process')).toBeInTheDocument()
     expect(
       screen.getByText('No suggestions yet. Paste some text above to get started.')
+    ).toBeInTheDocument()
+  })
+
+  it('shows coaching hint about Knowledge Base in empty state', () => {
+    renderPage()
+    expect(
+      screen.getByText(/populate your Knowledge Base first/)
     ).toBeInTheDocument()
   })
 

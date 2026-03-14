@@ -351,11 +351,11 @@ export async function processTranscriptFile(filePath) {
 }
 
 // ============================================================
-// DEEP STRATEGY
+// DOCUMENT CONSISTENCY (Audit)
 // ============================================================
 
 /**
- * Get available artifacts and LPD sections for loading into Deep Strategy.
+ * Get available artifacts and LPD sections for loading into Document Consistency analysis.
  * @param {string} [projectId='default'] - Project scope
  * @returns {Promise<{items: Array<{name: string, content: string, source: string}>}>}
  */
@@ -366,11 +366,11 @@ export async function getAvailableArtifacts(projectId = 'default') {
 }
 
 /**
- * Run 4-pass Deep Strategy analysis on uploaded artifacts.
+ * Run 4-pass Document Consistency analysis on uploaded artifacts.
  *
  * Uses XMLHttpRequest instead of fetch because WebKit (Safari/DuckDuckGo)
  * enforces a ~60s resource load timeout on fetch that cannot be extended.
- * Deep Strategy's 4 sequential LLM passes can take 2-4 minutes with large artifacts.
+ * The 4 sequential LLM passes can take 2-4 minutes with large artifacts.
  *
  * @param {Array<{name: string, content: string, priority: number}>} artifacts - Artifacts to analyze
  * @param {string} [projectId='default'] - Project scope
@@ -401,7 +401,7 @@ export async function deepStrategyAnalyze(artifacts, projectId = 'default') {
 }
 
 /**
- * Apply selected Deep Strategy updates to artifacts.
+ * Apply selected Document Consistency updates to artifacts.
  * @param {Array} updates - ProposedUpdate objects to apply
  * @param {string} [projectId='default'] - Project scope
  * @returns {Promise<{applied: Array, copied_to_clipboard: string[]}>}

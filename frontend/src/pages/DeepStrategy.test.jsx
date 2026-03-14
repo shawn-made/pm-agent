@@ -54,6 +54,14 @@ vi.mock('../components/PassProgressBar', () => ({
   ),
 }))
 
+vi.mock('../components/ReconciliationPanel', () => ({
+  default: ({ onClose }) => (
+    <div data-testid="reconciliation-panel">
+      <button onClick={onClose}>Close</button>
+    </div>
+  ),
+}))
+
 function makeResult(inconsistencies = 2, updates = 3) {
   return {
     summary: {
@@ -80,8 +88,8 @@ beforeEach(() => {
 describe('DeepStrategy page', () => {
   it('renders page heading and description', () => {
     render(<DeepStrategy />)
-    expect(screen.getByText('Deep Strategy')).toBeInTheDocument()
-    expect(screen.getByText(/Upload 2\+ project artifacts/)).toBeInTheDocument()
+    expect(screen.getByText('Audit')).toBeInTheDocument()
+    expect(screen.getByText(/Check your documents for inconsistencies/)).toBeInTheDocument()
   })
 
   it('shows ArtifactUploader initially (not hidden)', () => {
@@ -168,7 +176,7 @@ describe('DeepStrategy page', () => {
       expect(screen.getByText('LLM timeout')).toBeInTheDocument()
     })
     expect(screen.getByText('Try again')).toBeInTheDocument()
-    expect(mockToast.error).toHaveBeenCalledWith('Deep Strategy analysis failed')
+    expect(mockToast.error).toHaveBeenCalledWith('Document consistency analysis failed')
     // Uploader is visible (not hidden) so user can retry with same content
     expect(uploaderIsHidden()).toBe(false)
   })
@@ -279,5 +287,20 @@ describe('DeepStrategy page', () => {
     // Clean up
     await act(async () => { resolve(makeResult()) })
     vi.useRealTimers()
+  })
+
+  it('renders Document Consistency and Reconciliation sections', () => {
+    render(<DeepStrategy />)
+    expect(screen.getByText('Document Consistency')).toBeInTheDocument()
+    expect(screen.getByText('Reconciliation')).toBeInTheDocument()
+    expect(screen.getByText('Run Reconciliation')).toBeInTheDocument()
+  })
+
+  it('opens and closes reconciliation panel', () => {
+    render(<DeepStrategy />)
+    fireEvent.click(screen.getByText('Run Reconciliation'))
+    expect(screen.getByTestId('reconciliation-panel')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Close'))
+    expect(screen.queryByTestId('reconciliation-panel')).not.toBeInTheDocument()
   })
 })

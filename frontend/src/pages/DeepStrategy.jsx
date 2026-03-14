@@ -1,11 +1,13 @@
 /**
- * Deep Strategy page — multi-artifact consistency analysis.
+ * Audit page — Document Consistency analysis + Reconciliation.
  * Upload 2+ artifacts, run 4-pass LLM analysis, review and apply updates.
+ * Also includes cross-section LPD reconciliation (moved from Knowledge Base).
  */
 import { useState } from 'react'
 import ArtifactUploader from '../components/ArtifactUploader'
 import DeepStrategyResults from '../components/DeepStrategyResults'
 import PassProgressBar from '../components/PassProgressBar'
+import ReconciliationPanel from '../components/ReconciliationPanel'
 import { useToast } from '../components/ToastContext'
 import { deepStrategyAnalyze, deepStrategyApply } from '../services/api'
 
@@ -41,6 +43,7 @@ export default function DeepStrategy() {
   const [results, setResults] = useState(null)
   const [error, setError] = useState(null)
   const [uploaderKey, setUploaderKey] = useState(0)
+  const [showReconPanel, setShowReconPanel] = useState(false)
   const toast = useToast()
   const progress = useSimulatedProgress()
 
@@ -67,7 +70,7 @@ export default function DeepStrategy() {
     } catch (err) {
       progress.reset()
       setError(err.message)
-      toast.error('Deep Strategy analysis failed')
+      toast.error('Document consistency analysis failed')
     } finally {
       cleanup()
       setIsAnalyzing(false)
@@ -100,10 +103,17 @@ export default function DeepStrategy() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">Deep Strategy</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">Audit</h2>
         <p className="text-sm text-gray-500">
-          Upload 2+ project artifacts for multi-document consistency analysis.
-          VPMA will detect inconsistencies and propose specific updates.
+          Check your documents for inconsistencies and cross-section conflicts.
+        </p>
+      </div>
+
+      {/* --- Document Consistency section --- */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-700 mb-1">Document Consistency</h3>
+        <p className="text-xs text-gray-400 mb-3">
+          Upload 2+ project artifacts to check for cross-document inconsistencies.
         </p>
       </div>
 
@@ -156,6 +166,26 @@ export default function DeepStrategy() {
             Start new analysis
           </button>
         </>
+      )}
+
+      {/* --- Reconciliation section --- */}
+      <div className="border-t border-gray-200 pt-6">
+        <h3 className="text-sm font-semibold text-gray-700 mb-1">Reconciliation</h3>
+        <p className="text-xs text-gray-400 mb-3">
+          Detect contradictions and conflicts across Knowledge Base sections.
+        </p>
+        <button
+          onClick={() => setShowReconPanel(true)}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          Run Reconciliation
+        </button>
+      </div>
+
+      {showReconPanel && (
+        <ReconciliationPanel
+          onClose={() => setShowReconPanel(false)}
+        />
       )}
     </div>
   )

@@ -117,7 +117,10 @@ export default function RiskPredictionPanel({ projectId = 'default', onClose }) 
 
               {/* Predictions */}
               {result.predictions.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-6">No additional risks predicted.</p>
+                <div className="text-center py-6 space-y-2">
+                  <p className="text-sm text-gray-500">No additional risks predicted.</p>
+                  <p className="text-xs text-gray-400">Add more content to your Knowledge Base to enable risk detection — the AI needs project context to identify risks.</p>
+                </div>
               ) : (
                 result.predictions.map((pred, i) => {
                   const isAdded = addedRisks.has(i)

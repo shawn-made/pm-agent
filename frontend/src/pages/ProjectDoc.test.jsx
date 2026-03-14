@@ -98,10 +98,10 @@ describe('ProjectDoc', () => {
     renderPage()
 
     await waitFor(() => {
-      expect(screen.getByText('Overview')).toBeInTheDocument()
-      expect(screen.getByText('Stakeholders')).toBeInTheDocument()
-      expect(screen.getByText('Risks')).toBeInTheDocument()
-      expect(screen.getByText('Decisions')).toBeInTheDocument()
+      expect(screen.getAllByText('Overview').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('Stakeholders').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('Risks').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('Decisions').length).toBeGreaterThan(0)
       expect(screen.getByText('Recent Context')).toBeInTheDocument()
     })
   })
@@ -242,6 +242,128 @@ describe('ProjectDoc', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Import Files')).toBeInTheDocument()
+    })
+  })
+
+  describe('Staleness Nudge Banner', () => {
+    const staleData = [
+      { section_name: 'Overview', days_since_update: 0, days_since_verified: null, has_content: true },
+      { section_name: 'Stakeholders', days_since_update: 21, days_since_verified: null, has_content: true },
+      { section_name: 'Timeline & Milestones', days_since_update: 14, days_since_verified: null, has_content: false },
+      { section_name: 'Risks', days_since_update: 1, days_since_verified: null, has_content: true },
+      { section_name: 'Decisions', days_since_update: 30, days_since_verified: null, has_content: true },
+      { section_name: 'Open Questions', days_since_update: 0, days_since_verified: null, has_content: false },
+      { section_name: 'Recent Context', days_since_update: 0, days_since_verified: null, has_content: true },
+    ]
+
+    it('shows banner when sections are stale (14+ days)', async () => {
+      getLPDSections.mockResolvedValue({ sections: mockSections })
+      getLPDStaleness.mockResolvedValue({ staleness: staleData })
+
+      renderPage()
+
+      await waitFor(() => {
+        expect(screen.getByTestId('staleness-banner')).toBeInTheDocument()
+        expect(screen.getByText(/3 sections haven\u2019t been updated in 2\+ weeks/)).toBeInTheDocument()
+      })
+    })
+
+    it('lists stale section names as clickable links', async () => {
+      getLPDSections.mockResolvedValue({ sections: mockSections })
+      getLPDStaleness.mockResolvedValue({ staleness: staleData })
+
+      renderPage()
+
+      await waitFor(() => {
+        const banner = screen.getByTestId('staleness-banner')
+        expect(banner).toHaveTextContent('Stakeholders')
+        expect(banner).toHaveTextContent('Timeline & Milestones')
+        expect(banner).toHaveTextContent('Decisions')
+        expect(banner).toHaveTextContent('(21d)')
+        expect(banner).toHaveTextContent('(14d)')
+        expect(banner).toHaveTextContent('(30d)')
+      })
+    })
+
+    it('dismisses banner when close button clicked', async () => {
+      getLPDSections.mockResolvedValue({ sections: mockSections })
+      getLPDStaleness.mockResolvedValue({ staleness: staleData })
+
+      renderPage()
+
+      await waitFor(() => {
+        expect(screen.getByTestId('staleness-banner')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByLabelText('Dismiss staleness warning'))
+
+      expect(screen.queryByTestId('staleness-banner')).not.toBeInTheDocument()
+    })
+
+    it('does not show banner when all sections are fresh', async () => {
+      const freshData = mockStaleness.map(s => ({ ...s, days_since_update: 5 }))
+      getLPDSections.mockResolvedValue({ sections: mockSections })
+      getLPDStaleness.mockResolvedValue({ staleness: freshData })
+
+      renderPage()
+
+      await waitFor(() => {
+        expect(screen.getByText('Overview')).toBeInTheDocument()
+      })
+
+      expect(screen.queryByTestId('staleness-banner')).not.toBeInTheDocument()
+    })
+
+    it('does not show banner when LPD is empty', async () => {
+      getLPDSections.mockResolvedValue({ sections: {} })
+      getLPDStaleness.mockResolvedValue({ staleness: [] })
+
+      renderPage()
+
+      await waitFor(() => {
+        expect(screen.getByText('Initialize Knowledge Base')).toBeInTheDocument()
+      })
+
+      expect(screen.queryByTestId('staleness-banner')).not.toBeInTheDocument()
+    })
+
+    it('shows singular text for single stale section', async () => {
+      const oneStale = mockStaleness.map(s => ({
+        ...s,
+        days_since_update: s.section_name === 'Decisions' ? 20 : 3,
+      }))
+      getLPDSections.mockResolvedValue({ sections: mockSections })
+      getLPDStaleness.mockResolvedValue({ staleness: oneStale })
+
+      renderPage()
+
+      await waitFor(() => {
+        expect(screen.getByText(/1 section hasn\u2019t been updated in 2\+ weeks/)).toBeInTheDocument()
+      })
+    })
+
+    it('scrolls to section when name clicked in banner', async () => {
+      getLPDSections.mockResolvedValue({ sections: mockSections })
+      getLPDStaleness.mockResolvedValue({ staleness: staleData })
+
+      renderPage()
+
+      await waitFor(() => {
+        expect(screen.getByTestId('staleness-banner')).toBeInTheDocument()
+      })
+
+      // Mock scrollIntoView on the target element
+      const sectionEl = document.getElementById('lpd-section-Stakeholders')
+      sectionEl.scrollIntoView = vi.fn()
+
+      // Click section name in banner
+      const banner = screen.getByTestId('staleness-banner')
+      const stakeholderButton = Array.from(banner.querySelectorAll('button')).find(
+        b => b.textContent === 'Stakeholders'
+      )
+      fireEvent.click(stakeholderButton)
+
+      expect(sectionEl.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
     })
   })
 })

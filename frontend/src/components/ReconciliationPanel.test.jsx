@@ -161,7 +161,19 @@ describe('ReconciliationPanel', () => {
     renderPanel()
 
     await waitFor(() => {
-      expect(screen.getByText('No cross-section impacts detected. Sections are consistent.')).toBeInTheDocument()
+      expect(screen.getByText('No cross-section impacts detected.')).toBeInTheDocument()
+    })
+  })
+
+  it('shows coaching hint when no impacts', async () => {
+    reconcileLPD.mockResolvedValue({
+      ...mockResult,
+      impacts: [],
+    })
+    renderPanel()
+
+    await waitFor(() => {
+      expect(screen.getByText(/normal for small or newly-created project documents/)).toBeInTheDocument()
     })
   })
 

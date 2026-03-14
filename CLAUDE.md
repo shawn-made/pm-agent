@@ -112,6 +112,38 @@ Workflow completion + infrastructure:
 - New endpoints: 3 new (`/export`, `/upload`, `/results`) — 21 total API endpoints
 - New service: `llm_ollama.py` — 14 service modules total
 
+## Phase 2B Scope (Complete)
+
+Deep analysis + complementary features:
+- Deep Strategy: 4-pass multi-artifact consistency analysis with apply flow
+- AI Risk Prediction: LPD + staleness + RAID → predicted risks with severity/confidence
+- Cross-Section LPD Reconciliation: detect impacts across LPD sections
+- Folder Browser: secure directory listing for transcript watcher path
+- UX polish: dismiss buttons, result auto-expiry (24h), clear button, API key warnings
+- Ollama onboarding: 4-state detection UI with start button and model selector
+- New services: `deep_strategy.py`, `risk_prediction.py`, `reconciliation.py` — 17 service modules total
+- New endpoints: 7 new — 30 total API endpoints
+
+## Phase 3 Scope (In Progress)
+
+Interactive intelligence — shift from paste-and-process to proactive, conversational, leave-and-return.
+
+### Phase 3A: UX Clarity + Infrastructure (Tasks 54-58)
+- UX-3: Naming/IA pass — rename tabs, add subtitles, onboarding hints
+- Empty-state coaching: explain *why* when features return nothing, guide next steps
+- Proactive nudge banner: surface stale LPD sections on Project Doc
+- V42: Session-based polling — server-tracked processing, fire-and-forget pattern
+- ESLint cleanup
+
+### Phase 3B: Chat + Brain Dump (Tasks 59-61)
+- Conversational API implementation (from `docs/conversational_api_design.md`)
+- Embedded chat panel frontend
+- V28/V33: Brain dump mode — freeform capture → triage → route via chat
+
+### Phase 3C: Skeptical Reviewer (Tasks 62-63)
+- V41 quality gate: test prompts against real data, GO/NO-GO before building UI
+- V41: Skeptical Reviewer mode — evidence-based project critique from LPD + artifacts
+
 ## Rules
 
 - Never bypass the Privacy Proxy for LLM calls

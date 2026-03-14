@@ -1,7 +1,7 @@
 # VPMA — Executive Technical Summary
 
-**Version**: 0.4.0 — Phase 0 Complete, Phase 1A Complete, Phase 1B Complete, Phase 2A Complete
-**Last Updated**: 2026-03-04
+**Version**: 0.5.0 — Phase 0 Complete, Phase 1A Complete, Phase 1B Complete, Phase 2A Complete, Phase 2B Complete
+**Last Updated**: 2026-03-13
 
 ---
 
@@ -184,8 +184,10 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 | **Phase 1B** | Fit & Finish + Transcripts | ~~Semantic dedup, result persistence, transcript watcher, UX polish~~ DONE |
 | **Phase 2A** | Workflow Completion | ~~Ollama adapter, export, change summary, results view, drag-drop, conv. API design~~ DONE |
 | **Phase 2B** | Deep Analysis | ~~Deep strategy tab, folder browser, AI risk prediction, cross-section reconciliation~~ DONE |
-| **Phase 3** | Proactive | Daily planner, project initiation wizard, history search |
-| **Phase 4** | Commercial | Google auth, security hardening, integrations, HR planning |
+| **Phase 3A** | UX + Infrastructure | Naming/IA clarity, empty-state coaching, proactive nudges, session-based polling |
+| **Phase 3B** | Chat + Brain Dump | Conversational API, embedded chat panel, brain dump triage mode |
+| **Phase 3C** | Skeptical Reviewer | Evidence-based project critique from LPD + artifacts (quality gate first) |
+| **Phase 4** | Commercial | Decision journal, cross-doc synthesis, meeting prep, integrations |
 
 ---
 

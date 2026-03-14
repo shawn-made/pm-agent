@@ -12,6 +12,13 @@
 | Backend Logic | 9-12 | 4/4 | Complete |
 | Frontend | 13-17 | 5/5 | Complete |
 | Integration & Polish | 18-20 | 3/3 | Complete |
+| Phase 1A: LPD Foundation | 21-30 | 10/10 | Complete |
+| Phase 1B: Polish + Transcripts | 31-37 | 7/7 | Complete |
+| Phase 2A: Workflow Completion | 38-44 | 7/7 | Complete |
+| Phase 2B: Deep Analysis | 45-53 | 9/9 | Complete |
+| **Phase 3A: UX + Infrastructure** | **54-58** | **3/5** | **In Progress** |
+| Phase 3B: Chat + Brain Dump | 59-61 | 0/3 | Not Started |
+| Phase 3C: Skeptical Reviewer | 62-63 | 0/2 | Not Started |
 
 ---
 
@@ -952,6 +959,203 @@ Task 52 (S, folder browser)   ──┘  (independent track)
 
 ---
 
+## Phase 3: Interactive Intelligence (Tasks 54-63)
+
+**Theme**: Shift from paste-and-process to proactive, conversational, leave-and-return.
+**Scoped**: 2026-03-13 (D56). Split into 3A/3B/3C per Rule 20.
+**Skeptical PM verdict**: MAYBE → adjusted plan (V31 deferred to Phase 4, V41 quality gate added).
+
+### Progress
+
+| Sub-Phase | Tasks | Done | Status |
+|-----------|-------|------|--------|
+| 3A: UX Clarity + Infrastructure | 54-58 | 1/5 | In Progress |
+| 3B: Chat + Brain Dump | 59-61 | 0/3 | Not Started |
+| 3C: Skeptical Reviewer | 62-63 | 0/2 | Not Started |
+
+---
+
+### PHASE 3A: UX CLARITY + INFRASTRUCTURE (Tasks 54-58)
+
+### Task 54: UX-3 — Naming & Information Architecture Pass
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: None
+
+- [x] Audit all tab names, page titles, and section headers against actual function
+- [x] Rename "Artifact Sync" → **"Process"** (covers Extract/Analyze/Log — "I have new info")
+- [x] Rename "Deep Strategy" → **"Audit"** with internal label **"Document Consistency"** (no user-facing "Deep Strategy" remains)
+- [x] Add subtitles or one-line descriptions under each tab/mode explaining what it does
+- [x] Review "Project Knowledge Base" — kept as **"Knowledge Base"** (accurate, consistent)
+- [x] Move Reconciliation from Knowledge Base → Audit page (audit intent, not insight intent)
+- [x] Risk Prediction stays on Knowledge Base (insight intent, seed of future Interrogate experience)
+- [x] Frontend tests updated for renamed components/labels (286 pass)
+- [x] No broken navigation or references after rename
+
+**Terminology lock (D57)**: Process / Audit / Knowledge Base / Settings. Intent model: new info → audit/sync → insights/reference.
+**Done when**: A first-time user can read tab names and understand what each feature does without explanation.
+**Status**: Complete
+
+---
+
+### Task 55: Empty-State Coaching (D54 #2)
+**Complexity**: S | **Sessions**: 1 | **Dependencies**: None
+
+- [x] Risk Prediction: when no risks returned, coaching hint about adding Knowledge Base content
+- [x] Reconciliation: when no impacts found, reassurance + growth guidance
+- [x] Deep Strategy: coaching hints on all 3 sub-tabs (inconsistencies, proposed updates, validation)
+- [x] Artifact Sync: LPD context hint in initial empty state
+- [x] Frontend tests for each empty state message (7 new tests)
+
+**Done when**: Every feature that can return "nothing" explains why and tells the user what to do next. Feels helpful, not broken.
+**Status**: Complete
+
+---
+
+### Task 56: Proactive Nudge Banner (D54 #3)
+**Complexity**: S | **Sessions**: 1 | **Dependencies**: None
+
+- [x] Query LPD section staleness on Project Doc page load
+- [x] Display banner when ≥1 section hasn't been updated in 14+ days with section names and day counts
+- [x] Banner is dismissable (per session via state, not permanent)
+- [x] Clicking section name scrolls to and highlights that section (ring-2 amber, 2s fade)
+- [x] No banner when all sections are fresh or LPD is empty
+- [x] Frontend tests for banner display logic, dismiss, and edge cases
+- [x] Moved Reconciliation panel from Knowledge Base to Audit page (consolidates audit features)
+
+**Done when**: Project Doc proactively tells the PM what needs attention without requiring them to click "Predict Risks" or "Reconcile."
+**Status**: Complete
+
+---
+
+### Task 57: Session-Based Polling — V42 Fire-and-Forget Processing
+**Complexity**: L | **Sessions**: 2-3 | **Dependencies**: None
+
+- [ ] Backend: `POST /api/jobs` — accepts any processing request (artifact sync, deep strategy, etc.), returns `job_id` immediately
+- [ ] Backend: `GET /api/jobs/{job_id}` — returns status (pending/running/complete/failed) + result when complete
+- [ ] Backend: job runner executes processing in background thread/task, stores result in DB or memory
+- [ ] New DB table: `jobs` (job_id, project_id, job_type, status, request_json, result_json, created_at, completed_at)
+- [ ] Frontend: on submit, save `job_id` to localStorage, show progress indicator
+- [ ] Frontend: on page mount, check localStorage for pending jobs, poll `GET /api/jobs/{job_id}` until complete
+- [ ] Frontend: when complete, render results normally (same UI as current inline results)
+- [ ] Migrate Deep Strategy to use job-based processing (longest-running pipeline, biggest benefit)
+- [ ] Migrate Artifact Sync to use job-based processing
+- [ ] Architecture tests include job runner
+- [ ] Tests: job lifecycle (create, poll, complete, expire), error handling, concurrent jobs
+
+**Done when**: User can start Deep Strategy or Artifact Sync, switch tabs or close the page, come back, and see results. No lost processing.
+**Status**: Not Started
+
+---
+
+### Task 58: ESLint Cleanup
+**Complexity**: XS | **Sessions**: <1 | **Dependencies**: None
+
+- [ ] Fix `afterEach` not defined in `api.test.js` (add to ESLint globals or import)
+- [ ] Fix `ProjectContext.jsx` fast-refresh warning (split export into separate file)
+- [ ] ESLint passes with 0 errors, 0 warnings
+
+**Done when**: `npx eslint src/` returns clean.
+**Status**: Not Started
+
+---
+
+### PHASE 3B: CHAT + BRAIN DUMP (Tasks 59-61)
+
+### Task 59: Conversational API — Backend Implementation
+**Complexity**: L | **Sessions**: 2-3 | **Dependencies**: Task 57 (job polling pattern)
+
+- [ ] Create `conversations` and `conversation_messages` DB tables (from `docs/conversational_api_design.md`)
+- [ ] `chat_service.py` — new service: create conversation, add message, build LLM prompt with conversation history + LPD context
+- [ ] System prompt template for conversational PM assistant persona
+- [ ] `POST /api/chat/{project_id}` — start or continue conversation
+- [ ] `GET /api/chat/{project_id}/conversations` — list conversations
+- [ ] `GET /api/chat/{project_id}/conversations/{conversation_id}` — full history
+- [ ] `DELETE /api/chat/{project_id}/conversations/{conversation_id}` — delete conversation
+- [ ] Privacy proxy on all messages (anonymize user input, reidentify responses)
+- [ ] Context window management: last 10 messages in full, summary rollup for older messages
+- [ ] Auto-title generation after first assistant response
+- [ ] Suggestions in responses: LLM can propose artifact/LPD updates as structured side-effects
+- [ ] Session logging (`tab_used="chat"`)
+- [ ] Architecture tests include `chat_service`
+- [ ] Tests: conversation lifecycle, context injection, privacy round-trip, suggestion extraction, history truncation
+
+**Files**: `chat_service.py` (new), `chat_prompts.py` (new), `routes.py` (extend), `database.py` (extend), `schemas.py` (extend)
+**Done when**: Full conversational API works via `/docs` — multi-turn conversation with LPD context, privacy, and suggestion extraction.
+**Status**: Not Started
+
+---
+
+### Task 60: Chat Panel — Frontend Implementation
+**Complexity**: L | **Sessions**: 2-3 | **Dependencies**: Task 59
+
+- [ ] `ChatPanel.jsx` — message list, input box, send button, loading state
+- [ ] `ConversationList.jsx` — sidebar or dropdown showing past conversations with timestamps
+- [ ] `ChatMessage.jsx` — renders user and assistant messages, with suggestion cards inline for assistant messages
+- [ ] Suggestion cards in chat reuse existing `SuggestionCard.jsx` component (Apply/Copy flow)
+- [ ] Navigation: "Chat" as new tab in App.jsx
+- [ ] Conversation persistence: selected conversation survives tab switch (localStorage conversation_id)
+- [ ] New conversation button, delete conversation
+- [ ] Auto-scroll to latest message
+- [ ] API client: `sendChatMessage()`, `listConversations()`, `getConversation()`, `deleteConversation()`
+- [ ] Frontend tests: message rendering, conversation switching, suggestion card integration, empty states
+
+**Terminology lock (Rule 22)**: Tab name decided before coding. Candidates: "Chat", "Assistant", "Ask VPMA". Finalize here: ___
+**Done when**: User can have a multi-turn conversation with VPMA in the browser, see suggestion cards inline, apply suggestions to LPD/artifacts.
+**Status**: Not Started
+
+---
+
+### Task 61: Brain Dump Mode — V28/V33
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: Task 59, 60
+
+- [ ] Brain dump system prompt: "User is dumping unstructured thoughts. Triage into: action items, risks, decisions, open questions, project updates, or noise. Route each to the appropriate LPD section or artifact type."
+- [ ] Brain dump trigger: either a "Brain Dump" button in the chat panel or a dedicated input mode
+- [ ] Triage response format: categorized items with proposed destinations (LPD section, artifact type, or "no action needed")
+- [ ] Apply flow: each triaged item can be applied individually (reuses suggestion card pattern)
+- [ ] Works with messy, incomplete, stream-of-consciousness input (test with realistic PM brain dumps)
+- [ ] Tests: triage parsing, routing logic, messy input handling, empty input
+
+**Done when**: PM can paste or type a messy brain dump, VPMA categorizes and routes each thought to the right place, PM reviews and applies.
+**Status**: Not Started
+
+---
+
+### PHASE 3C: SKEPTICAL REVIEWER (Tasks 62-63)
+
+### Task 62: V41 Quality Gate — Prompt Testing
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: None (can run in parallel with 3B)
+
+- [ ] Write Skeptical Reviewer prompt template: "Given this project's LPD and artifacts, identify specific contradictions, underestimated risks, timeline inconsistencies, and blind spots. Every finding must cite specific evidence from the provided documents."
+- [ ] Run prompt against real project data (PM Sandbox or test project with populated LPD)
+- [ ] Evaluate output specificity: does it cite specific artifacts/sections, or give generic advice?
+- [ ] Score: SPECIFIC (cites evidence, names sections) vs. GENERIC (vague "consider your risks" platitudes)
+- [ ] **GO/NO-GO decision**: If output is consistently specific and evidence-backed → GO to Task 63. If generic → iterate on prompt or defer feature.
+- [ ] Document findings and decision in DECISIONS.md
+
+**Done when**: Clear GO/NO-GO decision with evidence. If GO, prompt template is proven. If NO-GO, document what's needed and defer.
+**Status**: Not Started
+
+---
+
+### Task 63: V41 Skeptical Reviewer — Service + UI
+**Complexity**: L | **Sessions**: 2-3 | **Dependencies**: Task 62 (GO decision required)
+
+- [ ] `skeptical_reviewer.py` — new service: reads LPD + artifacts, builds review prompt, parses findings
+- [ ] Finding model: `ReviewFinding` — category (contradiction, blind_spot, timeline_risk, underestimated_risk), severity, evidence (artifact/section citations), recommendation
+- [ ] `POST /api/review/{project_id}` endpoint
+- [ ] Privacy proxy on all content
+- [ ] Session logging (`tab_used="review"`)
+- [ ] Frontend: "Pressure Test" button on Project Doc (or dedicated tab — decide per Rule 22)
+- [ ] `ReviewFindings.jsx` — findings cards grouped by category, severity-colored, with evidence citations
+- [ ] Quality filter: suppress findings that don't cite specific evidence (enforce the quality bar from Task 62)
+- [ ] Architecture tests include `skeptical_reviewer`
+- [ ] Tests: finding parsing, evidence citation validation, empty LPD handling, quality filter
+
+**Terminology lock (Rule 22)**: User-facing name decided before coding. Candidates: "Pressure Test", "Review My Work", "Critical Review". Finalize here: ___
+**Done when**: PM clicks a button, VPMA cross-references all project documents and returns specific, evidence-backed findings about contradictions, risks, and blind spots.
+**Status**: Not Started
+
+---
+
 ## Backlog-Sourced Additions (from Review 1, 2026-02-27)
 
 Items promoted or slotted from VPMA_BACKLOG.md based on real PM workflow validation. See D36 (dual-tool architecture) and D37 (backlog consumption protocol) for strategic context. Full dispositions in `~/Projects/PM Sandbox/VPMA_BACKLOG.md` Review Log.
@@ -984,9 +1188,12 @@ Items promoted or slotted from VPMA_BACKLOG.md based on real PM workflow validat
 
 | Item | Source | Description |
 |------|--------|-------------|
+| V41 | Phase 2A brainstorm | **Skeptical Reviewer / pressure-test mode (user-facing)** — VPMA acts as critical reviewer of PM's own work. Cross-references artifacts to surface contradictions, underestimated risks, timeline inconsistencies. Differentiated by LPD context: specific evidence-based critique, not generic advice. Serves both PM and Research markets. Promoted Review 3 (score 9/9). |
 | V28/V33 | PA + PM Sandbox | **Brain dump mode** — freeform capture → triage → route. MVP of the chat panel concept (D36). "Personal inbox zero." |
 | V37 | Session 25 | **Cross-document synthesis** — "build alignment package for Topic X." Requires chat panel + good LPD context. |
 | V31 | 3 projects | **Decision journal with pattern learning** — extend DECISIONS.md pattern into VPMA with temporal detection ("you delay X-type decisions by 2 weeks"). |
+| V42 | Phase 2A testing | **Session-based polling** — server-tracked processing so users can leave and come back. Prevents lost processing on tab switch. Enables progress indicators. Slotted Review 3. |
+| V45 | Brain dump #5 | **Local LLM vision/multimodal evaluation** — evaluate vision models (qwen3.5:27b) for screenshot/diagram analysis. Connects to V13 (multi-format input). Slotted Review 3. |
 | V12 | Session 3 | **Meeting prep generation** — auto-generate agenda, talking points, data references from KB + meeting cadence. |
 
 ### UX & Intelligence Backlog (User Feedback, 2026-03-12)

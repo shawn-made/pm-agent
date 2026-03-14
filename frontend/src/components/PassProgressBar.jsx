@@ -1,5 +1,5 @@
 /**
- * 4-step progress indicator for Deep Strategy analysis passes.
+ * 4-step progress indicator for Document Consistency analysis passes.
  * Shows which pass is active with a pulsing indicator.
  */
 

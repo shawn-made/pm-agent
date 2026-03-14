@@ -96,7 +96,10 @@ export default function ReconciliationPanel({ projectId = 'default', onClose, on
 
               {/* Impacts by type */}
               {result.impacts.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-6">No cross-section impacts detected. Sections are consistent.</p>
+                <div className="text-center py-6 space-y-2">
+                  <p className="text-sm text-gray-500">No cross-section impacts detected.</p>
+                  <p className="text-xs text-gray-400">This is normal for small or newly-created project documents. As your Knowledge Base grows, reconciliation will detect contradictions across sections.</p>
+                </div>
               ) : (
                 typeOrder.map(type => {
                   const impacts = grouped[type]

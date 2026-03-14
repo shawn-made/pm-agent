@@ -187,6 +187,19 @@ describe('RiskPredictionPanel', () => {
     })
   })
 
+  it('shows coaching hint when no predictions', async () => {
+    predictRisks.mockResolvedValue({
+      ...mockResult,
+      predictions: [],
+      project_health: 'healthy',
+    })
+    renderPanel()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Add more content to your Knowledge Base/)).toBeInTheDocument()
+    })
+  })
+
   it('passes projectId to API call', async () => {
     predictRisks.mockResolvedValue(mockResult)
     renderPanel({ projectId: 'my-project' })

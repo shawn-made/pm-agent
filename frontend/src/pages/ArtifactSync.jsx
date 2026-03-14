@@ -1,5 +1,5 @@
 /**
- * Main Artifact Sync page — accepts user text, runs the LLM pipeline,
+ * Process page — accepts user text, runs the LLM pipeline,
  * and displays either suggestion cards (Extract mode) or analysis feedback (Analyze mode).
  */
 import { useState } from 'react'
@@ -18,7 +18,7 @@ const SUBTITLES = {
   log_session: 'Paste session conclusions or decisions. VPMA will update your knowledge base and suggest artifact entries.',
 }
 
-/** Artifact Sync page — orchestrates text input, LLM analysis, and suggestion/analysis display. */
+/** Process page — orchestrates text input, LLM analysis, and suggestion/analysis display. */
 export default function ArtifactSync() {
   const [mode, setMode] = useState('extract')
   const [isLoading, setIsLoading] = useState(false)
@@ -73,7 +73,7 @@ export default function ArtifactSync() {
         if (!groups[s.artifact_type]) groups[s.artifact_type] = []
         groups[s.artifact_type].push(s)
       })
-      let md = '# Artifact Sync — Extract Results\n\n'
+      let md = '# Process — Extract Results\n\n'
       for (const [type, items] of Object.entries(groups)) {
         md += `## ${type}\n\n`
         for (const s of items) {
@@ -84,7 +84,7 @@ export default function ArtifactSync() {
       return md
     }
     if (mode === 'analyze' && analysis?.items?.length > 0) {
-      let md = '# Artifact Sync — Analysis Results\n\n'
+      let md = '# Process — Analysis Results\n\n'
       if (analysis.summary) md += `${analysis.summary}\n\n`
       for (const item of analysis.items) {
         md += `## ${item.category || 'Observation'}\n\n${item.observation}\n\n`
@@ -93,7 +93,7 @@ export default function ArtifactSync() {
       return md
     }
     if (mode === 'log_session' && logSession) {
-      let md = '# Artifact Sync — Log Session Results\n\n'
+      let md = '# Process — Log Session Results\n\n'
       if (logSession.summary) md += `## Summary\n\n${logSession.summary}\n\n`
       if (logSession.lpdUpdates?.length > 0) {
         md += '## Knowledge Base Updates\n\n'
@@ -200,7 +200,7 @@ export default function ArtifactSync() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">Artifact Sync</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">Process</h2>
         <p className="text-sm text-gray-500">
           {SUBTITLES[mode] || SUBTITLES.extract}
         </p>
@@ -312,9 +312,10 @@ export default function ArtifactSync() {
 
       {/* Empty state */}
       {!isLoading && !error && suggestions.length === 0 && !analysis && !logSession && !meta && (
-        <div className="text-center py-12">
+        <div className="text-center py-12 space-y-2">
           <div className="text-gray-300 text-4xl mb-3">&#9998;</div>
           <p className="text-sm text-gray-400">No suggestions yet. Paste some text above to get started.</p>
+          <p className="text-xs text-gray-400">Tip: populate your Knowledge Base first — the AI gives better suggestions with project context.</p>
         </div>
       )}
     </div>

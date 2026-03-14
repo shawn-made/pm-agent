@@ -12,7 +12,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useToast } from '../components/ToastContext'
 import RiskPredictionPanel from '../components/RiskPredictionPanel'
-import ReconciliationPanel from '../components/ReconciliationPanel'
 import {
   getLPDSections,
   getLPDStaleness,
@@ -49,7 +48,7 @@ export default function ProjectDoc() {
   const [saving, setSaving] = useState(false)
   const [initializing, setInitializing] = useState(false)
   const [showRiskPanel, setShowRiskPanel] = useState(false)
-  const [showReconPanel, setShowReconPanel] = useState(false)
+  const [nudgeDismissed, setNudgeDismissed] = useState(false)
   const toast = useToast()
   const projectId = 'default'
 
@@ -189,7 +188,7 @@ export default function ProjectDoc() {
       <div className="space-y-6">
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-1">Knowledge Base</h2>
-          <p className="text-sm text-gray-500">Your project knowledge base — accumulated context across sessions.</p>
+          <p className="text-sm text-gray-500">Your living project document — view, edit, and get insights.</p>
         </div>
         <div className="text-center py-12 bg-white border border-gray-200 rounded-lg">
           <div className="text-gray-300 text-4xl mb-3">&#128196;</div>
@@ -214,13 +213,27 @@ export default function ProjectDoc() {
     )
   }
 
+  // Compute stale sections (14+ days since update)
+  const staleSections = Object.entries(staleness)
+    .filter(([, s]) => s.days_since_update >= 14)
+    .map(([name, s]) => ({ name, days: s.days_since_update }))
+
+  function scrollToSection(sectionName) {
+    const el = document.getElementById(`lpd-section-${sectionName}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      el.classList.add('ring-2', 'ring-amber-400')
+      setTimeout(() => el.classList.remove('ring-2', 'ring-amber-400'), 2000)
+    }
+  }
+
   // LPD exists — show sections
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-1">Knowledge Base</h2>
-          <p className="text-sm text-gray-500">Your project knowledge base — accumulated context across sessions.</p>
+          <p className="text-sm text-gray-500">Your living project document — view, edit, and get insights.</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -228,12 +241,6 @@ export default function ProjectDoc() {
             className="text-xs px-3 py-1.5 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Predict Risks
-          </button>
-          <button
-            onClick={() => setShowReconPanel(true)}
-            className="text-xs px-3 py-1.5 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Reconcile
           </button>
           <Link
             to="/intake"
@@ -262,21 +269,37 @@ export default function ProjectDoc() {
         </div>
       </div>
 
+      {staleSections.length > 0 && !nudgeDismissed && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-start justify-between" data-testid="staleness-banner">
+          <div className="text-sm text-amber-800">
+            <span className="font-medium">{staleSections.length} {staleSections.length === 1 ? 'section hasn\u2019t' : 'sections haven\u2019t'} been updated in 2+ weeks:</span>{' '}
+            {staleSections.map((s, i) => (
+              <span key={s.name}>
+                {i > 0 && ', '}
+                <button
+                  onClick={() => scrollToSection(s.name)}
+                  className="underline hover:text-amber-900 transition-colors"
+                >
+                  {s.name}
+                </button>
+                <span className="text-amber-600"> ({s.days}d)</span>
+              </span>
+            ))}
+          </div>
+          <button
+            onClick={() => setNudgeDismissed(true)}
+            className="ml-3 text-amber-400 hover:text-amber-600 transition-colors flex-shrink-0"
+            aria-label="Dismiss staleness warning"
+          >
+            &#10005;
+          </button>
+        </div>
+      )}
+
       {showRiskPanel && (
         <RiskPredictionPanel
           projectId={projectId}
           onClose={() => setShowRiskPanel(false)}
-        />
-      )}
-
-      {showReconPanel && (
-        <ReconciliationPanel
-          projectId={projectId}
-          onClose={() => setShowReconPanel(false)}
-          onNavigateToSection={(sectionName) => {
-            const el = document.getElementById(`lpd-section-${sectionName}`)
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }}
         />
       )}
 

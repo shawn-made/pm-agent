@@ -51,7 +51,7 @@ function App() {
                   }`
                 }
               >
-                Artifact Sync
+                Process
               </NavLink>
               <NavLink
                 to="/project"
@@ -66,16 +66,16 @@ function App() {
                 Knowledge Base
               </NavLink>
               <NavLink
-                to="/deep-strategy"
+                to="/audit"
                 className={({ isActive }) =>
                   `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-gray-800 text-white'
+                      ? 'bg-gray-900 text-white'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`
                 }
               >
-                Deep Strategy
+                Audit
               </NavLink>
               <NavLink
                 to="/settings"
@@ -99,7 +99,7 @@ function App() {
             <Route path="/" element={<ArtifactSync />} />
             <Route path="/project" element={<ProjectDoc />} />
             <Route path="/intake" element={<Intake />} />
-            <Route path="/deep-strategy" element={<DeepStrategy />} />
+            <Route path="/audit" element={<DeepStrategy />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>
@@ -107,7 +107,7 @@ function App() {
         {/* Footer */}
         <footer className="border-t border-gray-200 bg-white">
           <div className="max-w-5xl mx-auto px-6 py-3 text-xs text-gray-400 text-center">
-            VPMA v0.3.0 — Phase 1B
+            VPMA v0.6.0 — Phase 3A
           </div>
         </footer>
       </div>

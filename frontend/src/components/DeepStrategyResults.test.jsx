@@ -168,6 +168,46 @@ describe('DeepStrategyResults', () => {
     expect(onApply).toHaveBeenCalledWith([baseResults.proposed_updates[0]])
   })
 
+  // Empty state coaching tests
+  it('shows coaching hint when no inconsistencies', () => {
+    render(
+      <ToastProvider>
+        <DeepStrategyResults
+          results={{ ...baseResults, inconsistencies: [] }}
+          onApply={vi.fn()}
+        />
+      </ToastProvider>
+    )
+    clickTab('Inconsistencies')
+    expect(screen.getByText(/Your documents appear consistent/)).toBeInTheDocument()
+  })
+
+  it('shows coaching hint when no proposed updates', () => {
+    render(
+      <ToastProvider>
+        <DeepStrategyResults
+          results={{ ...baseResults, proposed_updates: [] }}
+          onApply={vi.fn()}
+        />
+      </ToastProvider>
+    )
+    clickTab('Proposed Updates')
+    expect(screen.getByText(/Updates are proposed when inconsistencies are found/)).toBeInTheDocument()
+  })
+
+  it('shows coaching hint when no validation checks', () => {
+    render(
+      <ToastProvider>
+        <DeepStrategyResults
+          results={{ ...baseResults, validation_checks: [] }}
+          onApply={vi.fn()}
+        />
+      </ToastProvider>
+    )
+    clickTab('Validation')
+    expect(screen.getByText(/Validation checks run automatically when inconsistencies are found/)).toBeInTheDocument()
+  })
+
   // Validation tab
   it('switches to Validation tab and shows checks', () => {
     renderResults()

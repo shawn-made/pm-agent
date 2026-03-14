@@ -1,5 +1,5 @@
 /**
- * Deep Strategy analysis results display.
+ * Document Consistency analysis results display.
  * Shows summary, inconsistencies, proposed updates with diff view, and validation checks.
  */
 import { useState } from 'react'
@@ -150,7 +150,10 @@ export default function DeepStrategyResults({ results, onApply, isApplying = fal
       {activeTab === 'Inconsistencies' && (
         <div className="space-y-3">
           {inconsistencies.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-8">No inconsistencies detected.</p>
+            <div className="text-center py-8 space-y-2">
+              <p className="text-sm text-gray-500">No inconsistencies detected.</p>
+              <p className="text-xs text-gray-400">Your documents appear consistent. For deeper analysis, try adding more artifacts or updating existing ones with recent project changes.</p>
+            </div>
           ) : (
             inconsistencies.map((inc, i) => (
               <div key={i} className={`border rounded-lg p-4 ${SEVERITY_COLORS[inc.severity] || ''}`}>
@@ -199,7 +202,10 @@ export default function DeepStrategyResults({ results, onApply, isApplying = fal
       {activeTab === 'Proposed Updates' && (
         <div className="space-y-3">
           {proposed_updates.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-8">No updates proposed.</p>
+            <div className="text-center py-8 space-y-2">
+              <p className="text-sm text-gray-500">No updates proposed.</p>
+              <p className="text-xs text-gray-400">No changes needed — your artifacts are aligned. Updates are proposed when inconsistencies are found between documents.</p>
+            </div>
           ) : (
             <>
               <div className="flex items-center justify-between">
@@ -286,7 +292,10 @@ export default function DeepStrategyResults({ results, onApply, isApplying = fal
       {activeTab === 'Validation' && (
         <div className="space-y-3">
           {validation_checks.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-8">No validation checks performed.</p>
+            <div className="text-center py-8 space-y-2">
+              <p className="text-sm text-gray-500">No validation checks performed.</p>
+              <p className="text-xs text-gray-400">Validation checks run automatically when inconsistencies are found. Try adding artifacts with overlapping content to trigger cross-document validation.</p>
+            </div>
           ) : (
             <>
               <div className="flex items-center gap-2 text-sm">

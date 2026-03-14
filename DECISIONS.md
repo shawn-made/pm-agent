@@ -1,7 +1,7 @@
 # VPMA — Decisions Log
 
-**Last Updated**: 2026-03-12
-**Current As Of**: 2026-03-12 (D54 added — Skeptical PM post-ship review priorities)
+**Last Updated**: 2026-03-14
+**Current As Of**: 2026-03-14 (D57 added — Task 54 terminology lock)
 
 ---
 
@@ -502,3 +502,77 @@ Frontend shows 4 contextual states: Not Installed (link to ollama.com), Installe
 **What raised concerns**: Deep Strategy naming unclear ("Deep Strategy" suggests strategic planning, not document cross-checking). 5-minute XHR timeout means PMs won't use it casually — needs expectation-setting or speed improvement. Reconciliation requires mature LPD to be useful.
 
 **Connects to**: UX-1/UX-2/UX-3 (UX backlog), D46 (multi-market — naming clarity matters even more when serving both PM and Research users)
+
+### D55: Phase 2B Retrospective + Backlog Review 3
+**Date**: 2026-03-13 (Phase 2B complete, pre-Phase 3) | **Status**: Active
+
+**Decision**: Ran post-phase retrospective and third backlog consumption review. Key findings:
+
+**Retro highlights**:
+- Sub-phase split pattern (2A/2B) and Pydantic models-first approach validated as time-savers
+- Silent failure on long-running pipelines was the main technical issue (browser fetch killed Deep Strategy requests) — Rule 21 added to Process Playbook: long-running work is fine if it doesn't fail silently
+- UX naming debt accumulated across phases — Rule 22 added: challenge user-facing names at task kickoff
+- Catch-all polish tasks should be split — Rule 23 added
+- Ollama onboarding UX (D53) was a positive surprise — right features AND right rejections
+- No formal audit run for Phase 2B — action item for Phase 3 kickoff
+
+**Backlog Review 3 (V41-V45)**:
+- **V41 Promoted → Phase 3**: Skeptical Reviewer as user-facing feature (score 9/9). Deep Strategy proved cross-artifact analysis quality. High differentiation.
+- **V42 Slotted → Phase 3**: Session-based polling (score 6). Infrastructure for "leave and come back" pattern.
+- **V43 Slotted → Phase 4**: Source confidence tracking (score 6). Too much new infrastructure for Phase 3.
+- **V44 Parked**: Mermaid → Lucidchart pipeline — cross-project workflow, not product feature.
+- **V45 Slotted → Phase 3**: Local LLM vision/multimodal evaluation (score 6). Evaluate alongside model benchmarking.
+
+**User feedback on Rule 21**: Long-running work is desirable if it produces quality output and frees the user up. The problem is silent failure, not duration. User explicitly wants more "fire and forget" patterns where they can leave and come back. This reinforces V42 (session-based polling) as enabling infrastructure.
+
+**Connects to**: Process Playbook Rules 21-23, D54 (Skeptical PM priorities), V41-V45 (backlog items)
+
+### D56: Phase 3 Scoping — Interactive Intelligence
+**Date**: 2026-03-13 (Phase 3 kickoff) | **Status**: Active
+
+**Decision**: Phase 3 scoped as "Interactive Intelligence" — shift from paste-and-process to proactive, conversational, leave-and-return. Split into 3A/3B/3C per Rule 20. Tasks 54-63.
+
+**Structure**:
+- **Phase 3A (UX + Infrastructure)**: UX-3 naming pass, empty-state coaching, proactive nudge banner, V42 session-based polling, ESLint cleanup. Foundation that makes everything else land better.
+- **Phase 3B (Chat + Brain Dump)**: Conversational API backend (from D47 design doc), embedded chat panel frontend, V28/V33 brain dump mode. The dual-tool architecture (D36) comes to life.
+- **Phase 3C (Skeptical Reviewer)**: V41 quality gate (test prompts on real data, GO/NO-GO before UI), then V41 Skeptical Reviewer service + frontend if quality clears the bar.
+
+**Skeptical PM review findings (applied)**:
+- V31 (decision journal) deferred to Phase 4 — needs user volume to be useful, premature for single user
+- V41 gets a quality gate task — if LLM output is generic platitudes instead of specific evidence-backed findings, don't ship it
+- Chat panel scope warning acknowledged — 3B may take longer than estimated due to frontend chat UI complexity
+
+**Security audit (Phase 2B)**:
+- pip-audit: clean (zero CVEs)
+- bandit: clean (zero findings)
+- npm audit: 1 high (flatted DoS) — fixed via `npm audit fix`
+- ruff: clean
+- ESLint: 2 issues — Task 58 will resolve
+
+**Deferred to Phase 4+**: V31 (decision journal), V37 (cross-doc synthesis), V12 (meeting prep), V43 (source confidence), UX-2 (agent window — superseded by chat panel)
+
+**Connects to**: D36 (dual-tool architecture), D47 (conversational API design), D54 (Skeptical PM priorities), D55 (Phase 2B retro)
+
+---
+
+### D57: Task 54 Terminology Lock — Tab Naming & Information Architecture
+**Date**: 2026-03-14 (Phase 3A, Task 54) | **Status**: Active
+
+**Decision**: Renamed all primary navigation tabs based on user intent model. Three distinct PM workflows drive the IA:
+1. **"I have new info to process"** → **Process** (was "Artifact Sync")
+2. **"Clean up and sync my documents"** → **Audit** (was "Deep Strategy")
+3. **"Use my KB for insights and reference"** → **Knowledge Base** (unchanged)
+
+**Specific changes**:
+- Tab "Artifact Sync" → **"Process"** — covers all 3 modes (Extract, Analyze, Log Session)
+- Tab "Deep Strategy" → **"Audit"** — no user-facing "Deep Strategy" references remain
+- Internal "Deep Strategy" label → **"Document Consistency"** within Audit page
+- **Reconciliation** moves from Knowledge Base page → Audit page (cross-section conflict detection is audit work)
+- **Risk Prediction** stays on Knowledge Base page (it surfaces new insights, not cleanup — different intent)
+- Subtitles added under each tab/page explaining function
+
+**Design principle**: Categories organize the entry point (what am I sitting down to do), not the outcome. Bleed between categories is expected and acceptable — finding a contradiction during audit *is* an insight. The goal is intuitive navigation, not rigid taxonomy. Can iterate based on user testing.
+
+**Rule 22 applied**: Names challenged against "would a new user know what this does?" — "Artifact Sync" and "Deep Strategy" both failed; "Process" and "Audit" pass.
+
+**Connects to**: D27 (original three-tab navigation), D38 (Phase 1B UI rename), D54 (Skeptical PM naming feedback)
