@@ -111,4 +111,18 @@ CREATE TABLE IF NOT EXISTS lpd_session_summaries (
     FOREIGN KEY (project_id) REFERENCES projects(project_id),
     FOREIGN KEY (session_id) REFERENCES sessions(session_id)
 );
+
+CREATE TABLE IF NOT EXISTS jobs (
+    job_id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    job_type TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    request_json TEXT NOT NULL DEFAULT '{}',
+    result_json TEXT,
+    error_message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(project_id)
+);
 """

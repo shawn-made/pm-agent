@@ -614,3 +614,36 @@ class ReconciliationResponse(BaseModel):
     sections_analyzed: int = Field(0, description="Number of LPD sections analyzed")
     pii_detected: int = Field(0, description="PII entities anonymized during analysis")
     session_id: str = Field(..., description="Unique session ID for this reconciliation")
+
+
+# --- Job Queue (Task 57) ---
+
+
+class JobSubmitRequest(BaseModel):
+    """Request body for submitting a background job."""
+
+    job_type: str = Field(
+        ..., description="Job type: 'artifact_sync', 'deep_strategy', or 'risk_prediction'"
+    )
+    project_id: str = Field("default", description="Project scope")
+    payload: dict = Field(..., description="Job-type-specific request payload")
+
+
+class JobSubmitResponse(BaseModel):
+    """Response from job submission — returns immediately."""
+
+    job_id: str = Field(..., description="Unique job identifier (UUID)")
+    status: str = Field("pending", description="Initial job status")
+
+
+class JobStatusResponse(BaseModel):
+    """Response from job status check."""
+
+    job_id: str = Field(..., description="Unique job identifier")
+    job_type: str = Field(..., description="Job type")
+    status: str = Field(..., description="'pending', 'running', 'completed', or 'failed'")
+    created_at: str = Field(..., description="When the job was submitted")
+    started_at: Optional[str] = Field(None, description="When execution began")
+    completed_at: Optional[str] = Field(None, description="When execution finished")
+    result: Optional[dict] = Field(None, description="Result data (populated when completed)")
+    error_message: Optional[str] = Field(None, description="Error details (populated when failed)")

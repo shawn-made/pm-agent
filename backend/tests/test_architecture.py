@@ -112,6 +112,7 @@ class TestLLMAbstraction:
             "deep_strategy.py",
             "risk_prediction.py",
             "reconciliation.py",
+            "job_runner.py",
         ],
     )
     def test_services_do_not_import_anthropic_sdk(self, service_file):
@@ -137,6 +138,7 @@ class TestLLMAbstraction:
             "deep_strategy.py",
             "risk_prediction.py",
             "reconciliation.py",
+            "job_runner.py",
         ],
     )
     def test_services_do_not_import_google_genai_sdk(self, service_file):

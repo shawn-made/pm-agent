@@ -16,7 +16,7 @@
 | Phase 1B: Polish + Transcripts | 31-37 | 7/7 | Complete |
 | Phase 2A: Workflow Completion | 38-44 | 7/7 | Complete |
 | Phase 2B: Deep Analysis | 45-53 | 9/9 | Complete |
-| **Phase 3A: UX + Infrastructure** | **54-58** | **4/5** | **In Progress** |
+| **Phase 3A: UX + Infrastructure** | **54-58** | **5/5** | **Complete** |
 | Phase 3B: Chat + Brain Dump | 59-61 | 0/3 | Not Started |
 | Phase 3C: Skeptical Reviewer | 62-63 | 0/2 | Not Started |
 
@@ -1029,20 +1029,24 @@ Task 52 (S, folder browser)   ──┘  (independent track)
 ### Task 57: Session-Based Polling — V42 Fire-and-Forget Processing
 **Complexity**: L | **Sessions**: 2-3 | **Dependencies**: None
 
-- [ ] Backend: `POST /api/jobs` — accepts any processing request (artifact sync, deep strategy, etc.), returns `job_id` immediately
-- [ ] Backend: `GET /api/jobs/{job_id}` — returns status (pending/running/complete/failed) + result when complete
-- [ ] Backend: job runner executes processing in background thread/task, stores result in DB or memory
-- [ ] New DB table: `jobs` (job_id, project_id, job_type, status, request_json, result_json, created_at, completed_at)
-- [ ] Frontend: on submit, save `job_id` to localStorage, show progress indicator
-- [ ] Frontend: on page mount, check localStorage for pending jobs, poll `GET /api/jobs/{job_id}` until complete
-- [ ] Frontend: when complete, render results normally (same UI as current inline results)
-- [ ] Migrate Deep Strategy to use job-based processing (longest-running pipeline, biggest benefit)
-- [ ] Migrate Artifact Sync to use job-based processing
-- [ ] Architecture tests include job runner
-- [ ] Tests: job lifecycle (create, poll, complete, expire), error handling, concurrent jobs
+- [x] Backend: `POST /api/jobs` — accepts any processing request (artifact sync, deep strategy, etc.), returns `job_id` immediately
+- [x] Backend: `GET /api/jobs/{job_id}` — returns status (pending/running/complete/failed) + result when complete
+- [x] Backend: job runner executes processing in background `asyncio.create_task()`, stores result in DB
+- [x] New DB table: `jobs` (job_id, project_id, job_type, status, request_json, result_json, error_message, timestamps)
+- [x] Frontend: `useJobPolling` hook — submit saves `job_id` to localStorage, polls at 1s (3s after 10 polls)
+- [x] Frontend: on page mount, resumes polling from localStorage for any in-progress job
+- [x] Frontend: when complete, render results normally (same UI as current inline results)
+- [x] Migrate Deep Strategy to use job-based processing (longest-running pipeline, biggest benefit)
+- [x] Migrate Artifact Sync to use job-based processing (composes with `usePersistedResults`)
+- [x] Architecture tests include job runner in parametrized lists
+- [x] Tests: 20 backend tests (CRUD, runner, API), 28 frontend tests (hook, DeepStrategy, ArtifactSync)
+- [x] Startup recovery: mark stale jobs failed, clean up expired jobs (24h)
+- [x] Concurrency limit: 2 active jobs per project (429 if exceeded)
 
+**New files**: `backend/app/services/job_runner.py`, `frontend/src/hooks/useJobPolling.js`, `backend/tests/test_job_runner.py`, `frontend/src/hooks/useJobPolling.test.js`
+**Modified**: `database.py`, `schemas.py`, `crud.py`, `routes.py`, `main.py`, `api.js`, `DeepStrategy.jsx`, `ArtifactSync.jsx`, `test_architecture.py` + test files
 **Done when**: User can start Deep Strategy or Artifact Sync, switch tabs or close the page, come back, and see results. No lost processing.
-**Status**: Not Started
+**Status**: Complete
 
 ---
 

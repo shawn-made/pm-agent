@@ -2,79 +2,49 @@
  * Audit page — Document Consistency analysis + Reconciliation.
  * Upload 2+ artifacts, run 4-pass LLM analysis, review and apply updates.
  * Also includes cross-section LPD reconciliation (moved from Knowledge Base).
+ *
+ * Uses job-based polling (Task 57) — submit fires a background job,
+ * results persist across tab switches and page reloads.
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ArtifactUploader from '../components/ArtifactUploader'
 import DeepStrategyResults from '../components/DeepStrategyResults'
 import PassProgressBar from '../components/PassProgressBar'
 import ReconciliationPanel from '../components/ReconciliationPanel'
 import { useToast } from '../components/ToastContext'
-import { deepStrategyAnalyze, deepStrategyApply } from '../services/api'
-
-/** Simulates progress through 4 passes during the synchronous API call. */
-function useSimulatedProgress() {
-  const [activePass, setActivePass] = useState(-1)
-
-  function start() {
-    setActivePass(0)
-    // Simulate pass transitions at estimated intervals
-    const timers = [
-      setTimeout(() => setActivePass(1), 15000),
-      setTimeout(() => setActivePass(2), 35000),
-      setTimeout(() => setActivePass(3), 55000),
-    ]
-    return () => timers.forEach(clearTimeout)
-  }
-
-  function complete() {
-    setActivePass(4)
-  }
-
-  function reset() {
-    setActivePass(-1)
-  }
-
-  return { activePass, start, complete, reset }
-}
+import { deepStrategyApply } from '../services/api'
+import useJobPolling from '../hooks/useJobPolling'
 
 export default function DeepStrategy() {
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isApplying, setIsApplying] = useState(false)
-  const [results, setResults] = useState(null)
-  const [error, setError] = useState(null)
   const [uploaderKey, setUploaderKey] = useState(0)
   const [showReconPanel, setShowReconPanel] = useState(false)
   const toast = useToast()
-  const progress = useSimulatedProgress()
+  const job = useJobPolling('deep_strategy')
 
-  async function handleAnalyze(artifacts) {
-    setIsAnalyzing(true)
-    setError(null)
-    setResults(null)
+  const isAnalyzing = job.status === 'pending' || job.status === 'running'
 
-    const cleanup = progress.start()
-
-    try {
-      const result = await deepStrategyAnalyze(artifacts)
-      progress.complete()
-      setResults(result)
-
-      if (result.summary.inconsistencies_found === 0) {
+  // Toast on completion
+  useEffect(() => {
+    if (job.status === 'completed' && job.result) {
+      const s = job.result.summary
+      if (s.inconsistencies_found === 0) {
         toast.success('Analysis complete — no inconsistencies found')
       } else {
         toast.success(
-          `Found ${result.summary.inconsistencies_found} inconsistenc${result.summary.inconsistencies_found > 1 ? 'ies' : 'y'}, ` +
-          `${result.summary.updates_proposed} update${result.summary.updates_proposed !== 1 ? 's' : ''} proposed`
+          `Found ${s.inconsistencies_found} inconsistenc${s.inconsistencies_found > 1 ? 'ies' : 'y'}, ` +
+          `${s.updates_proposed} update${s.updates_proposed !== 1 ? 's' : ''} proposed`
         )
       }
-    } catch (err) {
-      progress.reset()
-      setError(err.message)
-      toast.error('Document consistency analysis failed')
-    } finally {
-      cleanup()
-      setIsAnalyzing(false)
     }
+    if (job.status === 'failed' && job.error) {
+      toast.error('Document consistency analysis failed')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job.status])
+
+  async function handleAnalyze(artifacts) {
+    await job.submit({ artifacts, project_id: 'default' })
   }
 
   async function handleApply(selectedUpdates) {
@@ -100,6 +70,11 @@ export default function DeepStrategy() {
     }
   }
 
+  function handleNewAnalysis() {
+    job.clear()
+    setUploaderKey(k => k + 1)
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -118,7 +93,7 @@ export default function DeepStrategy() {
       </div>
 
       {/* Upload section — kept mounted but hidden to preserve content on error */}
-      <div className={results || isAnalyzing ? 'hidden' : ''}>
+      <div className={job.result || isAnalyzing ? 'hidden' : ''}>
         <ArtifactUploader key={uploaderKey} onAnalyze={handleAnalyze} isLoading={isAnalyzing} />
       </div>
 
@@ -129,19 +104,19 @@ export default function DeepStrategy() {
             <h3 className="text-sm font-medium text-gray-700">Analyzing artifacts...</h3>
             <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
           </div>
-          <PassProgressBar activePass={progress.activePass} />
+          <PassProgressBar activePass={job.status === 'running' ? 1 : 0} />
           <p className="text-xs text-gray-400">
-            This may take 2-5 minutes depending on artifact size.
+            This may take 2-5 minutes depending on artifact size. You can switch tabs — results will be here when you return.
           </p>
         </div>
       )}
 
       {/* Error display */}
-      {error && (
+      {job.status === 'failed' && job.error && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-700">{error}</p>
+          <p className="text-sm text-red-700">{job.error}</p>
           <button
-            onClick={() => { setError(null); progress.reset() }}
+            onClick={handleNewAnalysis}
             className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
           >
             Try again
@@ -150,17 +125,17 @@ export default function DeepStrategy() {
       )}
 
       {/* Results */}
-      {results && (
+      {job.result && (
         <>
           <DeepStrategyResults
-            results={results}
+            results={job.result}
             onApply={handleApply}
             isApplying={isApplying}
           />
 
           {/* New analysis button */}
           <button
-            onClick={() => { setResults(null); progress.reset(); setUploaderKey(k => k + 1) }}
+            onClick={handleNewAnalysis}
             className="text-xs text-gray-500 hover:text-gray-700 underline"
           >
             Start new analysis

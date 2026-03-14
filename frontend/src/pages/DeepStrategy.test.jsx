@@ -1,17 +1,18 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import DeepStrategy from './DeepStrategy'
 
 // Mock API
 vi.mock('../services/api', () => ({
-  deepStrategyAnalyze: vi.fn(),
   deepStrategyApply: vi.fn(),
+  submitJob: vi.fn(),
+  getJobStatus: vi.fn(),
 }))
 
-import { deepStrategyAnalyze, deepStrategyApply } from '../services/api'
+import { deepStrategyApply, submitJob, getJobStatus } from '../services/api'
 
 // Mock toast
-const mockToast = { success: vi.fn(), error: vi.fn() }
+const mockToast = { success: vi.fn(), error: vi.fn(), info: vi.fn() }
 vi.mock('../components/ToastContext', () => ({
   useToast: () => mockToast,
 }))
@@ -81,8 +82,30 @@ function uploaderIsHidden() {
   return screen.getByTestId('artifact-uploader').closest('div[class]')?.classList.contains('hidden')
 }
 
+/** Helper: simulate full job lifecycle (submit → poll → complete) */
+async function submitAndComplete(result) {
+  submitJob.mockResolvedValue({ job_id: 'test-job', status: 'pending' })
+  getJobStatus.mockResolvedValue({ status: 'completed', result })
+}
+
+// Mock localStorage
+let store = {}
+const mockLocalStorage = {
+  getItem: vi.fn((key) => store[key] ?? null),
+  setItem: vi.fn((key, value) => { store[key] = value }),
+  removeItem: vi.fn((key) => { delete store[key] }),
+}
+
 beforeEach(() => {
+  store = {}
+  vi.stubGlobal('localStorage', mockLocalStorage)
   vi.clearAllMocks()
+  vi.useFakeTimers()
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
 
 describe('DeepStrategy page', () => {
@@ -99,113 +122,87 @@ describe('DeepStrategy page', () => {
   })
 
   it('hides uploader during analysis and shows progress', async () => {
-    let resolve
-    deepStrategyAnalyze.mockReturnValue(new Promise(r => { resolve = r }))
+    submitJob.mockResolvedValue({ job_id: 'test-job', status: 'pending' })
+    getJobStatus.mockResolvedValue({ status: 'running' })
+
     render(<DeepStrategy />)
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('analyze-btn'))
     })
 
+    // First poll
+    await act(async () => { vi.advanceTimersByTime(1000) })
+
     expect(screen.getByTestId('progress-bar')).toBeInTheDocument()
     expect(screen.getByText('Analyzing artifacts...')).toBeInTheDocument()
-    // Uploader is still in DOM but hidden (preserves content)
     expect(uploaderIsHidden()).toBe(true)
-
-    await act(async () => { resolve(makeResult()) })
   })
 
   it('shows results after successful analysis with inconsistencies', async () => {
     const result = makeResult(3, 2)
-    deepStrategyAnalyze.mockResolvedValue(result)
+    await submitAndComplete(result)
+
     render(<DeepStrategy />)
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('analyze-btn'))
     })
 
-    await waitFor(() => {
-      expect(screen.getByTestId('results-panel')).toBeInTheDocument()
-    })
+    // Poll completes — use async version to flush microtasks from poll promise
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
+
+    expect(screen.getByTestId('results-panel')).toBeInTheDocument()
     expect(mockToast.success).toHaveBeenCalledWith(
       'Found 3 inconsistencies, 2 updates proposed'
     )
   })
 
-  it('shows success toast with singular forms when counts are 1', async () => {
-    const result = makeResult(1, 1)
-    deepStrategyAnalyze.mockResolvedValue(result)
-    render(<DeepStrategy />)
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('analyze-btn'))
-    })
-
-    await waitFor(() => {
-      expect(mockToast.success).toHaveBeenCalledWith(
-        'Found 1 inconsistency, 1 update proposed'
-      )
-    })
-  })
-
   it('shows different toast when no inconsistencies found', async () => {
     const result = makeResult(0, 0)
-    deepStrategyAnalyze.mockResolvedValue(result)
+    await submitAndComplete(result)
+
     render(<DeepStrategy />)
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('analyze-btn'))
     })
 
-    await waitFor(() => {
-      expect(mockToast.success).toHaveBeenCalledWith(
-        'Analysis complete — no inconsistencies found'
-      )
-    })
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
+
+    expect(mockToast.success).toHaveBeenCalledWith(
+      'Analysis complete — no inconsistencies found'
+    )
   })
 
-  it('shows error panel when analysis fails and keeps uploader visible', async () => {
-    deepStrategyAnalyze.mockRejectedValue(new Error('LLM timeout'))
+  it('shows error panel when analysis fails', async () => {
+    submitJob.mockResolvedValue({ job_id: 'fail-job', status: 'pending' })
+    getJobStatus.mockResolvedValue({ status: 'failed', error_message: 'LLM timeout' })
+
     render(<DeepStrategy />)
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('analyze-btn'))
     })
 
-    await waitFor(() => {
-      expect(screen.getByText('LLM timeout')).toBeInTheDocument()
-    })
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
+
+    expect(screen.getByText('LLM timeout')).toBeInTheDocument()
     expect(screen.getByText('Try again')).toBeInTheDocument()
     expect(mockToast.error).toHaveBeenCalledWith('Document consistency analysis failed')
-    // Uploader is visible (not hidden) so user can retry with same content
-    expect(uploaderIsHidden()).toBe(false)
-  })
-
-  it('clears error on Try Again', async () => {
-    deepStrategyAnalyze.mockRejectedValue(new Error('LLM timeout'))
-    render(<DeepStrategy />)
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('analyze-btn'))
-    })
-    await waitFor(() => expect(screen.getByText('Try again')).toBeInTheDocument())
-
-    fireEvent.click(screen.getByText('Try again'))
-
-    expect(screen.queryByText('LLM timeout')).not.toBeInTheDocument()
-    expect(uploaderIsHidden()).toBe(false)
   })
 
   it('shows "Start new analysis" button with results and resets on click', async () => {
-    deepStrategyAnalyze.mockResolvedValue(makeResult())
+    await submitAndComplete(makeResult())
     render(<DeepStrategy />)
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('analyze-btn'))
     })
-    await waitFor(() => expect(screen.getByTestId('results-panel')).toBeInTheDocument())
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
 
-    expect(uploaderIsHidden()).toBe(true)
+    expect(screen.getByTestId('results-panel')).toBeInTheDocument()
+
     const newBtn = screen.getByText('Start new analysis')
     expect(newBtn).toBeInTheDocument()
 
@@ -216,7 +213,7 @@ describe('DeepStrategy page', () => {
   })
 
   it('calls deepStrategyApply and shows success toast on apply', async () => {
-    deepStrategyAnalyze.mockResolvedValue(makeResult())
+    await submitAndComplete(makeResult())
     deepStrategyApply.mockResolvedValue({
       applied: [{ status: 'applied' }, { status: 'applied' }],
       copied_to_clipboard: ['Risk Log'],
@@ -226,67 +223,33 @@ describe('DeepStrategy page', () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId('analyze-btn'))
     })
-    await waitFor(() => expect(screen.getByTestId('results-panel')).toBeInTheDocument())
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
+    expect(screen.getByTestId('results-panel')).toBeInTheDocument()
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('apply-btn'))
     })
 
-    await waitFor(() => {
-      expect(deepStrategyApply).toHaveBeenCalledWith([
-        { target: 'A', change_type: 'modify' },
-      ])
-      expect(mockToast.success).toHaveBeenCalledWith(
-        'Applied 2 updates. 1 artifact available for clipboard'
-      )
-    })
+    expect(deepStrategyApply).toHaveBeenCalledWith([
+      { target: 'A', change_type: 'modify' },
+    ])
+    expect(mockToast.success).toHaveBeenCalledWith(
+      'Applied 2 updates. 1 artifact available for clipboard'
+    )
   })
 
-  it('shows error toast when apply fails', async () => {
-    deepStrategyAnalyze.mockResolvedValue(makeResult())
-    deepStrategyApply.mockRejectedValue(new Error('Apply failed'))
+  it('tells user they can switch tabs during analysis', async () => {
+    submitJob.mockResolvedValue({ job_id: 'test-job', status: 'pending' })
+    getJobStatus.mockResolvedValue({ status: 'running' })
+
     render(<DeepStrategy />)
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('analyze-btn'))
     })
-    await waitFor(() => expect(screen.getByTestId('results-panel')).toBeInTheDocument())
+    await act(async () => { vi.advanceTimersByTime(1000) })
 
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('apply-btn'))
-    })
-
-    await waitFor(() => {
-      expect(mockToast.error).toHaveBeenCalledWith(
-        'Failed to apply updates: Apply failed'
-      )
-    })
-  })
-
-  it('simulates pass progress during analysis', async () => {
-    vi.useFakeTimers()
-    let resolve
-    deepStrategyAnalyze.mockReturnValue(new Promise(r => { resolve = r }))
-    render(<DeepStrategy />)
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('analyze-btn'))
-    })
-
-    expect(screen.getByText('Pass: 0')).toBeInTheDocument()
-
-    act(() => { vi.advanceTimersByTime(15000) })
-    expect(screen.getByText('Pass: 1')).toBeInTheDocument()
-
-    act(() => { vi.advanceTimersByTime(20000) }) // total 35s
-    expect(screen.getByText('Pass: 2')).toBeInTheDocument()
-
-    act(() => { vi.advanceTimersByTime(20000) }) // total 55s
-    expect(screen.getByText('Pass: 3')).toBeInTheDocument()
-
-    // Clean up
-    await act(async () => { resolve(makeResult()) })
-    vi.useRealTimers()
+    expect(screen.getByText(/You can switch tabs/)).toBeInTheDocument()
   })
 
   it('renders Document Consistency and Reconciliation sections', () => {

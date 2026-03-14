@@ -543,3 +543,113 @@ async def get_session_summary_count(project_id: str) -> int:
         return row["cnt"]
     finally:
         await db.close()
+
+
+# ============================================================
+# JOBS (Task 57 — Session-Based Polling)
+# ============================================================
+
+
+async def create_job(job_id: str, project_id: str, job_type: str, request_json: str) -> dict:
+    """Insert a new job record."""
+    db = await get_db()
+    try:
+        await db.execute(
+            """INSERT INTO jobs (job_id, project_id, job_type, status, request_json)
+               VALUES (?, ?, ?, 'pending', ?)""",
+            (job_id, project_id, job_type, request_json),
+        )
+        await db.commit()
+        cursor = await db.execute("SELECT * FROM jobs WHERE job_id = ?", (job_id,))
+        row = await cursor.fetchone()
+        return dict(row)
+    finally:
+        await db.close()
+
+
+async def get_job(job_id: str) -> Optional[dict]:
+    """Get a job by ID."""
+    db = await get_db()
+    try:
+        cursor = await db.execute("SELECT * FROM jobs WHERE job_id = ?", (job_id,))
+        row = await cursor.fetchone()
+        return dict(row) if row else None
+    finally:
+        await db.close()
+
+
+async def update_job_status(
+    job_id: str,
+    status: str,
+    *,
+    result_json: Optional[str] = None,
+    error_message: Optional[str] = None,
+) -> None:
+    """Update a job's status and optional result/error fields."""
+    db = await get_db()
+    try:
+        if status == "running":
+            await db.execute(
+                "UPDATE jobs SET status = ?, started_at = CURRENT_TIMESTAMP WHERE job_id = ?",
+                (status, job_id),
+            )
+        elif status in ("completed", "failed"):
+            await db.execute(
+                """UPDATE jobs SET status = ?, result_json = ?, error_message = ?,
+                   completed_at = CURRENT_TIMESTAMP WHERE job_id = ?""",
+                (status, result_json, error_message, job_id),
+            )
+        else:
+            await db.execute(
+                "UPDATE jobs SET status = ? WHERE job_id = ?",
+                (status, job_id),
+            )
+        await db.commit()
+    finally:
+        await db.close()
+
+
+async def count_running_jobs(project_id: str) -> int:
+    """Count jobs in 'pending' or 'running' state for a project."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT COUNT(*) as cnt FROM jobs WHERE project_id = ? AND status IN ('pending', 'running')",
+            (project_id,),
+        )
+        row = await cursor.fetchone()
+        return row["cnt"]
+    finally:
+        await db.close()
+
+
+async def mark_stale_jobs_failed() -> int:
+    """Mark any jobs stuck in 'running' or 'pending' as failed (called on startup)."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            """UPDATE jobs SET status = 'failed',
+               error_message = 'Server restarted during processing',
+               completed_at = CURRENT_TIMESTAMP
+               WHERE status IN ('pending', 'running')"""
+        )
+        await db.commit()
+        return cursor.rowcount
+    finally:
+        await db.close()
+
+
+async def cleanup_expired_jobs(max_age_hours: int = 24) -> int:
+    """Delete completed/failed jobs older than max_age_hours."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            """DELETE FROM jobs
+               WHERE status IN ('completed', 'failed')
+               AND created_at < datetime('now', ? || ' hours')""",
+            (f"-{max_age_hours}",),
+        )
+        await db.commit()
+        return cursor.rowcount
+    finally:
+        await db.close()

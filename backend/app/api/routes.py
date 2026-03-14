@@ -16,6 +16,9 @@ from app.models.schemas import (
     IntakeApplyResponse,
     IntakeDraft,
     IntakePreviewRequest,
+    JobStatusResponse,
+    JobSubmitRequest,
+    JobSubmitResponse,
     ReconciliationResponse,
     RiskPredictionResponse,
     Suggestion,
@@ -742,3 +745,67 @@ async def browse_folders(path: str = None):
         "parent_path": parent_path,
         "directories": directories,
     }
+
+
+# ============================================================
+# JOB QUEUE (Task 57 — Session-Based Polling)
+# ============================================================
+
+
+@router.post("/jobs", response_model=JobSubmitResponse)
+async def submit_job(request: JobSubmitRequest):
+    """Submit a background processing job. Returns immediately with a job_id.
+
+    The job runs asynchronously. Poll GET /api/jobs/{job_id} for status and results.
+    """
+    import json
+    import uuid
+
+    from app.services.crud import count_running_jobs, create_job
+    from app.services.job_runner import MAX_CONCURRENT_PER_PROJECT, VALID_JOB_TYPES, launch_job
+
+    if request.job_type not in VALID_JOB_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown job type: {request.job_type}. Valid types: {sorted(VALID_JOB_TYPES)}",
+        )
+
+    running = await count_running_jobs(request.project_id)
+    if running >= MAX_CONCURRENT_PER_PROJECT:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many concurrent jobs. Please wait for current jobs to finish.",
+        )
+
+    job_id = str(uuid.uuid4())
+    await create_job(job_id, request.project_id, request.job_type, json.dumps(request.payload))
+    launch_job(job_id)
+
+    return JobSubmitResponse(job_id=job_id, status="pending")
+
+
+@router.get("/jobs/{job_id}", response_model=JobStatusResponse)
+async def get_job_status(job_id: str):
+    """Check the status of a submitted job. Returns result when complete."""
+    import json
+
+    from app.services.crud import get_job
+
+    job = await get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    result = None
+    if job["status"] == "completed" and job["result_json"]:
+        result = json.loads(job["result_json"])
+
+    return JobStatusResponse(
+        job_id=job["job_id"],
+        job_type=job["job_type"],
+        status=job["status"],
+        created_at=str(job["created_at"]),
+        started_at=str(job["started_at"]) if job["started_at"] else None,
+        completed_at=str(job["completed_at"]) if job["completed_at"] else None,
+        result=result,
+        error_message=job.get("error_message"),
+    )

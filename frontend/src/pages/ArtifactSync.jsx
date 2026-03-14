@@ -1,16 +1,20 @@
 /**
  * Process page — accepts user text, runs the LLM pipeline,
  * and displays either suggestion cards (Extract mode) or analysis feedback (Analyze mode).
+ *
+ * Uses job-based polling (Task 57) — submit fires a background job,
+ * results persist across tab switches via usePersistedResults.
  */
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import TextInput from '../components/TextInput'
 import SuggestionCard from '../components/SuggestionCard'
 import DocumentDraftCard from '../components/DocumentDraftCard'
 import AnalysisCard from '../components/AnalysisCard'
 import LogSessionCard from '../components/LogSessionCard'
 import { useToast } from '../components/ToastContext'
-import { artifactSync, applySuggestionByType, appendToLPDSection } from '../services/api'
+import { applySuggestionByType, appendToLPDSection } from '../services/api'
 import usePersistedResults from '../hooks/usePersistedResults'
+import useJobPolling from '../hooks/useJobPolling'
 
 const SUBTITLES = {
   extract: 'Paste meeting notes, transcripts, or project updates. VPMA will suggest updates to your PM artifacts.',
@@ -21,10 +25,71 @@ const SUBTITLES = {
 /** Process page — orchestrates text input, LLM analysis, and suggestion/analysis display. */
 export default function ArtifactSync() {
   const [mode, setMode] = useState('extract')
-  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const toast = useToast()
   const { results, setResults, clearResults } = usePersistedResults(mode)
+  const job = useJobPolling(`artifact_sync_${mode}`)
+  const lastProcessedJobRef = useRef(null)
+
+  const isLoading = job.status === 'pending' || job.status === 'running'
+
+  // When job completes, transform result into persisted display format
+  useEffect(() => {
+    if (job.status === 'completed' && job.result && job.result !== lastProcessedJobRef.current) {
+      lastProcessedJobRef.current = job.result
+      const result = job.result
+      const newMeta = {
+        inputType: result.input_type,
+        piiDetected: result.pii_detected,
+        sessionId: result.session_id,
+        mode: result.mode,
+      }
+
+      if (result.mode === 'log_session') {
+        const logSessionData = {
+          summary: result.session_summary,
+          lpdUpdates: result.lpd_updates || [],
+          suggestions: result.suggestions || [],
+          contentGateActive: result.content_gate_active !== false,
+        }
+        setResults({ logSession: logSessionData, meta: newMeta })
+        const updateCount = (result.lpd_updates || []).length
+        const suggestionCount = (result.suggestions || []).length
+        if (updateCount === 0 && suggestionCount === 0) {
+          toast.info('No updates extracted from this session')
+        } else {
+          toast.success(`Logged: ${updateCount} LPD update${updateCount !== 1 ? 's' : ''}, ${suggestionCount} suggestion${suggestionCount !== 1 ? 's' : ''}`)
+        }
+      } else if (result.mode === 'analyze') {
+        const analysisData = {
+          summary: result.analysis_summary,
+          items: result.analysis || [],
+        }
+        setResults({ analysis: analysisData, meta: newMeta })
+        if (!result.analysis || result.analysis.length === 0) {
+          toast.info('No analysis generated for this text')
+        } else {
+          toast.success(`Generated ${result.analysis.length} observation${result.analysis.length > 1 ? 's' : ''}`)
+        }
+      } else {
+        setResults({ suggestions: result.suggestions, meta: newMeta })
+        if (result.suggestions.length === 0) {
+          toast.info('No artifact updates found in this text')
+        } else {
+          toast.success(`Found ${result.suggestions.length} suggestion${result.suggestions.length > 1 ? 's' : ''}`)
+        }
+      }
+
+      job.clear()
+    }
+
+    if (job.status === 'failed' && job.error) {
+      setError(job.error)
+      toast.error('Analysis failed')
+      job.clear()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job.status, job.result])
 
   // Derive display state from persisted results
   const suggestions = results?.suggestions || []
@@ -142,59 +207,9 @@ export default function ArtifactSync() {
   }
 
   async function handleSubmit(text) {
-    setIsLoading(true)
     setError(null)
     clearResults() // Clear previous results for this mode on new submission
-
-    try {
-      const result = await artifactSync(text, 'default', mode)
-      const newMeta = {
-        inputType: result.input_type,
-        piiDetected: result.pii_detected,
-        sessionId: result.session_id,
-        mode: result.mode,
-      }
-
-      if (result.mode === 'log_session') {
-        const logSessionData = {
-          summary: result.session_summary,
-          lpdUpdates: result.lpd_updates || [],
-          suggestions: result.suggestions || [],
-          contentGateActive: result.content_gate_active !== false,
-        }
-        setResults({ logSession: logSessionData, meta: newMeta })
-        const updateCount = (result.lpd_updates || []).length
-        const suggestionCount = (result.suggestions || []).length
-        if (updateCount === 0 && suggestionCount === 0) {
-          toast.info('No updates extracted from this session')
-        } else {
-          toast.success(`Logged: ${updateCount} LPD update${updateCount !== 1 ? 's' : ''}, ${suggestionCount} suggestion${suggestionCount !== 1 ? 's' : ''}`)
-        }
-      } else if (result.mode === 'analyze') {
-        const analysisData = {
-          summary: result.analysis_summary,
-          items: result.analysis || [],
-        }
-        setResults({ analysis: analysisData, meta: newMeta })
-        if (!result.analysis || result.analysis.length === 0) {
-          toast.info('No analysis generated for this text')
-        } else {
-          toast.success(`Generated ${result.analysis.length} observation${result.analysis.length > 1 ? 's' : ''}`)
-        }
-      } else {
-        setResults({ suggestions: result.suggestions, meta: newMeta })
-        if (result.suggestions.length === 0) {
-          toast.info('No artifact updates found in this text')
-        } else {
-          toast.success(`Found ${result.suggestions.length} suggestion${result.suggestions.length > 1 ? 's' : ''}`)
-        }
-      }
-    } catch (err) {
-      setError(err.message)
-      toast.error('Analysis failed')
-    } finally {
-      setIsLoading(false)
-    }
+    await job.submit({ text, project_id: 'default', mode })
   }
 
   return (

@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
-from app.services.crud import ensure_default_project
+from app.services.crud import cleanup_expired_jobs, ensure_default_project, mark_stale_jobs_failed
 from app.services.database import init_db
 
 # Load environment variables from backend/.env
@@ -20,6 +20,8 @@ async def lifespan(app: FastAPI):
     """Initialize database and seed defaults on startup."""
     await init_db()
     await ensure_default_project()
+    await mark_stale_jobs_failed()
+    await cleanup_expired_jobs(max_age_hours=24)
     yield
 
 

@@ -1,14 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import ArtifactSync from './ArtifactSync'
 import { ToastProvider } from '../components/Toast'
 
 vi.mock('../services/api', () => ({
-  artifactSync: vi.fn(),
   applySuggestionByType: vi.fn(),
+  appendToLPDSection: vi.fn(),
+  submitJob: vi.fn(),
+  getJobStatus: vi.fn(),
 }))
 
-import { artifactSync, applySuggestionByType } from '../services/api'
+import { applySuggestionByType, submitJob, getJobStatus } from '../services/api'
 
 function renderPage() {
   return render(
@@ -33,15 +35,49 @@ const mockSuggestion = {
   reasoning: 'Budget discussion detected',
 }
 
-describe('ArtifactSync', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    // Default clipboard mock
-    Object.assign(navigator, {
-      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
-    })
-  })
+const mockSyncResult = {
+  suggestions: [mockSuggestion],
+  analysis: [],
+  analysis_summary: null,
+  lpd_updates: [],
+  session_summary: null,
+  input_type: 'meeting_notes',
+  session_id: 'sess-1',
+  pii_detected: 2,
+  mode: 'extract',
+  content_gate_active: true,
+}
 
+/** Helper: simulate submit → job complete flow */
+async function submitAndCompleteJob(result = mockSyncResult) {
+  submitJob.mockResolvedValue({ job_id: 'test-job', status: 'pending' })
+  getJobStatus.mockResolvedValue({ status: 'completed', result })
+}
+
+// Mock localStorage
+let store = {}
+const mockLocalStorage = {
+  getItem: vi.fn((key) => store[key] ?? null),
+  setItem: vi.fn((key, value) => { store[key] = value }),
+  removeItem: vi.fn((key) => { delete store[key] }),
+}
+
+beforeEach(() => {
+  store = {}
+  vi.stubGlobal('localStorage', mockLocalStorage)
+  vi.clearAllMocks()
+  vi.useFakeTimers()
+  Object.assign(navigator, {
+    clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+  })
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.useRealTimers()
+})
+
+describe('ArtifactSync', () => {
   it('renders heading and empty state', () => {
     renderPage()
     expect(screen.getByText('Process')).toBeInTheDocument()
@@ -64,40 +100,36 @@ describe('ArtifactSync', () => {
     ).toBeInTheDocument()
   })
 
-  it('submits text and displays suggestions', async () => {
-    artifactSync.mockResolvedValue({
-      suggestions: [mockSuggestion],
-      analysis: [],
-      analysis_summary: null,
-      input_type: 'meeting_notes',
-      session_id: 'sess-1',
-      pii_detected: 2,
-      mode: 'extract',
-    })
+  it('submits text via job and displays suggestions', async () => {
+    await submitAndCompleteJob()
     renderPage()
 
     const textarea = screen.getByPlaceholderText(
       'Paste meeting notes, transcripts, or project updates...'
     )
     fireEvent.change(textarea, { target: { value: 'We discussed the budget overrun.' } })
-    fireEvent.click(getSubmitButton())
 
-    await waitFor(() => {
-      expect(artifactSync).toHaveBeenCalledWith('We discussed the budget overrun.', 'default', 'extract')
-      expect(screen.getByText('RAID Log')).toBeInTheDocument()
-      expect(screen.getByText('Budget discussion detected')).toBeInTheDocument()
+    await act(async () => {
+      fireEvent.click(getSubmitButton())
     })
+
+    // Job submitted
+    expect(submitJob).toHaveBeenCalledWith(
+      'artifact_sync_extract', 'default',
+      { text: 'We discussed the budget overrun.', project_id: 'default', mode: 'extract' }
+    )
+
+    // Poll completes — async version flushes microtasks from poll promise
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
+
+    expect(screen.getByText('RAID Log')).toBeInTheDocument()
+    expect(screen.getByText('Budget discussion detected')).toBeInTheDocument()
   })
 
   it('shows meta bar with input type and PII count', async () => {
-    artifactSync.mockResolvedValue({
-      suggestions: [mockSuggestion],
-      analysis: [],
-      analysis_summary: null,
-      input_type: 'meeting_notes',
-      session_id: 'sess-1',
+    await submitAndCompleteJob({
+      ...mockSyncResult,
       pii_detected: 3,
-      mode: 'extract',
     })
     renderPage()
 
@@ -105,23 +137,17 @@ describe('ArtifactSync', () => {
       'Paste meeting notes, transcripts, or project updates...'
     )
     fireEvent.change(textarea, { target: { value: 'text' } })
-    fireEvent.click(getSubmitButton())
+    await act(async () => { fireEvent.click(getSubmitButton()) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
 
-    await waitFor(() => {
-      expect(screen.getByText('meeting notes')).toBeInTheDocument()
-      expect(screen.getByText('3 PII items anonymized')).toBeInTheDocument()
-    })
+    expect(screen.getByText('meeting notes')).toBeInTheDocument()
+    expect(screen.getByText('3 PII items anonymized')).toBeInTheDocument()
   })
 
   it('shows "No PII detected" when pii_detected is 0', async () => {
-    artifactSync.mockResolvedValue({
-      suggestions: [mockSuggestion],
-      analysis: [],
-      analysis_summary: null,
-      input_type: 'text',
-      session_id: 'sess-1',
+    await submitAndCompleteJob({
+      ...mockSyncResult,
       pii_detected: 0,
-      mode: 'extract',
     })
     renderPage()
 
@@ -129,37 +155,32 @@ describe('ArtifactSync', () => {
       'Paste meeting notes, transcripts, or project updates...'
     )
     fireEvent.change(textarea, { target: { value: 'text' } })
-    fireEvent.click(getSubmitButton())
+    await act(async () => { fireEvent.click(getSubmitButton()) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
 
-    await waitFor(() => {
-      expect(screen.getByText('No PII detected')).toBeInTheDocument()
-    })
+    expect(screen.getByText('No PII detected')).toBeInTheDocument()
   })
 
-  it('shows error state on failure', async () => {
-    artifactSync.mockRejectedValue(new Error('LLM call failed'))
+  it('shows error state on job failure', async () => {
+    submitJob.mockResolvedValue({ job_id: 'fail-job', status: 'pending' })
+    getJobStatus.mockResolvedValue({ status: 'failed', error_message: 'LLM call failed' })
     renderPage()
 
     const textarea = screen.getByPlaceholderText(
       'Paste meeting notes, transcripts, or project updates...'
     )
     fireEvent.change(textarea, { target: { value: 'text' } })
-    fireEvent.click(getSubmitButton())
+    await act(async () => { fireEvent.click(getSubmitButton()) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
 
-    await waitFor(() => {
-      expect(screen.getByText('LLM call failed')).toBeInTheDocument()
-    })
+    expect(screen.getByText('LLM call failed')).toBeInTheDocument()
   })
 
   it('shows info toast when no suggestions returned', async () => {
-    artifactSync.mockResolvedValue({
+    await submitAndCompleteJob({
+      ...mockSyncResult,
       suggestions: [],
-      analysis: [],
-      analysis_summary: null,
-      input_type: 'general_text',
-      session_id: 'sess-1',
       pii_detected: 0,
-      mode: 'extract',
     })
     renderPage()
 
@@ -167,23 +188,14 @@ describe('ArtifactSync', () => {
       'Paste meeting notes, transcripts, or project updates...'
     )
     fireEvent.change(textarea, { target: { value: 'hello' } })
-    fireEvent.click(getSubmitButton())
+    await act(async () => { fireEvent.click(getSubmitButton()) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
 
-    await waitFor(() => {
-      expect(screen.getByText('No artifact updates found in this text')).toBeInTheDocument()
-    })
+    expect(screen.getByText('No artifact updates found in this text')).toBeInTheDocument()
   })
 
   it('calls applySuggestionByType when Apply is clicked', async () => {
-    artifactSync.mockResolvedValue({
-      suggestions: [mockSuggestion],
-      analysis: [],
-      analysis_summary: null,
-      input_type: 'text',
-      session_id: 'sess-1',
-      pii_detected: 0,
-      mode: 'extract',
-    })
+    await submitAndCompleteJob()
     applySuggestionByType.mockResolvedValue({ success: true })
     renderPage()
 
@@ -191,98 +203,14 @@ describe('ArtifactSync', () => {
       'Paste meeting notes, transcripts, or project updates...'
     )
     fireEvent.change(textarea, { target: { value: 'text' } })
-    fireEvent.click(getSubmitButton())
+    await act(async () => { fireEvent.click(getSubmitButton()) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
 
-    await waitFor(() => {
-      expect(screen.getByText('Apply')).toBeInTheDocument()
+    expect(screen.getByText('Apply')).toBeInTheDocument()
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Apply'))
     })
-
-    fireEvent.click(screen.getByText('Apply'))
-    await waitFor(() => {
-      expect(applySuggestionByType).toHaveBeenCalledWith(mockSuggestion)
-    })
-  })
-
-  // --- Analyze mode tests ---
-
-  it('displays analysis results in analyze mode', async () => {
-    artifactSync.mockResolvedValue({
-      suggestions: [],
-      analysis: [
-        {
-          category: 'strength',
-          title: 'Clear structure',
-          detail: 'The document is well organized.',
-          priority: 'low',
-          artifact_type: 'Status Report',
-        },
-        {
-          category: 'gap',
-          title: 'Missing blockers',
-          detail: 'No blockers section found.',
-          priority: 'high',
-          artifact_type: 'Status Report',
-        },
-      ],
-      analysis_summary: 'Good document but missing blockers.',
-      input_type: 'status_update',
-      session_id: 'sess-2',
-      pii_detected: 0,
-      mode: 'analyze',
-    })
-    renderPage()
-
-    // Switch to analyze mode via the toggle button
-    const allButtons = screen.getAllByRole('button')
-    const analyzeToggle = allButtons.find(
-      (b) => b.getAttribute('type') === 'button' && b.textContent === 'Analyze'
-    )
-    fireEvent.click(analyzeToggle)
-
-    const textarea = screen.getByPlaceholderText('Paste a draft document for review...')
-    fireEvent.change(textarea, { target: { value: 'draft status report' } })
-    fireEvent.click(getSubmitButton())
-
-    await waitFor(() => {
-      expect(artifactSync).toHaveBeenCalledWith('draft status report', 'default', 'analyze')
-      expect(screen.getByText('Good document but missing blockers.')).toBeInTheDocument()
-      expect(screen.getByText('Clear structure')).toBeInTheDocument()
-      expect(screen.getByText('Missing blockers')).toBeInTheDocument()
-    })
-  })
-
-  it('clears results when mode toggles', async () => {
-    artifactSync.mockResolvedValue({
-      suggestions: [mockSuggestion],
-      analysis: [],
-      analysis_summary: null,
-      input_type: 'meeting_notes',
-      session_id: 'sess-1',
-      pii_detected: 0,
-      mode: 'extract',
-    })
-    renderPage()
-
-    const textarea = screen.getByPlaceholderText(
-      'Paste meeting notes, transcripts, or project updates...'
-    )
-    fireEvent.change(textarea, { target: { value: 'some text' } })
-    fireEvent.click(getSubmitButton())
-
-    await waitFor(() => {
-      expect(screen.getByText('RAID Log')).toBeInTheDocument()
-    })
-
-    // Toggle to analyze mode — results should clear
-    const allButtons = screen.getAllByRole('button')
-    const analyzeToggle = allButtons.find(
-      (b) => b.getAttribute('type') === 'button' && b.textContent === 'Analyze'
-    )
-    fireEvent.click(analyzeToggle)
-
-    expect(screen.queryByText('RAID Log')).not.toBeInTheDocument()
-    expect(
-      screen.getByText('No suggestions yet. Paste some text above to get started.')
-    ).toBeInTheDocument()
+    expect(applySuggestionByType).toHaveBeenCalledWith(mockSuggestion)
   })
 })

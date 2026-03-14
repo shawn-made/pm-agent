@@ -474,6 +474,44 @@ export async function browseFolders(path) {
   return res.json();
 }
 
+// ============================================================
+// JOB QUEUE (Task 57 — Fire-and-Forget)
+// ============================================================
+
+/**
+ * Submit a background processing job.
+ * @param {string} jobType - 'artifact_sync', 'deep_strategy', or 'risk_prediction'
+ * @param {string} projectId - Project scope
+ * @param {Object} payload - Job-type-specific request data
+ * @returns {Promise<{job_id: string, status: string}>}
+ */
+export async function submitJob(jobType, projectId, payload) {
+  const res = await fetch(`${API_BASE}/jobs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ job_type: jobType, project_id: projectId, payload }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * Check the status of a background job.
+ * @param {string} jobId - Job identifier from submitJob
+ * @returns {Promise<{job_id: string, job_type: string, status: string, result?: Object, error_message?: string}>}
+ */
+export async function getJobStatus(jobId) {
+  const res = await fetch(`${API_BASE}/jobs/${encodeURIComponent(jobId)}`);
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function intakeApply(projectId, proposedSections, approvedSections) {
   const res = await fetch(`${API_BASE}/lpd/${encodeURIComponent(projectId)}/intake/apply`, {
     method: 'POST',
