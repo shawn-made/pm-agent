@@ -16,7 +16,7 @@
 | Phase 1B: Polish + Transcripts | 31-37 | 7/7 | Complete |
 | Phase 2A: Workflow Completion | 38-44 | 7/7 | Complete |
 | Phase 2B: Deep Analysis | 45-53 | 9/9 | Complete |
-| **Phase 3A: UX + Infrastructure** | **54-58** | **3/5** | **In Progress** |
+| **Phase 3A: UX + Infrastructure** | **54-58** | **4/5** | **In Progress** |
 | Phase 3B: Chat + Brain Dump | 59-61 | 0/3 | Not Started |
 | Phase 3C: Skeptical Reviewer | 62-63 | 0/2 | Not Started |
 
@@ -969,7 +969,7 @@ Task 52 (S, folder browser)   ──┘  (independent track)
 
 | Sub-Phase | Tasks | Done | Status |
 |-----------|-------|------|--------|
-| 3A: UX Clarity + Infrastructure | 54-58 | 1/5 | In Progress |
+| 3A: UX Clarity + Infrastructure | 54-58 | 3/5 | In Progress |
 | 3B: Chat + Brain Dump | 59-61 | 0/3 | Not Started |
 | 3C: Skeptical Reviewer | 62-63 | 0/2 | Not Started |
 
@@ -1049,12 +1049,12 @@ Task 52 (S, folder browser)   ──┘  (independent track)
 ### Task 58: ESLint Cleanup
 **Complexity**: XS | **Sessions**: <1 | **Dependencies**: None
 
-- [ ] Fix `afterEach` not defined in `api.test.js` (add to ESLint globals or import)
-- [ ] Fix `ProjectContext.jsx` fast-refresh warning (split export into separate file)
-- [ ] ESLint passes with 0 errors, 0 warnings
+- [x] Fix `afterEach` not defined in `api.test.js` (add to ESLint globals or import)
+- [x] Fix `ProjectContext.jsx` fast-refresh warning (split export into separate file)
+- [x] ESLint passes with 0 errors, 0 warnings
 
 **Done when**: `npx eslint src/` returns clean.
-**Status**: Not Started
+**Status**: Complete
 
 ---
 

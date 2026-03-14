@@ -1,12 +1,14 @@
 /**
- * ProjectContext — provides the current project ID to all components.
+ * ProjectProvider — provides the current project ID to all components.
  *
  * Replaces hardcoded 'default' project IDs throughout the app.
  * MVP: single project, but the context pattern supports multi-project later.
+ *
+ * Context object is in ./projectContext.js (separate for fast-refresh).
+ * useProject hook is in ./useProject.js (separate for fast-refresh).
  */
-import { createContext, useContext, useState } from 'react'
-
-const ProjectContext = createContext(null)
+import { useState } from 'react'
+import { ProjectContext } from './ProjectContextDef'
 
 export function ProjectProvider({ children, initialProjectId = 'default' }) {
   const [projectId, setProjectId] = useState(initialProjectId)
@@ -16,12 +18,4 @@ export function ProjectProvider({ children, initialProjectId = 'default' }) {
       {children}
     </ProjectContext.Provider>
   )
-}
-
-export function useProject() {
-  const ctx = useContext(ProjectContext)
-  if (!ctx) {
-    throw new Error('useProject must be used within a ProjectProvider')
-  }
-  return ctx
 }

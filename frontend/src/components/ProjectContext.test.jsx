@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { ProjectProvider, useProject } from './ProjectContext'
+import { ProjectProvider } from './ProjectContext'
+import { useProject } from './useProject'
 
 function TestConsumer() {
   const { projectId } = useProject()
