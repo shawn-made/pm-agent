@@ -106,11 +106,17 @@ describe('ProjectDoc', () => {
     })
   })
 
-  it('shows section content', async () => {
+  it('shows section content when expanded', async () => {
     getLPDSections.mockResolvedValue({ sections: mockSections })
     getLPDStaleness.mockResolvedValue({ staleness: mockStaleness })
 
     renderPage()
+
+    // Sections are collapsed by default — expand all
+    await waitFor(() => {
+      expect(screen.getByText('Expand All')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByText('Expand All'))
 
     await waitFor(() => {
       expect(screen.getByText('Project Falcon — mobile app redesign.')).toBeInTheDocument()
@@ -363,7 +369,9 @@ describe('ProjectDoc', () => {
       )
       fireEvent.click(stakeholderButton)
 
-      expect(sectionEl.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
+      await waitFor(() => {
+        expect(sectionEl.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
+      })
     })
   })
 })

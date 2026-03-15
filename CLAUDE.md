@@ -238,7 +238,7 @@ cd backend && source venv/bin/activate && python -m pytest tests/ -v
 # Run backend tests with coverage
 cd backend && python -m pytest tests/ -v --cov=app --cov-report=term-missing
 
-# Run frontend tests (302+ tests)
+# Run frontend tests (307+ tests)
 cd frontend && npm test
 
 # Run smoke tests only (pre-commit gate)

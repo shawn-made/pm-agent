@@ -77,7 +77,7 @@ export default function DeepStrategy() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="border-l-4 border-amber-400 pl-4">
         <h2 className="text-lg font-semibold text-gray-900 mb-1">Audit</h2>
         <p className="text-sm text-gray-500">
           Check your documents for inconsistencies and cross-section conflicts.

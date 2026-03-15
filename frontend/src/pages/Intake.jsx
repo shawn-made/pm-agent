@@ -8,7 +8,7 @@
  * 4. Select which sections to approve
  * 5. Click "Apply" to commit to LPD
  */
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../components/ToastContext'
 import { intakePreview, intakeApply } from '../services/api'
@@ -19,9 +19,11 @@ export default function Intake() {
   const [approved, setApproved] = useState(new Set())
   const [isExtracting, setIsExtracting] = useState(false)
   const [isApplying, setIsApplying] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
   const [error, setError] = useState(null)
   const toast = useToast()
   const navigate = useNavigate()
+  const fileInputRef = useRef(null)
   const projectId = 'default'
 
   function addFile() {
@@ -37,6 +39,39 @@ export default function Intake() {
     const updated = [...files]
     updated[index] = { ...updated[index], [field]: value }
     setFiles(updated)
+  }
+
+  function readAndAddFiles(fileList) {
+    fileList.forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const content = event.target?.result || ''
+        const name = file.name
+        setFiles((prev) => {
+          const idx = prev.findIndex((f) => !f.content.trim())
+          if (idx >= 0) {
+            const updated = [...prev]
+            updated[idx] = { filename: name, content }
+            return updated
+          }
+          return [...prev, { filename: name, content }]
+        })
+      }
+      reader.readAsText(file)
+    })
+  }
+
+  function handleFileDrop(e) {
+    e.preventDefault()
+    setIsDragOver(false)
+    const droppedFiles = Array.from(e.dataTransfer.files)
+    if (droppedFiles.length > 0) readAndAddFiles(droppedFiles)
+  }
+
+  function handleFileSelect(e) {
+    const selected = Array.from(e.target.files)
+    if (selected.length > 0) readAndAddFiles(selected)
+    e.target.value = ''
   }
 
   async function handlePreview() {
@@ -97,7 +132,7 @@ export default function Intake() {
         [...approved],
       )
       toast.success(`Applied ${result.sections_updated.length} section${result.sections_updated.length !== 1 ? 's' : ''} to knowledge base`)
-      navigate('/project')
+      navigate('/')
     } catch (err) {
       setError(err.message)
       toast.error('Apply failed')
@@ -108,12 +143,30 @@ export default function Intake() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">Import Files</h2>
+      <div className="border-l-4 border-blue-400 pl-4">
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">Import</h2>
         <p className="text-sm text-gray-500">
-          Paste existing PM documents to populate your knowledge base. Each file is processed individually.
+          Import files and documents into your project knowledge base.
         </p>
       </div>
+
+      {/* Drag-drop zone */}
+      <div
+        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+          isDragOver ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+        }`}
+        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={handleFileDrop}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        <svg className="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+        </svg>
+        <p className="text-sm text-gray-500">Drop files here or click to browse</p>
+        <p className="text-xs text-gray-400 mt-1">.md, .txt, or any text file</p>
+      </div>
+      <input ref={fileInputRef} type="file" multiple accept=".md,.txt,.csv,.json,.doc,.rtf" onChange={handleFileSelect} className="hidden" />
 
       {/* File inputs */}
       <div className="space-y-4">
@@ -124,8 +177,8 @@ export default function Intake() {
                 type="text"
                 value={file.filename}
                 onChange={(e) => updateFile(index, 'filename', e.target.value)}
-                placeholder={`File name (e.g., kickoff_notes.md)`}
-                className="text-sm border border-gray-300 rounded px-3 py-1.5 w-64 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                placeholder="Optional label"
+                className="text-sm border border-gray-300 rounded px-3 py-1.5 w-48 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
               />
               {files.length > 1 && (
                 <button

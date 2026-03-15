@@ -44,13 +44,13 @@ describe('Intake', () => {
 
   it('renders heading and file input area', () => {
     renderPage()
-    expect(screen.getByText('Import Files')).toBeInTheDocument()
+    expect(screen.getByText('Import')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Paste file content here...')).toBeInTheDocument()
   })
 
   it('renders filename input', () => {
     renderPage()
-    expect(screen.getByPlaceholderText(/File name/)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/Optional label/)).toBeInTheDocument()
   })
 
   it('adds a file when Add File clicked', () => {
@@ -176,7 +176,7 @@ describe('Intake', () => {
     fireEvent.click(screen.getByText(/Apply 2 Section/))
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/project')
+      expect(mockNavigate).toHaveBeenCalledWith('/')
     })
   })
 

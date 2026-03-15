@@ -7,6 +7,7 @@
  */
 import { useState, useEffect, useRef } from 'react'
 import TextInput from '../components/TextInput'
+import ProcessModeCards from '../components/ProcessModeCards'
 import SuggestionCard from '../components/SuggestionCard'
 import DocumentDraftCard from '../components/DocumentDraftCard'
 import AnalysisCard from '../components/AnalysisCard'
@@ -214,14 +215,16 @@ export default function ArtifactSync() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="border-l-4 border-indigo-400 pl-4">
         <h2 className="text-lg font-semibold text-gray-900 mb-1">Process</h2>
         <p className="text-sm text-gray-500">
           {SUBTITLES[mode] || SUBTITLES.extract}
         </p>
       </div>
 
-      <TextInput onSubmit={handleSubmit} isLoading={isLoading} mode={mode} onModeChange={handleModeChange} />
+      <ProcessModeCards mode={mode} onModeChange={handleModeChange} />
+
+      <TextInput onSubmit={handleSubmit} isLoading={isLoading} mode={mode} />
 
       {/* Error display */}
       {error && (
