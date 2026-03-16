@@ -17,8 +17,8 @@
 | Phase 2A: Workflow Completion | 38-44 | 7/7 | Complete |
 | Phase 2B: Deep Analysis | 45-53 | 9/9 | Complete |
 | **Phase 3A: UX + Infrastructure** | **54-58** | **5/5** | **Complete** |
-| Phase 3B: Chat + Brain Dump | 59-61 | 0/3 | Not Started |
-| Phase 3C: Skeptical Reviewer | 62-63 | 0/2 | Not Started |
+| Phase 3B: Briefing + Chat + Brain Dump | 59-62 | 0/4 | Not Started |
+| Phase 3C: Skeptical Reviewer | 63-64 | 0/2 | Not Started |
 
 ---
 
@@ -1062,13 +1062,36 @@ Task 52 (S, folder browser)   ──┘  (independent track)
 
 ---
 
-### PHASE 3B: CHAT + BRAIN DUMP (Tasks 59-61)
+### PHASE 3B: BRIEFING + CHAT + BRAIN DUMP (Tasks 59-62)
 
-### Task 59: Conversational API — Backend Implementation
-**Complexity**: L | **Sessions**: 2-3 | **Dependencies**: Task 57 (job polling pattern)
+### Task 59: Morning Briefing — AI-Generated Project Briefing
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: Task 57 (job polling pattern), LPD staleness endpoint
+**Rationale**: Stepping stone to chat — builds the "gather all project context → LLM synthesis → structured response" pattern that Tasks 60-62 extend. Validates proactive intelligence premise before full chat build.
+
+- [ ] `briefing_service.py` — new service: gather LPD sections, staleness data, cached risk predictions, cached deep strategy results, recent session summaries
+- [ ] Briefing prompt template: "Given this project state, generate a focused PM briefing. Extract deadlines from Timeline section, cross-reference open questions against decisions, flag contradictions, prioritize what needs attention. Every item must cite its source section."
+- [ ] `BriefingResponse` Pydantic model: attention_items (list with severity + source_section), upcoming_dates (extracted from LPD content), contradictions (cross-section), suggested_next_action, generated_at timestamp
+- [ ] `GET /api/briefing/{project_id}` — returns cached briefing if fresh (<4h), otherwise generates new
+- [ ] `POST /api/briefing/{project_id}/refresh` — force-regenerate briefing (uses job polling pattern for long LLM call)
+- [ ] Privacy proxy on LPD content before LLM call, reidentify in response
+- [ ] Briefing cache: store in `sessions` table with `tab_used="briefing"`, serve latest until refresh
+- [ ] `BriefingPanel.jsx` — rendered as readable briefing, not dashboard cards. Each attention item links to relevant tab/section.
+- [ ] "Refresh Briefing" button (not auto-refresh — LLM cost conscious)
+- [ ] Empty state: "No project data yet. Start by importing files on the Import tab or adding content to your Knowledge Base."
+- [ ] Architecture tests include `briefing_service`
+- [ ] Tests: context gathering, prompt construction, cache freshness logic, empty project handling, privacy round-trip
+
+**Files**: `briefing_service.py` (new), `briefing_prompts.py` (new), `BriefingPanel.jsx` (new), `routes.py` (extend), `schemas.py` (extend)
+**Done when**: PM opens VPMA and sees an AI-generated briefing that extracts deadlines, flags stale sections, identifies contradictions, and suggests what to work on first. Briefing cites specific LPD sections as evidence.
+**Status**: Not Started
+
+---
+
+### Task 60: Conversational API — Backend Implementation
+**Complexity**: L | **Sessions**: 2-3 | **Dependencies**: Task 59 (reuses context-gathering pattern)
 
 - [ ] Create `conversations` and `conversation_messages` DB tables (from `docs/conversational_api_design.md`)
-- [ ] `chat_service.py` — new service: create conversation, add message, build LLM prompt with conversation history + LPD context
+- [ ] `chat_service.py` — new service: create conversation, add message, build LLM prompt with conversation history + LPD context (reuse context-gathering from `briefing_service.py`)
 - [ ] System prompt template for conversational PM assistant persona
 - [ ] `POST /api/chat/{project_id}` — start or continue conversation
 - [ ] `GET /api/chat/{project_id}/conversations` — list conversations
@@ -1088,8 +1111,8 @@ Task 52 (S, folder browser)   ──┘  (independent track)
 
 ---
 
-### Task 60: Chat Panel — Frontend Implementation
-**Complexity**: L | **Sessions**: 2-3 | **Dependencies**: Task 59
+### Task 61: Chat Panel — Frontend Implementation
+**Complexity**: L | **Sessions**: 2-3 | **Dependencies**: Task 60
 
 - [ ] `ChatPanel.jsx` — message list, input box, send button, loading state
 - [ ] `ConversationList.jsx` — sidebar or dropdown showing past conversations with timestamps
@@ -1108,8 +1131,8 @@ Task 52 (S, folder browser)   ──┘  (independent track)
 
 ---
 
-### Task 61: Brain Dump Mode — V28/V33
-**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: Task 59, 60
+### Task 62: Brain Dump Mode — V28/V33
+**Complexity**: M | **Sessions**: 1-2 | **Dependencies**: Task 60, 61
 
 - [ ] Brain dump system prompt: "User is dumping unstructured thoughts. Triage into: action items, risks, decisions, open questions, project updates, or noise. Route each to the appropriate LPD section or artifact type."
 - [ ] Brain dump trigger: either a "Brain Dump" button in the chat panel or a dedicated input mode
@@ -1123,16 +1146,16 @@ Task 52 (S, folder browser)   ──┘  (independent track)
 
 ---
 
-### PHASE 3C: SKEPTICAL REVIEWER (Tasks 62-63)
+### PHASE 3C: SKEPTICAL REVIEWER (Tasks 63-64)
 
-### Task 62: V41 Quality Gate — Prompt Testing
+### Task 63: V41 Quality Gate — Prompt Testing
 **Complexity**: M | **Sessions**: 1-2 | **Dependencies**: None (can run in parallel with 3B)
 
 - [ ] Write Skeptical Reviewer prompt template: "Given this project's LPD and artifacts, identify specific contradictions, underestimated risks, timeline inconsistencies, and blind spots. Every finding must cite specific evidence from the provided documents."
 - [ ] Run prompt against real project data (PM Sandbox or test project with populated LPD)
 - [ ] Evaluate output specificity: does it cite specific artifacts/sections, or give generic advice?
 - [ ] Score: SPECIFIC (cites evidence, names sections) vs. GENERIC (vague "consider your risks" platitudes)
-- [ ] **GO/NO-GO decision**: If output is consistently specific and evidence-backed → GO to Task 63. If generic → iterate on prompt or defer feature.
+- [ ] **GO/NO-GO decision**: If output is consistently specific and evidence-backed → GO to Task 64. If generic → iterate on prompt or defer feature.
 - [ ] Document findings and decision in DECISIONS.md
 
 **Done when**: Clear GO/NO-GO decision with evidence. If GO, prompt template is proven. If NO-GO, document what's needed and defer.
@@ -1140,8 +1163,8 @@ Task 52 (S, folder browser)   ──┘  (independent track)
 
 ---
 
-### Task 63: V41 Skeptical Reviewer — Service + UI
-**Complexity**: L | **Sessions**: 2-3 | **Dependencies**: Task 62 (GO decision required)
+### Task 64: V41 Skeptical Reviewer — Service + UI
+**Complexity**: L | **Sessions**: 2-3 | **Dependencies**: Task 63 (GO decision required)
 
 - [ ] `skeptical_reviewer.py` — new service: reads LPD + artifacts, builds review prompt, parses findings
 - [ ] Finding model: `ReviewFinding` — category (contradiction, blind_spot, timeline_risk, underestimated_risk), severity, evidence (artifact/section citations), recommendation

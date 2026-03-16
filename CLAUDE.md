@@ -135,12 +135,13 @@ Interactive intelligence — shift from paste-and-process to proactive, conversa
 - V42: Session-based polling — server-tracked processing, fire-and-forget pattern
 - ESLint cleanup
 
-### Phase 3B: Chat + Brain Dump (Tasks 59-61)
+### Phase 3B: Briefing + Chat + Brain Dump (Tasks 59-62)
+- Morning Briefing: AI-generated project briefing — deadlines, staleness, contradictions, next action (D59)
 - Conversational API implementation (from `docs/conversational_api_design.md`)
 - Embedded chat panel frontend
 - V28/V33: Brain dump mode — freeform capture → triage → route via chat
 
-### Phase 3C: Skeptical Reviewer (Tasks 62-63)
+### Phase 3C: Skeptical Reviewer (Tasks 63-64)
 - V41 quality gate: test prompts against real data, GO/NO-GO before building UI
 - V41: Skeptical Reviewer mode — evidence-based project critique from LPD + artifacts
 

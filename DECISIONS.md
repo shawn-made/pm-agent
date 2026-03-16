@@ -1,7 +1,7 @@
 # VPMA — Decisions Log
 
-**Last Updated**: 2026-03-14
-**Current As Of**: 2026-03-14 (D57 added — Task 54 terminology lock)
+**Last Updated**: 2026-03-16
+**Current As Of**: 2026-03-16 (D58-D59 added — session polling pattern, morning briefing as 3B lead)
 
 ---
 
@@ -576,3 +576,35 @@ Frontend shows 4 contextual states: Not Installed (link to ollama.com), Installe
 **Rule 22 applied**: Names challenged against "would a new user know what this does?" — "Artifact Sync" and "Deep Strategy" both failed; "Process" and "Audit" pass.
 
 **Connects to**: D27 (original three-tab navigation), D38 (Phase 1B UI rename), D54 (Skeptical PM naming feedback)
+
+### D58: Session-Based Job Polling Pattern
+**Date**: 2026-03-14 (Phase 3A, Task 57) | **Status**: Active
+
+**Decision**: Implement fire-and-forget background job processing via `jobs` DB table + localStorage-backed polling. POST starts a job, returns `job_id`, frontend polls `GET /api/jobs/{job_id}` until complete.
+
+**Rationale**: Long-running LLM calls (deep strategy, risk prediction) block the UI. User feedback: duration is fine, silent failure is not. This pattern lets users navigate away and return to results.
+
+**Connects to**: D56 (Phase 3 scoping — user wants fire-and-forget patterns)
+
+### D59: Morning Briefing as Phase 3B Lead Task
+**Date**: 2026-03-16 (Phase 3B planning) | **Status**: Active
+
+**Decision**: Insert AI-generated "Morning Briefing" as Task 59, first task of Phase 3B, before the conversational API (now Task 60). Briefing gathers all project context (LPD sections, staleness, cached risk/strategy results, session summaries) and synthesizes a focused PM briefing: what needs attention, upcoming deadlines extracted from LPD content, cross-section contradictions, and suggested next action.
+
+**Rationale**: Three reasons:
+1. **Stepping stone** — builds the "gather all project context → LLM synthesis → structured response" pattern that the chat service reuses.
+2. **Immediate value** — delivers Phase 3B utility on day 2 instead of day 7. PM gets proactive intelligence before the full chat system exists.
+3. **Validates premise** — tests whether VPMA proactively reading project data and surfacing priorities actually works. If briefing output is mediocre, tune the approach before building chat on top of it.
+
+**Alternatives considered**:
+- Traditional status board dashboard (gauges, cards, heatmap) — rejected as "dashboards nobody asked for" per Skeptical PM review. PM already knows their data because they put it in. A lobby page, not a tool.
+- External sharing / browser links — deferred. No users to share with yet. Static HTML export is useful but lower priority than core intelligence features.
+- Audience-parameterized export (exec summary, team view) — good future feature, better as an export function than a self-facing view.
+
+**Key design choices**:
+- Briefing is AI-generated text, not a grid of cards — reads like a PM's morning standup notes
+- Cached for 4h to avoid LLM cost on every page load; manual refresh button
+- Every attention item must cite its source LPD section (evidence-based, not generic)
+- Reuses job polling pattern from Task 57 for the refresh LLM call
+
+**Connects to**: D56 (Phase 3 scoping), VPMA Architecture Insights Pattern 6 (audience views — here the audience is "PM at start of day")
