@@ -1,7 +1,7 @@
 # VPMA — Executive Technical Summary
 
-**Version**: 0.5.0 — Phase 0 Complete, Phase 1A Complete, Phase 1B Complete, Phase 2A Complete, Phase 2B Complete
-**Last Updated**: 2026-03-13
+**Version**: 0.7.0 — Phase 0 Complete, Phase 1A Complete, Phase 1B Complete, Phase 2A Complete, Phase 2B Complete, Phase 3A Complete, Phase 3B Complete
+**Last Updated**: 2026-03-16
 
 ---
 
@@ -173,6 +173,12 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 | AI Risk Prediction | Complete | `risk_prediction.py`, `RiskPredictionPanel.jsx` |
 | Cross-section LPD Reconciliation | Complete | `reconciliation.py`, `ReconciliationPanel.jsx` |
 | Folder browser for Settings | Complete | `routes.py`, `FolderBrowser.jsx` |
+| Naming/IA pass + empty states | Complete | All pages (Phase 3A) |
+| Session-based job polling | Complete | `job_runner.py`, `useJobPolling.js` |
+| Morning Briefing (AI-generated) | Complete | `briefing_service.py`, `BriefingPanel.jsx` |
+| Conversational API | Complete | `chat_service.py`, `chat_prompts.py`, `routes.py` |
+| Chat panel (Assistant tab) | Complete | `Chat.jsx`, `App.jsx` |
+| Brain Dump mode | Complete | `Chat.jsx` (toggle mode) |
 
 ---
 
@@ -184,8 +190,8 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 | **Phase 1B** | Fit & Finish + Transcripts | ~~Semantic dedup, result persistence, transcript watcher, UX polish~~ DONE |
 | **Phase 2A** | Workflow Completion | ~~Ollama adapter, export, change summary, results view, drag-drop, conv. API design~~ DONE |
 | **Phase 2B** | Deep Analysis | ~~Deep strategy tab, folder browser, AI risk prediction, cross-section reconciliation~~ DONE |
-| **Phase 3A** | UX + Infrastructure | Naming/IA clarity, empty-state coaching, proactive nudges, session-based polling |
-| **Phase 3B** | Chat + Brain Dump | Conversational API, embedded chat panel, brain dump triage mode |
+| **Phase 3A** | UX + Infrastructure | ~~Naming/IA clarity, empty-state coaching, proactive nudges, session-based polling~~ DONE |
+| **Phase 3B** | Briefing + Chat + Brain Dump | ~~Morning briefing, conversational API, chat panel, brain dump triage~~ DONE |
 | **Phase 3C** | Skeptical Reviewer | Evidence-based project critique from LPD + artifacts (quality gate first) |
 | **Phase 4** | Commercial | Decision journal, cross-doc synthesis, meeting prep, integrations |
 
@@ -193,9 +199,9 @@ Artifacts (RAID logs, status reports) are stored as Markdown files, not database
 
 ## Codebase Statistics
 
-- **Backend**: 18 service modules, 9 database tables, 32 API endpoints
-- **Frontend**: 14 components, 5 pages, 2 hooks, 1 API service module
-- **Tests**: 1,244+ total (937+ backend + 307+ frontend)
+- **Backend**: 20 service modules, 11 database tables, 38 API endpoints
+- **Frontend**: 15 components, 6 pages, 2 hooks, 1 API service module
+- **Tests**: 1,301+ total (980+ backend + 321+ frontend)
 - **Lines of code**: ~8,500 backend Python, ~3,200 frontend JavaScript (estimated)
 
 ---

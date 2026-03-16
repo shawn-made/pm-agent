@@ -653,3 +653,155 @@ async def cleanup_expired_jobs(max_age_hours: int = 24) -> int:
         return cursor.rowcount
     finally:
         await db.close()
+
+
+# ============================================================
+# CONVERSATIONS (Task 60 — Conversational API)
+# ============================================================
+
+
+async def create_conversation(conversation_id: str, project_id: str, mode: str = "chat") -> dict:
+    """Create a new conversation record."""
+    db = await get_db()
+    try:
+        await db.execute(
+            """INSERT INTO conversations (conversation_id, project_id, mode)
+               VALUES (?, ?, ?)""",
+            (conversation_id, project_id, mode),
+        )
+        await db.commit()
+        cursor = await db.execute(
+            "SELECT * FROM conversations WHERE conversation_id = ?",
+            (conversation_id,),
+        )
+        row = await cursor.fetchone()
+        return dict(row)
+    finally:
+        await db.close()
+
+
+async def get_conversation(conversation_id: str) -> Optional[dict]:
+    """Get a conversation by ID."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT * FROM conversations WHERE conversation_id = ?",
+            (conversation_id,),
+        )
+        row = await cursor.fetchone()
+        return dict(row) if row else None
+    finally:
+        await db.close()
+
+
+async def get_conversations_by_project(project_id: str, limit: int = 20) -> list[dict]:
+    """List conversations for a project, most recent first."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            """SELECT * FROM conversations
+               WHERE project_id = ?
+               ORDER BY last_message_at DESC LIMIT ?""",
+            (project_id, limit),
+        )
+        rows = await cursor.fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        await db.close()
+
+
+async def update_conversation(conversation_id: str, *, title: Optional[str] = None) -> None:
+    """Update conversation metadata (title, last_message_at, message_count)."""
+    db = await get_db()
+    try:
+        if title is not None:
+            await db.execute(
+                "UPDATE conversations SET title = ? WHERE conversation_id = ?",
+                (title, conversation_id),
+            )
+        await db.execute(
+            """UPDATE conversations
+               SET last_message_at = CURRENT_TIMESTAMP,
+                   message_count = (
+                       SELECT COUNT(*) FROM conversation_messages
+                       WHERE conversation_id = ?
+                   )
+               WHERE conversation_id = ?""",
+            (conversation_id, conversation_id),
+        )
+        await db.commit()
+    finally:
+        await db.close()
+
+
+async def delete_conversation(conversation_id: str) -> bool:
+    """Delete a conversation and all its messages. Returns True if found."""
+    db = await get_db()
+    try:
+        # Delete messages first (FK constraint)
+        await db.execute(
+            "DELETE FROM conversation_messages WHERE conversation_id = ?",
+            (conversation_id,),
+        )
+        cursor = await db.execute(
+            "DELETE FROM conversations WHERE conversation_id = ?",
+            (conversation_id,),
+        )
+        await db.commit()
+        return cursor.rowcount > 0
+    finally:
+        await db.close()
+
+
+async def add_conversation_message(
+    message_id: str,
+    conversation_id: str,
+    role: str,
+    content: str,
+    suggestions_json: str = "[]",
+    lpd_sections_json: str = "[]",
+    token_count: int = 0,
+) -> dict:
+    """Add a message to a conversation."""
+    db = await get_db()
+    try:
+        await db.execute(
+            """INSERT INTO conversation_messages
+               (message_id, conversation_id, role, content, suggestions_json,
+                lpd_sections_json, token_count)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                message_id,
+                conversation_id,
+                role,
+                content,
+                suggestions_json,
+                lpd_sections_json,
+                token_count,
+            ),
+        )
+        await db.commit()
+        cursor = await db.execute(
+            "SELECT * FROM conversation_messages WHERE message_id = ?",
+            (message_id,),
+        )
+        row = await cursor.fetchone()
+        return dict(row)
+    finally:
+        await db.close()
+
+
+async def get_conversation_messages(conversation_id: str, limit: int = 50) -> list[dict]:
+    """Get messages for a conversation, oldest first."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            """SELECT * FROM conversation_messages
+               WHERE conversation_id = ?
+               ORDER BY created_at ASC LIMIT ?""",
+            (conversation_id, limit),
+        )
+        rows = await cursor.fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        await db.close()

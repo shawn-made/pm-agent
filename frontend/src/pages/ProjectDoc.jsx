@@ -11,6 +11,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useToast } from '../components/ToastContext'
+import BriefingPanel from '../components/BriefingPanel'
 import RiskPredictionPanel from '../components/RiskPredictionPanel'
 import {
   getLPDSections,
@@ -269,6 +270,9 @@ export default function ProjectDoc() {
   // LPD exists — show sections
   return (
     <div className="space-y-6">
+      {/* Morning Briefing */}
+      <BriefingPanel projectId={projectId} />
+
       <div className="flex items-center justify-between">
         <div className="border-l-4 border-emerald-400 pl-4">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">Knowledge Base</h2>

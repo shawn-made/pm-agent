@@ -125,4 +125,27 @@ CREATE TABLE IF NOT EXISTS jobs (
     completed_at TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES projects(project_id)
 );
+
+CREATE TABLE IF NOT EXISTS conversations (
+    conversation_id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    title TEXT,
+    mode TEXT DEFAULT 'chat',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_message_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    message_count INTEGER DEFAULT 0,
+    FOREIGN KEY (project_id) REFERENCES projects(project_id)
+);
+
+CREATE TABLE IF NOT EXISTS conversation_messages (
+    message_id TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL,
+    role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+    content TEXT NOT NULL,
+    suggestions_json TEXT DEFAULT '[]',
+    lpd_sections_json TEXT DEFAULT '[]',
+    token_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (conversation_id) REFERENCES conversations(conversation_id)
+);
 """

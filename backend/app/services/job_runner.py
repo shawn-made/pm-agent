@@ -20,7 +20,7 @@ _active_tasks: set[asyncio.Task] = set()
 MAX_CONCURRENT_PER_PROJECT = 2
 
 # Valid job types
-VALID_JOB_TYPES = {"artifact_sync", "deep_strategy", "risk_prediction"}
+VALID_JOB_TYPES = {"artifact_sync", "deep_strategy", "risk_prediction", "briefing"}
 
 
 async def _run_artifact_sync(payload: dict) -> str:
@@ -50,11 +50,21 @@ async def _run_risk_prediction(payload: dict) -> str:
     return result.model_dump_json()
 
 
+async def _run_briefing(payload: dict) -> str:
+    """Parse payload and call generate_briefing, return JSON result."""
+    from app.services.briefing_service import generate_briefing
+
+    project_id = payload.get("project_id", "default")
+    result = await generate_briefing(project_id=project_id, force_refresh=True)
+    return result.model_dump_json()
+
+
 # Map job_type → handler function
 _JOB_HANDLERS = {
     "artifact_sync": _run_artifact_sync,
     "deep_strategy": _run_deep_strategy,
     "risk_prediction": _run_risk_prediction,
+    "briefing": _run_briefing,
 }
 
 

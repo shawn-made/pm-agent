@@ -8,6 +8,9 @@ from fastapi import APIRouter, HTTPException
 from app.models.schemas import (
     ArtifactSyncRequest,
     ArtifactSyncResponse,
+    BriefingResponse,
+    ChatRequest,
+    ChatResponse,
     DeepStrategyApplyRequest,
     DeepStrategyApplyResponse,
     DeepStrategyRequest,
@@ -745,6 +748,99 @@ async def browse_folders(path: str = None):
         "parent_path": parent_path,
         "directories": directories,
     }
+
+
+# ============================================================
+# MORNING BRIEFING (Task 59)
+# ============================================================
+
+
+@router.get("/briefing/{project_id}", response_model=BriefingResponse)
+async def get_briefing(project_id: str):
+    """Get the project morning briefing.
+
+    Returns a cached briefing if one exists and is fresh (<4h).
+    Otherwise generates a new briefing via LLM.
+    """
+    from app.services.briefing_service import generate_briefing
+
+    try:
+        result = await generate_briefing(project_id=project_id, force_refresh=False)
+        return result
+    except LLMError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.post("/briefing/{project_id}/refresh", response_model=BriefingResponse)
+async def refresh_briefing(project_id: str):
+    """Force-regenerate the project morning briefing.
+
+    Skips the cache and runs a fresh LLM analysis.
+    """
+    from app.services.briefing_service import generate_briefing
+
+    try:
+        result = await generate_briefing(project_id=project_id, force_refresh=True)
+        return result
+    except LLMError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+# ============================================================
+# CHAT / CONVERSATIONAL API (Task 60)
+# ============================================================
+
+
+@router.post("/chat/{project_id}", response_model=ChatResponse)
+async def chat_message(project_id: str, request: ChatRequest):
+    """Send a message in a conversation. Creates a new conversation if conversation_id is null."""
+    from app.services.chat_service import send_chat_message
+
+    if not request.message.strip():
+        raise HTTPException(status_code=400, detail="Message is required")
+
+    try:
+        result = await send_chat_message(
+            project_id=project_id,
+            message=request.message,
+            conversation_id=request.conversation_id,
+            include_lpd_context=request.include_lpd_context,
+            include_artifacts=request.include_artifacts,
+        )
+        return result
+    except LLMError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.get("/chat/{project_id}/conversations")
+async def list_conversations(project_id: str):
+    """List all conversations for a project, most recent first."""
+    from app.services.chat_service import get_conversations
+
+    conversations = await get_conversations(project_id)
+    return {"conversations": conversations}
+
+
+@router.get("/chat/{project_id}/conversations/{conversation_id}")
+async def get_conversation(project_id: str, conversation_id: str):
+    """Get full conversation history."""
+    from app.services.chat_service import get_conversation_history
+
+    result = await get_conversation_history(project_id, conversation_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return result
+
+
+@router.delete("/chat/{project_id}/conversations/{conversation_id}")
+async def delete_conversation(project_id: str, conversation_id: str):
+    """Delete a conversation and all its messages."""
+    from app.services.chat_service import remove_conversation
+
+    deleted = await remove_conversation(project_id, conversation_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return {"status": "deleted", "conversation_id": conversation_id}
 
 
 # ============================================================

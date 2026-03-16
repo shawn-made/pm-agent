@@ -113,6 +113,8 @@ class TestLLMAbstraction:
             "risk_prediction.py",
             "reconciliation.py",
             "job_runner.py",
+            "briefing_service.py",
+            "chat_service.py",
         ],
     )
     def test_services_do_not_import_anthropic_sdk(self, service_file):

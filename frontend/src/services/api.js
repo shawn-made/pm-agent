@@ -512,6 +512,107 @@ export async function getJobStatus(jobId) {
   return res.json();
 }
 
+// ============================================================
+// MORNING BRIEFING (Task 59)
+// ============================================================
+
+/**
+ * Get the project morning briefing (cached if fresh).
+ * @param {string} [projectId='default'] - Project scope
+ * @returns {Promise<Object>} BriefingResponse
+ */
+export async function getBriefing(projectId = 'default') {
+  const res = await fetch(`${API_BASE}/briefing/${encodeURIComponent(projectId)}`);
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * Force-regenerate the project morning briefing.
+ * @param {string} [projectId='default'] - Project scope
+ * @returns {Promise<Object>} BriefingResponse
+ */
+export async function refreshBriefing(projectId = 'default') {
+  const res = await fetch(`${API_BASE}/briefing/${encodeURIComponent(projectId)}/refresh`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ============================================================
+// CHAT / CONVERSATIONAL API (Task 60)
+// ============================================================
+
+/**
+ * Send a chat message (starts or continues a conversation).
+ * @param {string} projectId - Project scope
+ * @param {string} message - User's message
+ * @param {string|null} conversationId - Existing conversation ID or null for new
+ * @param {Object} [options] - Additional options
+ * @returns {Promise<Object>} ChatResponse
+ */
+export async function sendChatMessage(projectId, message, conversationId = null, options = {}) {
+  const res = await fetch(`${API_BASE}/chat/${encodeURIComponent(projectId)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message,
+      conversation_id: conversationId,
+      include_lpd_context: options.includeLpdContext !== false,
+      include_artifacts: options.includeArtifacts || false,
+    }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * List conversations for a project.
+ * @param {string} projectId - Project scope
+ * @returns {Promise<{conversations: Array}>}
+ */
+export async function listConversations(projectId = 'default') {
+  const res = await fetch(`${API_BASE}/chat/${encodeURIComponent(projectId)}/conversations`);
+  if (!res.ok) throw new Error(`Failed to list conversations: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Get full conversation history.
+ * @param {string} projectId - Project scope
+ * @param {string} conversationId - Conversation ID
+ * @returns {Promise<Object>} Conversation with messages
+ */
+export async function getConversation(projectId, conversationId) {
+  const res = await fetch(`${API_BASE}/chat/${encodeURIComponent(projectId)}/conversations/${encodeURIComponent(conversationId)}`);
+  if (!res.ok) throw new Error(`Failed to get conversation: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Delete a conversation.
+ * @param {string} projectId - Project scope
+ * @param {string} conversationId - Conversation ID
+ * @returns {Promise<Object>}
+ */
+export async function deleteConversation(projectId, conversationId) {
+  const res = await fetch(`${API_BASE}/chat/${encodeURIComponent(projectId)}/conversations/${encodeURIComponent(conversationId)}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error(`Failed to delete conversation: ${res.status}`);
+  return res.json();
+}
+
 export async function intakeApply(projectId, proposedSections, approvedSections) {
   const res = await fetch(`${API_BASE}/lpd/${encodeURIComponent(projectId)}/intake/apply`, {
     method: 'POST',

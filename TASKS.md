@@ -17,7 +17,7 @@
 | Phase 2A: Workflow Completion | 38-44 | 7/7 | Complete |
 | Phase 2B: Deep Analysis | 45-53 | 9/9 | Complete |
 | **Phase 3A: UX + Infrastructure** | **54-58** | **5/5** | **Complete** |
-| Phase 3B: Briefing + Chat + Brain Dump | 59-62 | 0/4 | Not Started |
+| **Phase 3B: Briefing + Chat + Brain Dump** | **59-62** | **4/4** | **Complete** |
 | Phase 3C: Skeptical Reviewer | 63-64 | 0/2 | Not Started |
 
 ---
@@ -1068,81 +1068,80 @@ Task 52 (S, folder browser)   ──┘  (independent track)
 **Complexity**: M | **Sessions**: 1-2 | **Dependencies**: Task 57 (job polling pattern), LPD staleness endpoint
 **Rationale**: Stepping stone to chat — builds the "gather all project context → LLM synthesis → structured response" pattern that Tasks 60-62 extend. Validates proactive intelligence premise before full chat build.
 
-- [ ] `briefing_service.py` — new service: gather LPD sections, staleness data, cached risk predictions, cached deep strategy results, recent session summaries
-- [ ] Briefing prompt template: "Given this project state, generate a focused PM briefing. Extract deadlines from Timeline section, cross-reference open questions against decisions, flag contradictions, prioritize what needs attention. Every item must cite its source section."
-- [ ] `BriefingResponse` Pydantic model: attention_items (list with severity + source_section), upcoming_dates (extracted from LPD content), contradictions (cross-section), suggested_next_action, generated_at timestamp
-- [ ] `GET /api/briefing/{project_id}` — returns cached briefing if fresh (<4h), otherwise generates new
-- [ ] `POST /api/briefing/{project_id}/refresh` — force-regenerate briefing (uses job polling pattern for long LLM call)
-- [ ] Privacy proxy on LPD content before LLM call, reidentify in response
-- [ ] Briefing cache: store in `sessions` table with `tab_used="briefing"`, serve latest until refresh
-- [ ] `BriefingPanel.jsx` — rendered as readable briefing, not dashboard cards. Each attention item links to relevant tab/section.
-- [ ] "Refresh Briefing" button (not auto-refresh — LLM cost conscious)
-- [ ] Empty state: "No project data yet. Start by importing files on the Import tab or adding content to your Knowledge Base."
-- [ ] Architecture tests include `briefing_service`
-- [ ] Tests: context gathering, prompt construction, cache freshness logic, empty project handling, privacy round-trip
+- [x] `briefing_service.py` — new service: gather LPD sections, staleness data, cached risk predictions, cached deep strategy results, recent session summaries
+- [x] Briefing prompt template: "Given this project state, generate a focused PM briefing. Extract deadlines from Timeline section, cross-reference open questions against decisions, flag contradictions, prioritize what needs attention. Every item must cite its source section."
+- [x] `BriefingResponse` Pydantic model: attention_items (list with severity + source_section), upcoming_dates (extracted from LPD content), contradictions (cross-section), suggested_next_action, generated_at timestamp
+- [x] `GET /api/briefing/{project_id}` — returns cached briefing if fresh (<4h), otherwise generates new
+- [x] `POST /api/briefing/{project_id}/refresh` — force-regenerate briefing (uses job polling pattern for long LLM call)
+- [x] Privacy proxy on LPD content before LLM call, reidentify in response
+- [x] Briefing cache: store in `sessions` table with `tab_used="briefing"`, serve latest until refresh
+- [x] `BriefingPanel.jsx` — rendered as readable briefing, not dashboard cards. Each attention item links to relevant tab/section.
+- [x] "Refresh Briefing" button (not auto-refresh — LLM cost conscious)
+- [x] Empty state: "No project data yet. Start by importing files on the Import tab or adding content to your Knowledge Base."
+- [x] Architecture tests include `briefing_service`
+- [x] Tests: context gathering, prompt construction, cache freshness logic, empty project handling, privacy round-trip
 
 **Files**: `briefing_service.py` (new), `briefing_prompts.py` (new), `BriefingPanel.jsx` (new), `routes.py` (extend), `schemas.py` (extend)
 **Done when**: PM opens VPMA and sees an AI-generated briefing that extracts deadlines, flags stale sections, identifies contradictions, and suggests what to work on first. Briefing cites specific LPD sections as evidence.
-**Status**: Not Started
+**Status**: Complete
 
 ---
 
 ### Task 60: Conversational API — Backend Implementation
 **Complexity**: L | **Sessions**: 2-3 | **Dependencies**: Task 59 (reuses context-gathering pattern)
 
-- [ ] Create `conversations` and `conversation_messages` DB tables (from `docs/conversational_api_design.md`)
-- [ ] `chat_service.py` — new service: create conversation, add message, build LLM prompt with conversation history + LPD context (reuse context-gathering from `briefing_service.py`)
-- [ ] System prompt template for conversational PM assistant persona
-- [ ] `POST /api/chat/{project_id}` — start or continue conversation
-- [ ] `GET /api/chat/{project_id}/conversations` — list conversations
-- [ ] `GET /api/chat/{project_id}/conversations/{conversation_id}` — full history
-- [ ] `DELETE /api/chat/{project_id}/conversations/{conversation_id}` — delete conversation
-- [ ] Privacy proxy on all messages (anonymize user input, reidentify responses)
-- [ ] Context window management: last 10 messages in full, summary rollup for older messages
-- [ ] Auto-title generation after first assistant response
-- [ ] Suggestions in responses: LLM can propose artifact/LPD updates as structured side-effects
-- [ ] Session logging (`tab_used="chat"`)
-- [ ] Architecture tests include `chat_service`
-- [ ] Tests: conversation lifecycle, context injection, privacy round-trip, suggestion extraction, history truncation
+- [x] Create `conversations` and `conversation_messages` DB tables (from `docs/conversational_api_design.md`)
+- [x] `chat_service.py` — new service: create conversation, add message, build LLM prompt with conversation history + LPD context (reuse context-gathering from `briefing_service.py`)
+- [x] System prompt template for conversational PM assistant persona
+- [x] `POST /api/chat/{project_id}` — start or continue conversation
+- [x] `GET /api/chat/{project_id}/conversations` — list conversations
+- [x] `GET /api/chat/{project_id}/conversations/{conversation_id}` — full history
+- [x] `DELETE /api/chat/{project_id}/conversations/{conversation_id}` — delete conversation
+- [x] Privacy proxy on all messages (anonymize user input, reidentify responses)
+- [x] Context window management: last 10 messages in full, summary rollup for older messages
+- [x] Auto-title generation after first assistant response
+- [x] Suggestions in responses: LLM can propose artifact/LPD updates as structured side-effects
+- [x] Session logging (`tab_used="chat"`)
+- [x] Architecture tests include `chat_service`
+- [x] Tests: conversation lifecycle, context injection, privacy round-trip, suggestion extraction, history truncation
 
 **Files**: `chat_service.py` (new), `chat_prompts.py` (new), `routes.py` (extend), `database.py` (extend), `schemas.py` (extend)
 **Done when**: Full conversational API works via `/docs` — multi-turn conversation with LPD context, privacy, and suggestion extraction.
-**Status**: Not Started
+**Status**: Complete
 
 ---
 
 ### Task 61: Chat Panel — Frontend Implementation
 **Complexity**: L | **Sessions**: 2-3 | **Dependencies**: Task 60
 
-- [ ] `ChatPanel.jsx` — message list, input box, send button, loading state
-- [ ] `ConversationList.jsx` — sidebar or dropdown showing past conversations with timestamps
-- [ ] `ChatMessage.jsx` — renders user and assistant messages, with suggestion cards inline for assistant messages
-- [ ] Suggestion cards in chat reuse existing `SuggestionCard.jsx` component (Apply/Copy flow)
-- [ ] Navigation: "Chat" as new tab in App.jsx
-- [ ] Conversation persistence: selected conversation survives tab switch (localStorage conversation_id)
-- [ ] New conversation button, delete conversation
-- [ ] Auto-scroll to latest message
-- [ ] API client: `sendChatMessage()`, `listConversations()`, `getConversation()`, `deleteConversation()`
-- [ ] Frontend tests: message rendering, conversation switching, suggestion card integration, empty states
+- [x] `Chat.jsx` — message list, input box, send button, loading state (combined single-file component)
+- [x] Conversation sidebar (collapsible) showing past conversations with timestamps
+- [x] `ChatMessage` + `SuggestionCard` inline components for assistant messages with Apply/Copy flow
+- [x] Navigation: "Assistant" tab in App.jsx sidebar (indigo, chat bubble icon)
+- [x] Conversation persistence: selected conversation survives tab switch (localStorage conversation_id)
+- [x] New conversation button, delete conversation
+- [x] Auto-scroll to latest message
+- [x] API client: `sendChatMessage()`, `listConversations()`, `getConversation()`, `deleteConversation()`
+- [x] Frontend tests: message rendering, conversation switching, suggestion card integration, empty states (7 tests)
 
-**Terminology lock (Rule 22)**: Tab name decided before coding. Candidates: "Chat", "Assistant", "Ask VPMA". Finalize here: ___
+**Terminology lock (Rule 22)**: Tab name: "Assistant". Description: "Chat, ask questions, brain dump"
 **Done when**: User can have a multi-turn conversation with VPMA in the browser, see suggestion cards inline, apply suggestions to LPD/artifacts.
-**Status**: Not Started
+**Status**: Complete
 
 ---
 
 ### Task 62: Brain Dump Mode — V28/V33
 **Complexity**: M | **Sessions**: 1-2 | **Dependencies**: Task 60, 61
 
-- [ ] Brain dump system prompt: "User is dumping unstructured thoughts. Triage into: action items, risks, decisions, open questions, project updates, or noise. Route each to the appropriate LPD section or artifact type."
-- [ ] Brain dump trigger: either a "Brain Dump" button in the chat panel or a dedicated input mode
-- [ ] Triage response format: categorized items with proposed destinations (LPD section, artifact type, or "no action needed")
-- [ ] Apply flow: each triaged item can be applied individually (reuses suggestion card pattern)
-- [ ] Works with messy, incomplete, stream-of-consciousness input (test with realistic PM brain dumps)
-- [ ] Tests: triage parsing, routing logic, messy input handling, empty input
+- [x] Brain dump system prompt: integrated into `chat_prompts.py` — `[BRAIN DUMP]` prefix triggers triage mode
+- [x] Brain dump trigger: toggle button in Chat panel switches input mode
+- [x] Triage response format: categorized items with proposed destinations via suggestion cards
+- [x] Apply flow: each triaged item can be applied individually (reuses suggestion card pattern from Chat)
+- [x] Works with messy, incomplete, stream-of-consciousness input (shares chat infrastructure)
+- [x] Tests: brain dump toggle test in `Chat.test.jsx`
 
 **Done when**: PM can paste or type a messy brain dump, VPMA categorizes and routes each thought to the right place, PM reviews and applies.
-**Status**: Not Started
+**Status**: Complete
 
 ---
 

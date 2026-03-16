@@ -415,6 +415,58 @@ class ChatResponse(BaseModel):
     token_count: int = Field(0, description="Total tokens used for this exchange")
 
 
+# --- Morning Briefing (Task 59) ---
+
+
+class BriefingAttentionItem(BaseModel):
+    """A single item requiring PM attention in the morning briefing."""
+
+    title: str = Field(..., description="Brief headline of what needs attention")
+    detail: str = Field(..., description="Specific explanation with evidence")
+    source_section: str = Field(..., description="Which LPD section or data source")
+    severity: str = Field("medium", description="'high', 'medium', or 'low'")
+    category: str = Field(
+        ...,
+        description="'staleness', 'risk', 'contradiction', 'deadline', or 'gap'",
+    )
+
+
+class BriefingUpcomingDate(BaseModel):
+    """A date or deadline extracted from project data."""
+
+    description: str = Field(..., description="What the date is for")
+    date_text: str = Field(..., description="The date as mentioned in the project data")
+    source_section: str = Field(..., description="Which LPD section mentions this")
+    urgency: str = Field("upcoming", description="'imminent', 'upcoming', or 'future'")
+
+
+class BriefingContradiction(BaseModel):
+    """A cross-section contradiction detected in the briefing."""
+
+    description: str = Field(..., description="What contradicts what")
+    section_a: str = Field(..., description="First section involved")
+    section_b: str = Field(..., description="Second section involved")
+    suggested_resolution: str = Field("", description="What the PM should do about it")
+
+
+class BriefingResponse(BaseModel):
+    """Full response from the morning briefing generator."""
+
+    attention_items: list[BriefingAttentionItem] = Field(
+        default_factory=list, description="Items requiring PM attention"
+    )
+    upcoming_dates: list[BriefingUpcomingDate] = Field(
+        default_factory=list, description="Dates and deadlines from project data"
+    )
+    contradictions: list[BriefingContradiction] = Field(
+        default_factory=list, description="Cross-section contradictions"
+    )
+    suggested_next_action: str = Field("", description="Single most impactful thing to do first")
+    generated_at: str = Field("", description="ISO timestamp of when briefing was generated")
+    session_id: str = Field("", description="Session ID for tracking")
+    from_cache: bool = Field(False, description="Whether this was served from cache")
+
+
 # --- Deep Strategy (Phase 2B) ---
 
 

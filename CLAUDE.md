@@ -233,13 +233,13 @@ npm run dev  # → http://localhost:3000
 ## Debugging
 
 ```bash
-# Run backend tests (937+ tests)
+# Run backend tests (980+ tests)
 cd backend && source venv/bin/activate && python -m pytest tests/ -v
 
 # Run backend tests with coverage
 cd backend && python -m pytest tests/ -v --cov=app --cov-report=term-missing
 
-# Run frontend tests (307+ tests)
+# Run frontend tests (321+ tests)
 cd frontend && npm test
 
 # Run smoke tests only (pre-commit gate)
