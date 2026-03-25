@@ -216,10 +216,20 @@ export default function Intake() {
         </div>
       </div>
 
+      {/* Loading indicator */}
+      {isExtracting && (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-3" />
+          <p className="text-sm text-gray-500">Analyzing files and extracting project knowledge...</p>
+          <p className="text-xs text-gray-400 mt-1">This may take 15-30 seconds per file</p>
+        </div>
+      )}
+
       {/* Error */}
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-sm text-red-700">{error}</p>
+          <p className="text-xs text-red-500 mt-1">This can happen with very large files or LLM timeouts. Try a shorter file or check your API key in Settings.</p>
         </div>
       )}
 
