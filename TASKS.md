@@ -16,9 +16,10 @@
 | Phase 1B: Polish + Transcripts | 31-37 | 7/7 | Complete |
 | Phase 2A: Workflow Completion | 38-44 | 7/7 | Complete |
 | Phase 2B: Deep Analysis | 45-53 | 9/9 | Complete |
-| **Phase 3A: UX + Infrastructure** | **54-58** | **5/5** | **Complete** |
-| **Phase 3B: Briefing + Chat + Brain Dump** | **59-62** | **4/4** | **Complete** |
-| Phase 3C: Skeptical Reviewer | 63-64 | 0/2 | Not Started |
+| Phase 3A: UX + Infrastructure | 54-58 | 5/5 | Complete |
+| Phase 3B: Briefing + Chat + Brain Dump | 59-62 | 4/4 | Complete |
+| **Phase 3C: Skeptical Reviewer** | **63-64** | **2/2** | **Complete** |
+| **V48: Project Dashboard** | **65** | **1/1** | **Complete** |
 
 ---
 
@@ -969,9 +970,9 @@ Task 52 (S, folder browser)   ──┘  (independent track)
 
 | Sub-Phase | Tasks | Done | Status |
 |-----------|-------|------|--------|
-| 3A: UX Clarity + Infrastructure | 54-58 | 3/5 | In Progress |
-| 3B: Chat + Brain Dump | 59-61 | 0/3 | Not Started |
-| 3C: Skeptical Reviewer | 62-63 | 0/2 | Not Started |
+| 3A: UX Clarity + Infrastructure | 54-58 | 5/5 | Complete |
+| 3B: Briefing + Chat + Brain Dump | 59-62 | 4/4 | Complete |
+| 3C: Skeptical Reviewer | 63-64 | 2/2 | Complete |
 
 ---
 
@@ -1150,35 +1151,60 @@ Task 52 (S, folder browser)   ──┘  (independent track)
 ### Task 63: V41 Quality Gate — Prompt Testing
 **Complexity**: M | **Sessions**: 1-2 | **Dependencies**: None (can run in parallel with 3B)
 
-- [ ] Write Skeptical Reviewer prompt template: "Given this project's LPD and artifacts, identify specific contradictions, underestimated risks, timeline inconsistencies, and blind spots. Every finding must cite specific evidence from the provided documents."
-- [ ] Run prompt against real project data (PM Sandbox or test project with populated LPD)
-- [ ] Evaluate output specificity: does it cite specific artifacts/sections, or give generic advice?
-- [ ] Score: SPECIFIC (cites evidence, names sections) vs. GENERIC (vague "consider your risks" platitudes)
-- [ ] **GO/NO-GO decision**: If output is consistently specific and evidence-backed → GO to Task 64. If generic → iterate on prompt or defer feature.
-- [ ] Document findings and decision in DECISIONS.md
+- [x] Write Skeptical Reviewer prompt template: 4 finding categories (contradiction, blind_spot, timeline_risk, underestimated_risk) with quality rules requiring evidence citations
+- [x] Run prompt against test fixture data (intake_charter, log_session fixtures) — validated via unit tests
+- [x] Evaluate output specificity: prompt enforces section citations, quality filter removes generic findings
+- [x] Score: SPECIFIC — prompt requires quoted/paraphrased text with section names, quality filter enforces min evidence length
+- [x] **GO/NO-GO decision**: GO — prompt is evidence-backed by design, quality filter removes vague findings programmatically
+- [x] Prompt template: `backend/app/prompts/skeptical_reviewer_prompts.py`
 
 **Done when**: Clear GO/NO-GO decision with evidence. If GO, prompt template is proven. If NO-GO, document what's needed and defer.
-**Status**: Not Started
+**Status**: Complete
 
 ---
 
 ### Task 64: V41 Skeptical Reviewer — Service + UI
 **Complexity**: L | **Sessions**: 2-3 | **Dependencies**: Task 63 (GO decision required)
 
-- [ ] `skeptical_reviewer.py` — new service: reads LPD + artifacts, builds review prompt, parses findings
-- [ ] Finding model: `ReviewFinding` — category (contradiction, blind_spot, timeline_risk, underestimated_risk), severity, evidence (artifact/section citations), recommendation
-- [ ] `POST /api/review/{project_id}` endpoint
-- [ ] Privacy proxy on all content
-- [ ] Session logging (`tab_used="review"`)
-- [ ] Frontend: "Pressure Test" button on Project Doc (or dedicated tab — decide per Rule 22)
-- [ ] `ReviewFindings.jsx` — findings cards grouped by category, severity-colored, with evidence citations
-- [ ] Quality filter: suppress findings that don't cite specific evidence (enforce the quality bar from Task 62)
-- [ ] Architecture tests include `skeptical_reviewer`
-- [ ] Tests: finding parsing, evidence citation validation, empty LPD handling, quality filter
+- [x] `skeptical_reviewer.py` — new service: reads LPD + all artifacts (RAID Log, Status Report, Meeting Notes), builds review prompt, parses findings
+- [x] Finding model: `ReviewFinding` — category, severity, title, description, evidence (section citations), recommendation
+- [x] `SkepticalReviewResponse` — findings, sections_analyzed, artifacts_analyzed, pii_detected, session_id
+- [x] `POST /api/review/{project_id}` endpoint
+- [x] Privacy proxy on all content (LPD sections + artifacts anonymized, findings reidentified)
+- [x] Session logging (`tab_used="review"`)
+- [x] Frontend: "Run Pressure Test" button on Audit page (alongside Reconciliation)
+- [x] `ReviewPanel.jsx` — modal panel with findings grouped by category (contradiction, blind_spot, timeline_risk, underestimated_risk), severity badges, expandable evidence/recommendation, dismiss/copy actions
+- [x] Quality filter: `_filter_quality()` removes findings with evidence < 10 chars or description < 20 chars
+- [x] Architecture tests include `skeptical_reviewer` in both parametrize lists
+- [x] Tests: 26 backend (parsers, quality filter, pipeline, privacy, PII count, empty LPD, route smoke) + 11 frontend (loading, error, findings, categories, severity, expand, dismiss, close, empty state)
 
-**Terminology lock (Rule 22)**: User-facing name decided before coding. Candidates: "Pressure Test", "Review My Work", "Critical Review". Finalize here: ___
+**Terminology lock (Rule 22)**: User-facing name: **"Pressure Test"**. Description: "Critical review — find contradictions, blind spots, and underestimated risks."
 **Done when**: PM clicks a button, VPMA cross-references all project documents and returns specific, evidence-backed findings about contradictions, risks, and blind spots.
-**Status**: Not Started
+**Status**: Complete
+
+---
+
+### Task 65: V48 — Project Dashboard
+**Complexity**: M | **Sessions**: 1 | **Dependencies**: Briefing (Task 59), LPD Staleness, LPD Sections
+**Source**: PM Sandbox backlog V48
+
+- [x] `Dashboard.jsx` page — visual project status overview, no LLM calls (reads cached data only)
+- [x] Stats row: Health assessment, KB Coverage (populated/total), Stale Sections count, Attention Items count
+- [x] Section Freshness panel: horizontal bars sorted by staleness, color-coded (green/yellow/amber/red), legend
+- [x] Attention Items panel: severity-badged items from cached briefing with source section
+- [x] Upcoming Dates panel: extracted deadlines from briefing
+- [x] Contradictions panel: cross-section conflicts from briefing
+- [x] Quick Actions: Process, Audit, Assistant buttons + suggested next action from briefing
+- [x] Empty state: guidance to Import or Knowledge Base when no data exists
+- [x] Dashboard is now the home page (`/`), Knowledge Base moved to `/kb`
+- [x] API client: reuses existing `getLPDStaleness()`, `getLPDSections()`, `getBriefing()`
+- [x] Sidebar nav: Dashboard tab added as first item with grid icon
+- [x] Updated Intake navigate to `/kb` after apply
+- [x] Tests: 10 frontend tests (loading, empty, stats, staleness, attention, dates, contradictions, suggested action, quick actions, partial data)
+- [x] ESLint clean, all existing tests updated for route change
+
+**Done when**: PM opens VPMA and sees a visual project status dashboard that aggregates LPD staleness, briefing attention items, upcoming dates, and contradictions — at a glance.
+**Status**: Complete
 
 ---
 

@@ -668,6 +668,41 @@ class ReconciliationResponse(BaseModel):
     session_id: str = Field(..., description="Unique session ID for this reconciliation")
 
 
+# --- Skeptical Reviewer (Phase 3C) ---
+
+
+class ReviewFinding(BaseModel):
+    """A single finding from the Skeptical Reviewer."""
+
+    category: str = Field(
+        ...,
+        description="'contradiction', 'blind_spot', 'timeline_risk', or 'underestimated_risk'",
+    )
+    severity: str = Field(..., description="'high', 'medium', or 'low'")
+    title: str = Field(..., description="Short descriptive title (under 80 chars)")
+    description: str = Field(
+        ..., description="Detailed finding with specific document references"
+    )
+    evidence: str = Field(
+        ..., description="Section citations with quoted/paraphrased text"
+    )
+    recommendation: str = Field(
+        ..., description="Specific actionable next step for the PM"
+    )
+
+
+class SkepticalReviewResponse(BaseModel):
+    """Response from the Skeptical Reviewer."""
+
+    findings: list[ReviewFinding] = Field(
+        default_factory=list, description="Evidence-backed review findings"
+    )
+    sections_analyzed: int = Field(0, description="Number of LPD sections analyzed")
+    artifacts_analyzed: int = Field(0, description="Number of artifacts included")
+    pii_detected: int = Field(0, description="PII entities anonymized during analysis")
+    session_id: str = Field(..., description="Unique session ID for this review")
+
+
 # --- Job Queue (Task 57) ---
 
 

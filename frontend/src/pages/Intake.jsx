@@ -132,7 +132,7 @@ export default function Intake() {
         [...approved],
       )
       toast.success(`Applied ${result.sections_updated.length} section${result.sections_updated.length !== 1 ? 's' : ''} to knowledge base`)
-      navigate('/')
+      navigate('/kb')
     } catch (err) {
       setError(err.message)
       toast.error('Apply failed')

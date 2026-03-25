@@ -11,6 +11,7 @@ import ArtifactUploader from '../components/ArtifactUploader'
 import DeepStrategyResults from '../components/DeepStrategyResults'
 import PassProgressBar from '../components/PassProgressBar'
 import ReconciliationPanel from '../components/ReconciliationPanel'
+import ReviewPanel from '../components/ReviewPanel'
 import { useToast } from '../components/ToastContext'
 import { deepStrategyApply } from '../services/api'
 import useJobPolling from '../hooks/useJobPolling'
@@ -19,6 +20,7 @@ export default function DeepStrategy() {
   const [isApplying, setIsApplying] = useState(false)
   const [uploaderKey, setUploaderKey] = useState(0)
   const [showReconPanel, setShowReconPanel] = useState(false)
+  const [showReviewPanel, setShowReviewPanel] = useState(false)
   const toast = useToast()
   const job = useJobPolling('deep_strategy')
 
@@ -160,6 +162,26 @@ export default function DeepStrategy() {
       {showReconPanel && (
         <ReconciliationPanel
           onClose={() => setShowReconPanel(false)}
+        />
+      )}
+
+      {/* --- Pressure Test section --- */}
+      <div className="border-t border-gray-200 pt-6">
+        <h3 className="text-sm font-semibold text-gray-700 mb-1">Pressure Test</h3>
+        <p className="text-xs text-gray-400 mb-3">
+          Critical review — find contradictions, blind spots, and underestimated risks across all project documents.
+        </p>
+        <button
+          onClick={() => setShowReviewPanel(true)}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          Run Pressure Test
+        </button>
+      </div>
+
+      {showReviewPanel && (
+        <ReviewPanel
+          onClose={() => setShowReviewPanel(false)}
         />
       )}
     </div>

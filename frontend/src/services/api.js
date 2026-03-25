@@ -456,6 +456,26 @@ export async function reconcileLPD(projectId = 'default') {
 }
 
 // ============================================================
+// SKEPTICAL REVIEW
+// ============================================================
+
+/**
+ * Run Skeptical Review on project documents.
+ * @param {string} [projectId='default'] - Project to review
+ * @returns {Promise<{findings: Array, sections_analyzed: number, artifacts_analyzed: number, pii_detected: number, session_id: string}>}
+ */
+export async function skepticalReview(projectId = 'default') {
+  const res = await fetch(`${API_BASE}/review/${encodeURIComponent(projectId)}`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: `Request failed: ${res.status}` }));
+    throw new Error(error.detail || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ============================================================
 // FOLDER BROWSER
 // ============================================================
 

@@ -176,7 +176,7 @@ describe('Intake', () => {
     fireEvent.click(screen.getByText(/Apply 2 Section/))
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/')
+      expect(mockNavigate).toHaveBeenCalledWith('/kb')
     })
   })
 

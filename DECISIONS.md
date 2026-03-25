@@ -1,7 +1,7 @@
 # VPMA — Decisions Log
 
-**Last Updated**: 2026-03-16
-**Current As Of**: 2026-03-16 (D58-D59 added — session polling pattern, morning briefing as 3B lead)
+**Last Updated**: 2026-03-25
+**Current As Of**: 2026-03-25 (D60-D62 added — Phase 3C complete, Dashboard, live testing feedback)
 
 ---
 
@@ -608,3 +608,34 @@ Frontend shows 4 contextual states: Not Installed (link to ollama.com), Installe
 - Reuses job polling pattern from Task 57 for the refresh LLM call
 
 **Connects to**: D56 (Phase 3 scoping), VPMA Architecture Insights Pattern 6 (audience views — here the audience is "PM at start of day")
+
+### D60: Phase 3C — Skeptical Reviewer as "Pressure Test"
+**Date**: 2026-03-25 (Phase 3C) | **Status**: Active
+
+**Decision**: User-facing name for the Skeptical Reviewer is "Pressure Test." Located on the Audit page alongside Document Consistency and Reconciliation. Findings require evidence citations — a quality filter removes generic findings programmatically.
+
+**Rationale**: "Pressure Test" communicates the intent (stress-test your project) without PM jargon. "Skeptical Reviewer" is the internal dev name. Quality filter enforces evidence citations at the code level rather than relying solely on the prompt.
+
+### D61: Project Dashboard as Home Page
+**Date**: 2026-03-25 (V48) | **Status**: Active
+
+**Decision**: Added a Project Dashboard as the app home page (`/`). Knowledge Base moved to `/kb`. Dashboard aggregates existing data (staleness, briefing, contradictions) — no LLM calls. Designed as a launchpad, not a destination.
+
+**Rationale**: First thing a PM sees should answer "what needs my attention?" Dashboard pulls from cached briefing + staleness data to show this without waiting for LLM calls. Knowledge Base is the working view for editing; Dashboard is the scanning view for orientation.
+
+### D62: Live Testing Feedback — UX Redesign Priorities
+**Date**: 2026-03-25 (first real-data testing of Phase 3 features) | **Status**: Active
+
+**Decision**: First live testing session with real PM data produced 15+ UX findings. Key architectural feedback that will drive next sprint:
+
+1. **Dashboard should show project status, not KB health** — "At Risk" label was measuring data staleness, not project risk. Misleading. Health label should require briefing data or say "Insufficient data."
+2. **Assistant should be a floating panel, not a tab** — users have questions while on other pages. Dedicated tab breaks flow. This is the #1 UX change.
+3. **Merge Reconciliation into Pressure Test** — three contradiction-finding tools on Audit page is unjustifiable. Pressure Test is a superset of Reconciliation.
+4. **Import vs Process distinction is confusing** — both get info into KB through different paths. Users don't think in terms of "import" vs "process." Needs merge or clear reframing.
+5. **Chat Apply is broken** — suggestions from chat don't visibly apply. Silent failure erodes trust.
+6. **Chat needs: loading indicator, copy button, timestamps in local time with dates.**
+7. **Import preview needs: editable text before apply, source attribution per file, "conflicts" relabeled.**
+8. **KB section formatting** — content is accurate but visually unstructured. Needs markdown rendering.
+9. **Chat should support "replace section" not just "append"** — current suggestion card mechanism can't update existing content, only add.
+
+**Rationale**: These findings come from the first session using VPMA with real PM project data (Data Lakehouse Program). Content quality from the LLM was validated as trustworthy. All issues are UX/workflow, not core functionality.

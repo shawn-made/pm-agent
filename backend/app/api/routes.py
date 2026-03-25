@@ -24,6 +24,7 @@ from app.models.schemas import (
     JobSubmitResponse,
     ReconciliationResponse,
     RiskPredictionResponse,
+    SkepticalReviewResponse,
     Suggestion,
 )
 from app.services.artifact_manager import (
@@ -841,6 +842,28 @@ async def delete_conversation(project_id: str, conversation_id: str):
     if not deleted:
         raise HTTPException(status_code=404, detail="Conversation not found")
     return {"status": "deleted", "conversation_id": conversation_id}
+
+
+# ============================================================
+# SKEPTICAL REVIEW (Phase 3C)
+# ============================================================
+
+
+@router.post("/review/{project_id}", response_model=SkepticalReviewResponse)
+async def skeptical_review_project(project_id: str):
+    """Run Skeptical Review on project documents.
+
+    Cross-references the full Living Project Document and artifacts to identify
+    specific contradictions, blind spots, timeline risks, and underestimated risks.
+    Every finding cites evidence from the provided documents.
+    """
+    from app.services.skeptical_reviewer import skeptical_review
+
+    try:
+        result = await skeptical_review(project_id=project_id)
+        return result
+    except LLMError as e:
+        raise HTTPException(status_code=502, detail=str(e))
 
 
 # ============================================================

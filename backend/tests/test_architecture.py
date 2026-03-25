@@ -115,6 +115,7 @@ class TestLLMAbstraction:
             "job_runner.py",
             "briefing_service.py",
             "chat_service.py",
+            "skeptical_reviewer.py",
         ],
     )
     def test_services_do_not_import_anthropic_sdk(self, service_file):
@@ -141,6 +142,7 @@ class TestLLMAbstraction:
             "risk_prediction.py",
             "reconciliation.py",
             "job_runner.py",
+            "skeptical_reviewer.py",
         ],
     )
     def test_services_do_not_import_google_genai_sdk(self, service_file):

@@ -122,7 +122,7 @@ Deep analysis + complementary features:
 - UX polish: dismiss buttons, result auto-expiry (24h), clear button, API key warnings
 - Ollama onboarding: 4-state detection UI with start button and model selector
 - New services: `deep_strategy.py`, `risk_prediction.py`, `reconciliation.py` — 17 service modules total
-- New endpoints: 7 new — 30 total API endpoints
+- New endpoints: 7 new — 31 total API endpoints (+ /review/{project_id} from Phase 3C)
 
 ## Phase 3 Scope (In Progress)
 
@@ -141,9 +141,9 @@ Interactive intelligence — shift from paste-and-process to proactive, conversa
 - Embedded chat panel frontend
 - V28/V33: Brain dump mode — freeform capture → triage → route via chat
 
-### Phase 3C: Skeptical Reviewer (Tasks 63-64)
-- V41 quality gate: test prompts against real data, GO/NO-GO before building UI
-- V41: Skeptical Reviewer mode — evidence-based project critique from LPD + artifacts
+### Phase 3C: Skeptical Reviewer + Dashboard (Tasks 63-65) — Complete
+- V41: Skeptical Reviewer ("Pressure Test") — evidence-based project critique from LPD + artifacts, quality filter
+- V48: Project Dashboard — visual status overview (home page), aggregates staleness, briefing, contradictions
 
 ## Rules
 
@@ -233,13 +233,13 @@ npm run dev  # → http://localhost:3000
 ## Debugging
 
 ```bash
-# Run backend tests (980+ tests)
+# Run backend tests (1000+ tests)
 cd backend && source venv/bin/activate && python -m pytest tests/ -v
 
 # Run backend tests with coverage
 cd backend && python -m pytest tests/ -v --cov=app --cov-report=term-missing
 
-# Run frontend tests (321+ tests)
+# Run frontend tests (342+ tests)
 cd frontend && npm test
 
 # Run smoke tests only (pre-commit gate)

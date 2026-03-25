@@ -11,6 +11,7 @@ import ProjectDoc from './pages/ProjectDoc.jsx'
 import Intake from './pages/Intake.jsx'
 import DeepStrategy from './pages/DeepStrategy.jsx'
 import Chat from './pages/Chat.jsx'
+import Dashboard from './pages/Dashboard.jsx'
 import Settings from './pages/Settings.jsx'
 import { healthCheck } from './services/api'
 
@@ -68,6 +69,18 @@ function App() {
           {/* Navigation */}
           <nav className="flex-1 px-3 py-4 space-y-1">
             <SidebarLink
+              to="/"
+              end
+              color="emerald"
+              icon={
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+                </svg>
+              }
+              label="Dashboard"
+              description="Project status at a glance"
+            />
+            <SidebarLink
               to="/import"
               color="blue"
               icon={
@@ -102,8 +115,7 @@ function App() {
               description="Check document consistency"
             />
             <SidebarLink
-              to="/"
-              end
+              to="/kb"
               color="emerald"
               icon={
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
@@ -161,15 +173,15 @@ function App() {
           {/* Main Content */}
           <main className="max-w-5xl mx-auto px-6 py-8 w-full flex-1">
             <Routes>
-              <Route path="/" element={<ProjectDoc />} />
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/kb" element={<ProjectDoc />} />
               <Route path="/import" element={<Intake />} />
               <Route path="/process" element={<ArtifactSync />} />
               <Route path="/audit" element={<DeepStrategy />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/settings" element={<Settings />} />
               {/* Redirects for old routes */}
-              <Route path="/kb" element={<Navigate to="/" replace />} />
-              <Route path="/project" element={<Navigate to="/" replace />} />
+              <Route path="/project" element={<Navigate to="/kb" replace />} />
               <Route path="/intake" element={<Navigate to="/import" replace />} />
             </Routes>
           </main>
@@ -177,7 +189,7 @@ function App() {
           {/* Footer */}
           <footer className="border-t border-gray-200 bg-white">
             <div className="max-w-5xl mx-auto px-6 py-3 text-xs text-gray-400 text-center">
-              VPMA v0.7.0 — Phase 3B
+              VPMA v0.8.0 — Phase 3C
             </div>
           </footer>
         </div>
