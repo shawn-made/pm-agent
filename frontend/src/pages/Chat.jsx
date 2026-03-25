@@ -119,7 +119,11 @@ function ChatMessage({ message, projectId, toast }) {
         {!isUser && (
           <button
             onClick={handleCopy}
-            className="text-xs text-gray-400 hover:text-gray-600 mt-2 opacity-0 group-hover:opacity-100 transition-opacity"
+            className={`text-xs mt-2 px-2 py-0.5 rounded border transition-colors ${
+              copied
+                ? 'bg-green-50 text-green-600 border-green-200'
+                : 'text-gray-400 hover:text-gray-600 border-gray-200 hover:bg-gray-50'
+            }`}
           >
             {copied ? 'Copied' : 'Copy'}
           </button>
@@ -146,7 +150,13 @@ function ChatMessage({ message, projectId, toast }) {
         )}
 
         <p className={`text-xs mt-1 ${isUser ? 'text-indigo-200' : 'text-gray-400'}`}>
-          {new Date(message.timestamp).toLocaleTimeString()}
+          {(() => {
+            const d = new Date(message.timestamp)
+            const now = new Date()
+            const isToday = d.toDateString() === now.toDateString()
+            const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+            return isToday ? time : `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${time}`
+          })()}
         </p>
       </div>
     </div>
