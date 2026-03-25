@@ -168,13 +168,14 @@ describe('Dashboard', () => {
   it('handles partial data gracefully', async () => {
     getLPDStaleness.mockResolvedValue(mockStaleness)
     getLPDSections.mockResolvedValue(mockSections)
-    getBriefing.mockRejectedValue(new Error('no briefing'))
+    getBriefing.mockResolvedValue({})  // Empty briefing (no attention items)
     renderDashboard()
 
     await waitFor(() => {
-      // Should still show staleness data even without briefing
+      // Should still show staleness data even with empty briefing
       expect(screen.getByText('Section Freshness')).toBeInTheDocument()
-      expect(screen.getByText(/sections stale/)).toBeInTheDocument()
+      // Empty briefing triggers "No Assessment"
+      expect(screen.getByText('No Assessment')).toBeInTheDocument()
     })
   })
 })

@@ -242,13 +242,13 @@ export default function Intake() {
 
           {/* Conflicts */}
           {draft.conflicts?.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
-              <h4 className="text-xs font-semibold text-amber-700 uppercase tracking-wide">
-                Conflicts Detected ({draft.conflicts.length})
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+              <h4 className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
+                Sections to Update ({draft.conflicts.length})
               </h4>
               {draft.conflicts.map((c, i) => (
-                <div key={i} className="text-xs text-amber-700">
-                  <strong>{c.section}</strong> ({c.source_file}): Existing content will be preserved; new content will be appended.
+                <div key={i} className="text-xs text-blue-700">
+                  <strong>{c.section}</strong> ({c.source_file}): New content will be appended to existing.
                 </div>
               ))}
             </div>

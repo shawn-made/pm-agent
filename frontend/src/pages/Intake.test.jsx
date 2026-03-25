@@ -195,7 +195,7 @@ describe('Intake', () => {
     fireEvent.click(screen.getByText('Preview'))
 
     await waitFor(() => {
-      expect(screen.getByText(/Conflicts Detected/)).toBeInTheDocument()
+      expect(screen.getByText(/Sections to Update/)).toBeInTheDocument()
     })
   })
 

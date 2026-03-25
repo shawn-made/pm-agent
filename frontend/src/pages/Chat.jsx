@@ -13,18 +13,39 @@ import {
 } from '../services/api'
 import { useToast } from '../components/ToastContext'
 
-function SuggestionCard({ suggestion, projectId, onApplied }) {
+function SuggestionCard({ suggestion, projectId, onApplied, toast }) {
   const [applying, setApplying] = useState(false)
   const [applied, setApplied] = useState(false)
+  const [error, setError] = useState(null)
 
   const handleApply = async () => {
     try {
       setApplying(true)
-      const result = await applySuggestionByType(suggestion, projectId)
+      setError(null)
+      // Ensure required fields have defaults for chat-generated suggestions
+      const payload = {
+        artifact_type: suggestion.artifact_type || 'RAID Log',
+        section: suggestion.section || '',
+        change_type: suggestion.change_type || 'add',
+        proposed_text: suggestion.proposed_text,
+        confidence: suggestion.confidence || 0.8,
+        reasoning: suggestion.reasoning || '',
+      }
+      const result = await applySuggestionByType(payload, projectId)
       setApplied(true)
+      const section = result?.lpd_change?.section
+      if (toast) {
+        if (result?.status === 'duplicate') {
+          toast('Already applied', 'info')
+        } else {
+          toast(section ? `Applied to ${section}` : 'Applied successfully', 'success')
+        }
+      }
       if (onApplied) onApplied(result)
-    } catch {
-      // Error handled via toast in parent
+    } catch (err) {
+      const msg = err?.message || 'Failed to apply'
+      setError(msg)
+      if (toast) toast(msg, 'error')
     } finally {
       setApplying(false)
     }
@@ -44,6 +65,9 @@ function SuggestionCard({ suggestion, projectId, onApplied }) {
       <p className="text-sm text-gray-700 whitespace-pre-wrap">{suggestion.proposed_text}</p>
       {suggestion.reasoning && (
         <p className="text-xs text-gray-500 mt-1">{suggestion.reasoning}</p>
+      )}
+      {error && (
+        <p className="text-xs text-red-500 mt-1">{error}</p>
       )}
       <div className="flex gap-2 mt-2">
         <button
@@ -68,11 +92,20 @@ function SuggestionCard({ suggestion, projectId, onApplied }) {
   )
 }
 
-function ChatMessage({ message, projectId }) {
+function ChatMessage({ message, projectId, toast }) {
   const isUser = message.role === 'user'
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.content)
+      .then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      })
+  }
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} group`}>
       <div
         className={`max-w-[80%] rounded-lg px-4 py-3 ${
           isUser
@@ -82,11 +115,21 @@ function ChatMessage({ message, projectId }) {
       >
         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
 
+        {/* Copy button for assistant messages */}
+        {!isUser && (
+          <button
+            onClick={handleCopy}
+            className="text-xs text-gray-400 hover:text-gray-600 mt-2 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        )}
+
         {/* Suggestion cards for assistant messages */}
         {!isUser && message.suggestions?.length > 0 && (
           <div className="mt-2 space-y-2">
             {message.suggestions.map((sugg, idx) => (
-              <SuggestionCard key={idx} suggestion={sugg} projectId={projectId} />
+              <SuggestionCard key={idx} suggestion={sugg} projectId={projectId} toast={toast} />
             ))}
           </div>
         )}
@@ -373,8 +416,23 @@ function Chat() {
               </div>
             ) : (
               messages.map(msg => (
-                <ChatMessage key={msg.message_id} message={msg} projectId={projectId} />
+                <ChatMessage key={msg.message_id} message={msg} projectId={projectId} toast={showToast} />
               ))
+            )}
+            {/* Thinking indicator */}
+            {sending && (
+              <div className="flex justify-start">
+                <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 max-w-[80%]">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                    <span className="text-xs text-gray-400">Thinking...</span>
+                  </div>
+                </div>
+              </div>
             )}
             <div ref={messagesEndRef} />
           </div>

@@ -99,18 +99,27 @@ export default function Dashboard() {
   const upcomingDates = briefing?.upcoming_dates || []
   const contradictions = briefing?.contradictions || []
 
-  // Overall health with reasoning
+  // Overall health with reasoning — requires briefing data for meaningful assessment
+  const hasBriefing = briefing && (attentionItems.length > 0 || upcomingDates.length > 0 || contradictions.length > 0 || briefing.suggested_next_action)
   let healthLabel = 'Healthy'
   let healthColor = 'text-green-600'
   const healthReasons = []
-  if (staleCount >= 4) healthReasons.push(`${staleCount} sections stale 14+ days`)
-  else if (staleCount >= 2) healthReasons.push(`${staleCount} sections stale 14+ days`)
-  if (highAttention >= 3) healthReasons.push(`${highAttention} high-severity items`)
-  else if (highAttention >= 1) healthReasons.push(`${highAttention} high-severity item${highAttention > 1 ? 's' : ''}`)
-  if (contradictions.length > 0) healthReasons.push(`${contradictions.length} contradiction${contradictions.length > 1 ? 's' : ''}`)
-  if (staleCount >= 4 || highAttention >= 3) { healthLabel = 'At Risk'; healthColor = 'text-red-600' }
-  else if (staleCount >= 2 || highAttention >= 1) { healthLabel = 'Needs Attention'; healthColor = 'text-amber-600' }
-  const healthReason = healthReasons.length > 0 ? healthReasons.join(', ') : 'No issues detected'
+
+  if (!hasBriefing) {
+    healthLabel = 'No Assessment'
+    healthColor = 'text-gray-400'
+  } else {
+    if (staleCount >= 4) healthReasons.push(`${staleCount} sections stale 14+ days`)
+    else if (staleCount >= 2) healthReasons.push(`${staleCount} sections stale 14+ days`)
+    if (highAttention >= 3) healthReasons.push(`${highAttention} high-severity items`)
+    else if (highAttention >= 1) healthReasons.push(`${highAttention} high-severity item${highAttention > 1 ? 's' : ''}`)
+    if (contradictions.length > 0) healthReasons.push(`${contradictions.length} contradiction${contradictions.length > 1 ? 's' : ''}`)
+    if (staleCount >= 4 || highAttention >= 3) { healthLabel = 'At Risk'; healthColor = 'text-red-600' }
+    else if (staleCount >= 2 || highAttention >= 1) { healthLabel = 'Needs Attention'; healthColor = 'text-amber-600' }
+  }
+  const healthReason = !hasBriefing
+    ? 'Generate a briefing from the Knowledge Base to enable health assessment'
+    : healthReasons.length > 0 ? healthReasons.join(', ') : 'No issues detected'
 
   // Last updated — most recent section update
   const mostRecent = sectionList.length > 0
