@@ -88,6 +88,13 @@ export default function Intake() {
       return
     }
 
+    // Check for very large files
+    const largeFiles = validFiles.filter(f => f.content.length > 15000)
+    if (largeFiles.length > 0) {
+      const names = largeFiles.map((f, i) => f.filename.trim() || `file ${i + 1}`).join(', ')
+      toast.info(`${names}: large file detected. Processing may be slow or fail — consider importing key sections only.`)
+    }
+
     // Auto-fill filenames
     const namedFiles = validFiles.map((f, i) => ({
       filename: f.filename.trim() || `file_${i + 1}.md`,
@@ -266,7 +273,7 @@ export default function Intake() {
 
           {/* Proposed sections with checkboxes */}
           <div className="space-y-2">
-            {Object.entries(draft.proposed_sections).map(([name, content]) => (
+            {Object.entries(draft.proposed_sections).map(([name]) => (
               <div key={name} className="bg-white border border-gray-200 rounded-lg">
                 <label className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 cursor-pointer">
                   <input
@@ -275,10 +282,32 @@ export default function Intake() {
                     onChange={() => toggleSection(name)}
                     className="rounded border-gray-300 text-gray-900 focus:ring-gray-900"
                   />
-                  <span className="text-sm font-semibold text-gray-700">{name}</span>
+                  <div>
+                    <span className="text-sm font-semibold text-gray-700">{name}</span>
+                    {draft.extractions?.length > 1 && (
+                      <span className="text-xs text-gray-400 ml-2">
+                        from: {draft.extractions
+                          .filter(e => {
+                            const fieldMap = { 'Overview': 'overview', 'Stakeholders': 'stakeholders', 'Timeline & Milestones': 'timeline', 'Risks': 'risks', 'Decisions': 'decisions', 'Open Questions': 'open_questions' }
+                            return e[fieldMap[name] || '']
+                          })
+                          .map(e => e.source_file)
+                          .join(', ')}
+                      </span>
+                    )}
+                  </div>
                 </label>
-                <div className="px-4 py-3 text-sm text-gray-600 whitespace-pre-wrap">
-                  {content}
+                <div className="px-4 py-3">
+                  <textarea
+                    value={draft.proposed_sections[name]}
+                    onChange={(e) => {
+                      setDraft(prev => ({
+                        ...prev,
+                        proposed_sections: { ...prev.proposed_sections, [name]: e.target.value }
+                      }))
+                    }}
+                    className="w-full text-sm text-gray-600 border border-gray-200 rounded p-2 min-h-[80px] focus:outline-none focus:ring-1 focus:ring-gray-400 resize-y"
+                  />
                 </div>
               </div>
             ))}

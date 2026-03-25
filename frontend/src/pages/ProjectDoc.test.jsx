@@ -120,7 +120,7 @@ describe('ProjectDoc', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Project Falcon — mobile app redesign.')).toBeInTheDocument()
-      expect(screen.getByText('- Budget risk.')).toBeInTheDocument()
+      expect(screen.getByText('Budget risk.')).toBeInTheDocument()
     })
   })
 

@@ -23,6 +23,30 @@ import {
   exportArtifacts,
 } from '../services/api'
 
+/** Lightweight markdown → HTML for KB section display. Handles bullets, bold, headers, and line breaks. */
+function renderMarkdown(text) {
+  return text
+    .split('\n')
+    .map(line => {
+      // Headers
+      if (line.startsWith('### ')) return `<h4 class="font-semibold text-gray-700 mt-3 mb-1">${line.slice(4)}</h4>`
+      if (line.startsWith('## ')) return `<h3 class="font-semibold text-gray-800 mt-3 mb-1">${line.slice(3)}</h3>`
+      // Bullet points
+      if (line.match(/^[\s]*[-*]\s/)) {
+        const content = line.replace(/^[\s]*[-*]\s/, '')
+        return `<li class="ml-4 list-disc">${boldify(content)}</li>`
+      }
+      // Empty lines → paragraph break
+      if (line.trim() === '') return '<br/>'
+      // Regular text
+      return `<p>${boldify(line)}</p>`
+    })
+    .join('')
+}
+function boldify(text) {
+  return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+}
+
 const SECTION_ORDER = [
   'Overview',
   'Stakeholders',
@@ -463,8 +487,12 @@ export default function ProjectDoc() {
                     </div>
                   </div>
                 ) : (
-                  <div className="text-sm text-gray-600 whitespace-pre-wrap">
-                    {content || <span className="text-gray-400 italic">No {name.toLowerCase()} recorded yet.</span>}
+                  <div className="text-sm text-gray-600 prose prose-sm max-w-none">
+                    {content ? (
+                      <div dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
+                    ) : (
+                      <span className="text-gray-400 italic">No {name.toLowerCase()} recorded yet.</span>
+                    )}
                   </div>
                 )}
               </div>

@@ -5,7 +5,7 @@
  * a scannable at-a-glance view. No LLM calls — reads cached/stored data only.
  */
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { getLPDStaleness, getLPDSections, getBriefing } from '../services/api'
 
 const SEVERITY_COLORS = {
@@ -24,7 +24,7 @@ function StatCard({ label, value, subtitle, color = 'text-gray-900' }) {
   )
 }
 
-function StalenessBar({ section, days }) {
+function StalenessBar({ section, days, onClick }) {
   let barColor = 'bg-green-400'
   let textColor = 'text-green-700'
   if (days >= 30) { barColor = 'bg-red-400'; textColor = 'text-red-700' }
@@ -34,8 +34,8 @@ function StalenessBar({ section, days }) {
   const width = Math.min(100, (days / 30) * 100)
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="text-xs text-gray-600 w-36 truncate" title={section}>{section}</span>
+    <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded -mx-1 px-1" onClick={onClick}>
+      <span className="text-xs text-gray-600 w-36 truncate hover:text-blue-600 hover:underline" title={section}>{section}</span>
       <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
         <div className={`h-full ${barColor} rounded-full transition-all`} style={{ width: `${width}%` }} />
       </div>
@@ -56,10 +56,15 @@ export default function Dashboard() {
     let cancelled = false
     async function load() {
       try {
+        // Briefing call gets a 5s timeout — it's optional data and shouldn't block the dashboard
+        const briefingWithTimeout = Promise.race([
+          getBriefing(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+        ])
         const [staleData, sectData, briefData] = await Promise.allSettled([
           getLPDStaleness(),
           getLPDSections(),
-          getBriefing(),
+          briefingWithTimeout,
         ])
         if (cancelled) return
 
@@ -211,6 +216,7 @@ export default function Dashboard() {
                     key={s.section_name}
                     section={s.section_name}
                     days={s.days_since_update}
+                    onClick={() => navigate(`/kb#${encodeURIComponent(s.section_name)}`)}
                   />
                 ))
             ) : (
@@ -233,7 +239,7 @@ export default function Dashboard() {
               {attentionItems.slice(0, 8).map((item, i) => {
                 const severityClass = SEVERITY_COLORS[item.severity] || SEVERITY_COLORS.low
                 return (
-                  <div key={i} className="flex items-start gap-2">
+                  <Link key={i} to={`/kb#${encodeURIComponent(item.source_section)}`} className="flex items-start gap-2 hover:bg-gray-50 rounded -mx-1 px-1 py-0.5 transition-colors">
                     <span className={`px-1.5 py-0.5 text-xs font-medium rounded border flex-shrink-0 ${severityClass}`}>
                       {item.severity}
                     </span>
@@ -241,7 +247,7 @@ export default function Dashboard() {
                       <p className="text-sm text-gray-700">{item.description}</p>
                       <p className="text-xs text-gray-400 mt-0.5">Source: {item.source_section}</p>
                     </div>
-                  </div>
+                  </Link>
                 )
               })}
               {attentionItems.length > 8 && (

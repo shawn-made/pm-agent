@@ -24,6 +24,7 @@ from app.models.schemas import (
     JobSubmitResponse,
     ReconciliationResponse,
     RiskPredictionResponse,
+    SessionCreate,
     SkepticalReviewResponse,
     Suggestion,
 )
@@ -361,6 +362,26 @@ async def intake_apply(project_id: str, request: IntakeApplyRequest):
         proposed_sections=request.proposed_sections,
         approved_sections=request.approved_sections,
     )
+
+    # Log session summary to Recent Context
+    if updated:
+        from app.services.crud import create_session
+        from app.services.lpd_manager import log_session_summary
+
+        session = await create_session(
+            SessionCreate(
+                project_id=project_id,
+                tab_used="intake",
+                user_input=f"Imported {len(updated)} sections via intake",
+                agent_output=f"Updated: {', '.join(updated)}",
+            )
+        )
+        await log_session_summary(
+            project_id=project_id,
+            session_id=session.session_id,
+            summary=f"File import: updated {', '.join(updated)} sections",
+            entities="",
+        )
 
     return IntakeApplyResponse(sections_updated=updated, sections_skipped=skipped)
 
