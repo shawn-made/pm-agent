@@ -83,6 +83,30 @@ def _insert_into_section(content: str, section: str, proposed_text: str) -> str:
         return content.rstrip() + "\n\n" + proposed_text + "\n"
 
 
+def _replace_section_content(content: str, section: str, proposed_text: str) -> str:
+    """Replace the body of a ## section with proposed_text.
+
+    Finds the ``## section`` heading and replaces everything between it and the
+    next ``## `` heading.  Falls back to end-of-file append if the section
+    heading isn't found (same as _insert_into_section fallback).
+    """
+    pattern = re.compile(r"^## " + re.escape(section) + r"\s*$", re.MULTILINE | re.IGNORECASE)
+    match = pattern.search(content)
+
+    if not match:
+        return content.rstrip() + "\n\n" + proposed_text + "\n"
+
+    rest = content[match.end() :]
+    next_heading = re.search(r"^## ", rest, re.MULTILINE)
+
+    heading_line = content[match.start() : match.end()]
+    if next_heading:
+        after = rest[next_heading.start() :]
+        return content[: match.start()] + heading_line + "\n" + proposed_text + "\n\n" + after
+    else:
+        return content[: match.start()] + heading_line + "\n" + proposed_text + "\n"
+
+
 @router.get("/health")
 async def health_check():
     """Backend health check endpoint."""
@@ -131,11 +155,16 @@ async def apply_suggestion(artifact_id: str, suggestion: Suggestion):
     if content is None:
         raise HTTPException(status_code=404, detail="Artifact not found")
 
-    # Dedup guard — skip if this exact text is already in the artifact
-    if suggestion.proposed_text.strip() in content:
+    is_replace = suggestion.change_type == "update"
+
+    # Dedup guard — skip for append only (replace is always intentional)
+    if not is_replace and suggestion.proposed_text.strip() in content:
         return {"status": "duplicate", "artifact_id": artifact_id}
 
-    updated = _insert_into_section(content, suggestion.section, suggestion.proposed_text)
+    if is_replace:
+        updated = _replace_section_content(content, suggestion.section, suggestion.proposed_text)
+    else:
+        updated = _insert_into_section(content, suggestion.section, suggestion.proposed_text)
 
     success = await write_artifact_content(artifact_id, updated)
     if not success:
@@ -170,15 +199,20 @@ async def apply_suggestion_by_type(suggestion: Suggestion, project_id: str = "de
     if content is None:
         raise HTTPException(status_code=500, detail="Failed to read artifact after creation")
 
-    # Dedup guard — skip if this exact text is already in the artifact
-    if suggestion.proposed_text.strip() in content:
+    is_replace = suggestion.change_type == "update"
+
+    # Dedup guard — skip for append only (replace is always intentional)
+    if not is_replace and suggestion.proposed_text.strip() in content:
         return {
             "status": "duplicate",
             "artifact_id": artifact.artifact_id,
             "artifact_type": suggestion.artifact_type,
         }
 
-    updated = _insert_into_section(content, suggestion.section, suggestion.proposed_text)
+    if is_replace:
+        updated = _replace_section_content(content, suggestion.section, suggestion.proposed_text)
+    else:
+        updated = _insert_into_section(content, suggestion.section, suggestion.proposed_text)
 
     success = await write_artifact_content(artifact.artifact_id, updated)
     if not success:
@@ -197,6 +231,7 @@ async def apply_suggestion_by_type(suggestion: Suggestion, project_id: str = "de
         project_id=project_id,
         artifact_section=suggestion.section,
         proposed_text=suggestion.proposed_text,
+        change_type=suggestion.change_type,
         client=client,
         custom_terms=custom_terms,
     )

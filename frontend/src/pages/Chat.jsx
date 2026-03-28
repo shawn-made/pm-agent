@@ -1,7 +1,7 @@
 /**
- * Chat page — Multi-turn conversational PM assistant (Task 61) with Brain Dump mode (Task 62).
- * Provides a chat interface for interacting with VPMA, conversation history,
- * and a brain dump mode for freeform thought capture and triage.
+ * ChatPanel — floating multi-turn conversational PM assistant.
+ * Renders as a fixed right-side overlay accessible from any page.
+ * Brain dump mode available for freeform capture and triage.
  */
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
@@ -12,13 +12,14 @@ import {
   applySuggestionByType,
 } from '../services/api'
 import { useToast } from '../components/ToastContext'
+import { useChat } from '../context/ChatContext'
 
 function SuggestionCard({ suggestion, projectId, onApplied, toast }) {
   const [applying, setApplying] = useState(false)
   const [applied, setApplied] = useState(false)
   const [error, setError] = useState(null)
 
-  const handleApply = async () => {
+  const handleApply = async (changeType) => {
     try {
       setApplying(true)
       setError(null)
@@ -26,7 +27,7 @@ function SuggestionCard({ suggestion, projectId, onApplied, toast }) {
       const payload = {
         artifact_type: suggestion.artifact_type || 'RAID Log',
         section: suggestion.section || '',
-        change_type: suggestion.change_type || 'add',
+        change_type: changeType,
         proposed_text: suggestion.proposed_text,
         confidence: suggestion.confidence || 0.8,
         reasoning: suggestion.reasoning || '',
@@ -37,6 +38,8 @@ function SuggestionCard({ suggestion, projectId, onApplied, toast }) {
       if (toast) {
         if (result?.status === 'duplicate') {
           toast('Already applied', 'info')
+        } else if (changeType === 'update') {
+          toast(section ? `Replaced "${section}"` : 'Section replaced', 'success')
         } else {
           toast(section ? `Applied to ${section}` : 'Applied successfully', 'success')
         }
@@ -71,7 +74,7 @@ function SuggestionCard({ suggestion, projectId, onApplied, toast }) {
       )}
       <div className="flex gap-2 mt-2">
         <button
-          onClick={handleApply}
+          onClick={() => handleApply('add')}
           disabled={applying || applied}
           className={`text-xs px-2.5 py-1 rounded ${
             applied
@@ -79,8 +82,17 @@ function SuggestionCard({ suggestion, projectId, onApplied, toast }) {
               : 'bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-300'
           }`}
         >
-          {applied ? 'Applied' : applying ? 'Applying...' : 'Apply'}
+          {applied ? 'Applied' : applying ? 'Applying...' : 'Append'}
         </button>
+        {!applied && (
+          <button
+            onClick={() => handleApply('update')}
+            disabled={applying}
+            className="text-xs px-2.5 py-1 rounded border border-indigo-300 text-indigo-700 hover:bg-indigo-50 disabled:text-gray-300 disabled:border-gray-200"
+          >
+            Replace
+          </button>
+        )}
         <button
           onClick={() => navigator.clipboard.writeText(suggestion.proposed_text)}
           className="text-xs px-2.5 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-100"
@@ -164,6 +176,7 @@ function ChatMessage({ message, projectId, toast }) {
 }
 
 function Chat() {
+  const { isOpen, closeChat } = useChat()
   const { showToast } = useToast()
   const [conversations, setConversations] = useState([])
   const [activeConversationId, setActiveConversationId] = useState(null)
@@ -320,19 +333,38 @@ function Chat() {
     }
   }
 
-  return (
-    <div>
-      {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900">Assistant</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Chat with your project knowledge — ask questions, explore risks, or dump your thoughts
-        </p>
-      </div>
+  if (!isOpen) return null
 
-      <div className="flex gap-4 h-[calc(100vh-16rem)]">
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end pointer-events-none">
+      {/* Backdrop — only captures clicks, panel is pointer-events-auto */}
+      <div
+        className="absolute inset-0 bg-black/20 pointer-events-auto"
+        onClick={closeChat}
+      />
+
+      {/* Panel */}
+      <div className="relative w-[480px] max-w-full h-full bg-white shadow-2xl flex flex-col pointer-events-auto">
+        {/* Panel header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">Assistant</h2>
+            <p className="text-xs text-gray-400">Ask questions, explore risks, brain dump</p>
+          </div>
+          <button
+            onClick={closeChat}
+            className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100"
+            title="Close"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+      <div className="flex gap-4 flex-1 min-h-0 p-3">
         {/* Conversation sidebar */}
-        <div className={`${showConvList ? 'w-64' : 'w-10'} flex-shrink-0 transition-all`}>
+        <div className={`${showConvList ? 'w-48' : 'w-8'} flex-shrink-0 transition-all`}>
           {showConvList ? (
             <div className="bg-white rounded-lg border border-gray-200 h-full flex flex-col">
               <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
@@ -407,7 +439,7 @@ function Chat() {
         </div>
 
         {/* Chat area */}
-        <div className="flex-1 bg-white rounded-lg border border-gray-200 flex flex-col">
+        <div className="flex-1 bg-white rounded-lg border border-gray-200 flex flex-col min-w-0">
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {loadingHistory ? (
@@ -500,6 +532,7 @@ function Chat() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )

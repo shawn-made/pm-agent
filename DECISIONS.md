@@ -1,7 +1,7 @@
 # VPMA — Decisions Log
 
-**Last Updated**: 2026-03-25
-**Current As Of**: 2026-03-25 (D60-D62 added — Phase 3C complete, Dashboard, live testing feedback)
+**Last Updated**: 2026-03-27
+**Current As Of**: 2026-03-27 (D63 added — Session 2 UX sprint decisions)
 
 ---
 
@@ -622,6 +622,25 @@ Frontend shows 4 contextual states: Not Installed (link to ollama.com), Installe
 **Decision**: Added a Project Dashboard as the app home page (`/`). Knowledge Base moved to `/kb`. Dashboard aggregates existing data (staleness, briefing, contradictions) — no LLM calls. Designed as a launchpad, not a destination.
 
 **Rationale**: First thing a PM sees should answer "what needs my attention?" Dashboard pulls from cached briefing + staleness data to show this without waiting for LLM calls. Knowledge Base is the working view for editing; Dashboard is the scanning view for orientation.
+
+### D63: Session 2 UX Sprint — Four Architectural Decisions
+**Date**: 2026-03-27 (Session 2 UX sprint) | **Status**: Active
+
+**Decision**: Addressed 4 of 5 deferred D62 items (item 5 — Dashboard reframe — closed as done after Session 1 hotfixes). Four non-obvious choices made:
+
+1. **Ingest IA: wrapper + sub-tabs, not component merge** — Import (Intake.jsx) and Process (ArtifactSync.jsx) kept as separate components; wrapped in a new `Ingest.jsx` page with "From Files" / "From Text" sub-tabs. Merging the two components would have been high churn with no UX gain; sub-tabs carry the explanatory weight with minimal code change. Redirects added for `/import` and `/process`.
+
+2. **Chat Append/Replace: two explicit buttons** — Chat suggestion cards now show "Append" and "Replace" buttons instead of a single "Apply". Rejected a toggle approach — the action is irreversible and users need explicit intent. The 'update' change_type now correctly replaces section content in both artifact files and LPD (was always appending before, ignoring the field).
+
+3. **Reconciliation removed, not merged** — Removed the Reconciliation panel from the Audit page entirely rather than merging its behavior into Pressure Test. Pressure Test already finds cross-section contradictions via LPD + artifacts context. Maintaining a second tool for the same purpose adds confusion with no quality gain.
+
+4. **Floating chat: fixed overlay with backdrop, toggle from sidebar** — Chat converted from a routed page to a fixed right-side panel (480px). Sidebar "Assistant" item is now a button that calls `useChat().toggleChat()`. ChatContext provides global open/close state. `/chat` route redirects to `/`. Panel renders outside the main layout so it overlays any page.
+
+**Rationale**: All four decisions favor the minimum code change that resolves the user confusion, not the most architecturally clean solution. Appropriate for a personal tool at this stage.
+
+**Connects to**: D62 (live testing feedback), D56 (Phase 3 scoping)
+
+---
 
 ### D62: Live Testing Feedback — UX Redesign Priorities
 **Date**: 2026-03-25 (first real-data testing of Phase 3 features) | **Status**: Active

@@ -150,12 +150,9 @@ export default function Intake() {
 
   return (
     <div className="space-y-6">
-      <div className="border-l-4 border-blue-400 pl-4">
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">Import</h2>
-        <p className="text-sm text-gray-500">
-          Import files and documents into your project knowledge base.
-        </p>
-      </div>
+      <p className="text-sm text-gray-500">
+        Upload or paste existing documents — VPMA will extract and add them to your Knowledge Base.
+      </p>
 
       {/* Drag-drop zone */}
       <div

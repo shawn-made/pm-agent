@@ -326,23 +326,25 @@ async def update_lpd_from_suggestion(
     project_id: str,
     artifact_section: str,
     proposed_text: str,
+    change_type: str = "add",
     client=None,
     custom_terms: list[str] | None = None,
 ) -> dict:
     """Update the LPD based on an applied artifact suggestion (return path).
 
     Maps the artifact section to the corresponding LPD section and appends
-    the proposed text. Does nothing if the LPD is not initialized or the
-    artifact section has no LPD mapping.
+    or replaces the text depending on change_type. Does nothing if the LPD is
+    not initialized or the artifact section has no LPD mapping.
 
-    When an LLM client is provided, uses the content gate for semantic dedup
-    (D40). Falls back to exact substring matching if the client is unavailable
-    or the LLM call fails (D42 — graceful degradation).
+    When change_type is 'update', replaces the full section content (no dedup).
+    When change_type is 'add', appends with semantic dedup via content gate
+    (D40) if an LLM client is available, falling back to exact matching (D42).
 
     Args:
         project_id: Project to update.
         artifact_section: The section name from the suggestion (e.g., "Risks", "Action Items").
         proposed_text: The text that was applied to the artifact.
+        change_type: 'add' to append, 'update' to replace the section content.
         client: Optional LLM client for semantic dedup via content gate.
         custom_terms: Optional custom sensitive terms for privacy proxy.
 
@@ -363,53 +365,62 @@ async def update_lpd_from_suggestion(
         )
         return _skip
 
-    # Check for exact duplicate first (fast path, no API call)
-    section = await get_lpd_section(project_id, lpd_section)
-    if section and proposed_text.strip() in section.content:
-        logger.debug("Exact duplicate text in LPD section '%s', skipping", lpd_section)
-        return _skip
+    is_replace = change_type == "update"
 
-    # Semantic dedup via content gate (D40) if LLM client is available
-    if client is not None:
-        try:
-            from app.models.schemas import LPDUpdate
-            from app.services.content_gate import classify_lpd_updates
+    if is_replace:
+        # Replace mode — skip all dedup checks, user is intentionally overwriting
+        result = await update_section(project_id, lpd_section, proposed_text)
+    else:
+        # Append mode — check for duplicates before inserting
+        section = await get_lpd_section(project_id, lpd_section)
+        if section and proposed_text.strip() in section.content:
+            logger.debug("Exact duplicate text in LPD section '%s', skipping", lpd_section)
+            return _skip
 
-            lpd_update = LPDUpdate(section=lpd_section, content=proposed_text)
-            classified_updates, _gate_active = await classify_lpd_updates(
-                project_id, [lpd_update], client, custom_terms=custom_terms
-            )
+        # Semantic dedup via content gate (D40) if LLM client is available
+        if client is not None:
+            try:
+                from app.models.schemas import LPDUpdate
+                from app.services.content_gate import classify_lpd_updates
 
-            if classified_updates:
-                cls = classified_updates[0].classification
-                if cls and cls.classification == "duplicate":
-                    logger.info(
-                        "Semantic duplicate on return path: '%s' → LPD '%s' (%s)",
-                        artifact_section,
-                        lpd_section,
-                        cls.reason,
-                    )
-                    return _skip
-                if cls and cls.classification == "contradiction":
-                    logger.warning(
-                        "Contradiction on return path: '%s' → LPD '%s' (%s). "
-                        "Applying anyway (user-initiated Apply).",
-                        artifact_section,
-                        lpd_section,
-                        cls.reason,
-                    )
-                    # Fall through to apply — user explicitly clicked Apply
-        except Exception:
-            logger.warning(
-                "Content gate failed on return path — falling back to exact match",
-                exc_info=True,
-            )
-            # Fall through to apply (graceful degradation per D42)
+                lpd_update = LPDUpdate(section=lpd_section, content=proposed_text)
+                classified_updates, _gate_active = await classify_lpd_updates(
+                    project_id, [lpd_update], client, custom_terms=custom_terms
+                )
 
-    result = await append_to_section(project_id, lpd_section, proposed_text)
+                if classified_updates:
+                    cls = classified_updates[0].classification
+                    if cls and cls.classification == "duplicate":
+                        logger.info(
+                            "Semantic duplicate on return path: '%s' → LPD '%s' (%s)",
+                            artifact_section,
+                            lpd_section,
+                            cls.reason,
+                        )
+                        return _skip
+                    if cls and cls.classification == "contradiction":
+                        logger.warning(
+                            "Contradiction on return path: '%s' → LPD '%s' (%s). "
+                            "Applying anyway (user-initiated Apply).",
+                            artifact_section,
+                            lpd_section,
+                            cls.reason,
+                        )
+                        # Fall through to apply — user explicitly clicked Apply
+            except Exception:
+                logger.warning(
+                    "Content gate failed on return path — falling back to exact match",
+                    exc_info=True,
+                )
+                # Fall through to apply (graceful degradation per D42)
+
+        result = await append_to_section(project_id, lpd_section, proposed_text)
+
     if result:
+        action = "replaced" if is_replace else "applied"
         logger.info(
-            "Return path: applied '%s' → LPD '%s' for project '%s'",
+            "Return path: %s '%s' → LPD '%s' for project '%s'",
+            action,
             artifact_section,
             lpd_section,
             project_id,

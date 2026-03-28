@@ -2,6 +2,26 @@
 
 ---
 
+### Session 2 (2026-03-27)
+**Focus**: UX sprint — all 5 deferred D62 items resolved (floating chat, Audit simplification, Import/Process merge, Chat replace, Dashboard close)
+
+**Built:**
+- **Item 1 — Floating Chat Panel**: Chat converted from routed page to fixed right overlay. `ChatContext.jsx` + `useChat()` hook for global open/close. Sidebar "Assistant" is now a toggle button. `/chat` route redirects to `/`. Dashboard "Ask Assistant" quick action calls `openChat()`.
+- **Item 2 — Audit simplification**: Removed Reconciliation panel from Audit page. Pressure Test is now the single contradiction/review tool. 2 tests removed, 1 updated.
+- **Item 3 — Import/Process merge**: New `Ingest.jsx` wrapper with "From Files" / "From Text" sub-tabs replaces two separate nav entries. Old `/import` and `/process` routes redirect to `/ingest`. Page-level headers stripped from `Intake.jsx` and `ArtifactSync.jsx`. All cross-links updated (Dashboard, ProjectDoc).
+- **Item 4 — Chat replace/append**: Backend: `_replace_section_content()` helper added to `routes.py`. Both apply endpoints branch on `change_type` — 'update' replaces, 'add' appends; dedup guard skipped for replace. `update_lpd_from_suggestion()` takes `change_type` param and calls `update_section()` vs `append_to_section()` accordingly. Frontend: Chat inline suggestion cards show explicit "Append" + "Replace" buttons.
+- **Item 5 — Dashboard reframe**: Closed as done — Session 1 hotfixes (No Assessment label, drill-down links) already resolved the core complaint.
+
+**Decisions**: D63 logged — 4 non-obvious architectural choices from the sprint.
+
+**Stats**: 1,008 backend + 341 frontend = 1,349 total tests (−1 frontend: removed Reconciliation open/close test). All passing. Linters clean.
+
+**New files**: `frontend/src/context/ChatContext.jsx`, `frontend/src/pages/Ingest.jsx`
+
+**Next**: More real-data testing. Then Skeptical PM review + backlog consumption pass to scope Phase 4.
+
+---
+
 ### Session 1 (2026-03-25)
 **Focus**: Phase 3C complete (Skeptical Reviewer + Dashboard) + first real-data live testing with user feedback
 

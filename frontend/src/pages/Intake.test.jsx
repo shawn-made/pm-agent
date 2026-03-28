@@ -44,7 +44,7 @@ describe('Intake', () => {
 
   it('renders heading and file input area', () => {
     renderPage()
-    expect(screen.getByText('Import')).toBeInTheDocument()
+    expect(screen.getByText(/upload or paste existing documents/i)).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Paste file content here...')).toBeInTheDocument()
   })
 

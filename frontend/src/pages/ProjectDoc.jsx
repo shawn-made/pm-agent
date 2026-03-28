@@ -235,7 +235,7 @@ export default function ProjectDoc() {
               {initializing ? 'Initializing...' : 'Initialize Knowledge Base'}
             </button>
             <Link
-              to="/import"
+              to="/ingest"
               className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Import from Files
@@ -313,7 +313,7 @@ export default function ProjectDoc() {
             Predict Risks
           </button>
           <Link
-            to="/import"
+            to="/ingest"
             className="flex items-center gap-1 text-xs px-3 py-1.5 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">

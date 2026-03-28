@@ -80,7 +80,7 @@ afterEach(() => {
 describe('ArtifactSync', () => {
   it('renders heading and empty state', () => {
     renderPage()
-    expect(screen.getByText('Process')).toBeInTheDocument()
+    expect(screen.getByText(/paste meeting notes, transcripts/i)).toBeInTheDocument()
     expect(
       screen.getByText('No suggestions yet. Paste some text above to get started.')
     ).toBeInTheDocument()

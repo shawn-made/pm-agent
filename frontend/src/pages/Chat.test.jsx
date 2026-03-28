@@ -4,6 +4,12 @@ import { MemoryRouter } from 'react-router-dom'
 import Chat from './Chat'
 import { ToastProvider } from '../components/Toast'
 
+// Mock ChatContext so the panel is always open in tests
+vi.mock('../context/ChatContext', () => ({
+  useChat: () => ({ isOpen: true, closeChat: vi.fn(), openChat: vi.fn(), toggleChat: vi.fn() }),
+  ChatProvider: ({ children }) => children,
+}))
+
 vi.mock('../services/api', () => ({
   sendChatMessage: vi.fn(),
   listConversations: vi.fn(),
@@ -218,6 +224,6 @@ describe('Chat', () => {
     })
     expect(screen.getByText('RAID Log')).toBeTruthy()
     expect(screen.getByText('New risk identified')).toBeTruthy()
-    expect(screen.getByText('Apply')).toBeTruthy()
+    expect(screen.getByText('Append')).toBeTruthy()
   })
 })

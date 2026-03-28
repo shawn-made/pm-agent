@@ -55,13 +55,6 @@ vi.mock('../components/PassProgressBar', () => ({
   ),
 }))
 
-vi.mock('../components/ReconciliationPanel', () => ({
-  default: ({ onClose }) => (
-    <div data-testid="reconciliation-panel">
-      <button onClick={onClose}>Close</button>
-    </div>
-  ),
-}))
 
 function makeResult(inconsistencies = 2, updates = 3) {
   return {
@@ -252,18 +245,9 @@ describe('DeepStrategy page', () => {
     expect(screen.getByText(/You can switch tabs/)).toBeInTheDocument()
   })
 
-  it('renders Document Consistency and Reconciliation sections', () => {
+  it('renders Document Consistency and Pressure Test sections', () => {
     render(<DeepStrategy />)
     expect(screen.getByText('Document Consistency')).toBeInTheDocument()
-    expect(screen.getByText('Reconciliation')).toBeInTheDocument()
-    expect(screen.getByText('Run Reconciliation')).toBeInTheDocument()
-  })
-
-  it('opens and closes reconciliation panel', () => {
-    render(<DeepStrategy />)
-    fireEvent.click(screen.getByText('Run Reconciliation'))
-    expect(screen.getByTestId('reconciliation-panel')).toBeInTheDocument()
-    fireEvent.click(screen.getByText('Close'))
-    expect(screen.queryByTestId('reconciliation-panel')).not.toBeInTheDocument()
+    expect(screen.getByText('Pressure Test')).toBeInTheDocument()
   })
 })

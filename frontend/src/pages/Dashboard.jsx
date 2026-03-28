@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { getLPDStaleness, getLPDSections, getBriefing } from '../services/api'
+import { useChat } from '../context/ChatContext'
 
 const SEVERITY_COLORS = {
   high: 'bg-red-100 text-red-700 border-red-200',
@@ -51,6 +52,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const navigate = useNavigate()
+  const { openChat } = useChat()
 
   useEffect(() => {
     let cancelled = false
@@ -143,7 +145,7 @@ export default function Dashboard() {
         <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
           <p className="text-sm text-gray-500">No project data yet.</p>
           <p className="text-xs text-gray-400 mt-2">
-            Start by importing files on the <button onClick={() => navigate('/import')} className="text-blue-600 hover:underline">Import</button> page
+            Start by importing files on the <button onClick={() => navigate('/ingest')} className="text-blue-600 hover:underline">Add to KB</button> page
             or adding content to your <button onClick={() => navigate('/kb')} className="text-blue-600 hover:underline">Knowledge Base</button>.
           </p>
         </div>
@@ -304,10 +306,10 @@ export default function Dashboard() {
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Quick Actions</h3>
         <div className="flex flex-wrap gap-3">
           <button
-            onClick={() => navigate('/process')}
+            onClick={() => navigate('/ingest')}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            Process New Input
+            Add to Knowledge Base
           </button>
           <button
             onClick={() => navigate('/audit')}
@@ -316,7 +318,7 @@ export default function Dashboard() {
             Run Audit
           </button>
           <button
-            onClick={() => navigate('/chat')}
+            onClick={openChat}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Ask Assistant

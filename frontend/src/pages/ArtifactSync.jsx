@@ -215,12 +215,9 @@ export default function ArtifactSync() {
 
   return (
     <div className="space-y-6">
-      <div className="border-l-4 border-indigo-400 pl-4">
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">Process</h2>
-        <p className="text-sm text-gray-500">
-          {SUBTITLES[mode] || SUBTITLES.extract}
-        </p>
-      </div>
+      <p className="text-sm text-gray-500">
+        {SUBTITLES[mode] || SUBTITLES.extract}
+      </p>
 
       <ProcessModeCards mode={mode} onModeChange={handleModeChange} />
 

@@ -4,6 +4,11 @@ import { MemoryRouter } from 'react-router-dom'
 import Dashboard from './Dashboard'
 import { ToastProvider } from '../components/Toast'
 
+vi.mock('../context/ChatContext', () => ({
+  useChat: () => ({ isOpen: false, openChat: vi.fn(), closeChat: vi.fn(), toggleChat: vi.fn() }),
+  ChatProvider: ({ children }) => children,
+}))
+
 // Mock the API module
 vi.mock('../services/api', () => ({
   getLPDStaleness: vi.fn(),
@@ -159,7 +164,7 @@ describe('Dashboard', () => {
     renderDashboard()
 
     await waitFor(() => {
-      expect(screen.getByText('Process New Input')).toBeInTheDocument()
+      expect(screen.getByText('Add to Knowledge Base')).toBeInTheDocument()
       expect(screen.getByText('Run Audit')).toBeInTheDocument()
       expect(screen.getByText('Ask Assistant')).toBeInTheDocument()
     })

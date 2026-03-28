@@ -1,7 +1,7 @@
 /**
- * Audit page — Document Consistency analysis + Reconciliation.
+ * Audit page — Document Consistency analysis + Pressure Test.
  * Upload 2+ artifacts, run 4-pass LLM analysis, review and apply updates.
- * Also includes cross-section LPD reconciliation (moved from Knowledge Base).
+ * Pressure Test runs a critical review across all project documents.
  *
  * Uses job-based polling (Task 57) — submit fires a background job,
  * results persist across tab switches and page reloads.
@@ -10,7 +10,6 @@ import { useState, useEffect } from 'react'
 import ArtifactUploader from '../components/ArtifactUploader'
 import DeepStrategyResults from '../components/DeepStrategyResults'
 import PassProgressBar from '../components/PassProgressBar'
-import ReconciliationPanel from '../components/ReconciliationPanel'
 import ReviewPanel from '../components/ReviewPanel'
 import { useToast } from '../components/ToastContext'
 import { deepStrategyApply } from '../services/api'
@@ -19,7 +18,6 @@ import useJobPolling from '../hooks/useJobPolling'
 export default function DeepStrategy() {
   const [isApplying, setIsApplying] = useState(false)
   const [uploaderKey, setUploaderKey] = useState(0)
-  const [showReconPanel, setShowReconPanel] = useState(false)
   const [showReviewPanel, setShowReviewPanel] = useState(false)
   const toast = useToast()
   const job = useJobPolling('deep_strategy')
@@ -143,26 +141,6 @@ export default function DeepStrategy() {
             Start new analysis
           </button>
         </>
-      )}
-
-      {/* --- Reconciliation section --- */}
-      <div className="border-t border-gray-200 pt-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-1">Reconciliation</h3>
-        <p className="text-xs text-gray-400 mb-3">
-          Detect contradictions and conflicts across Knowledge Base sections.
-        </p>
-        <button
-          onClick={() => setShowReconPanel(true)}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          Run Reconciliation
-        </button>
-      </div>
-
-      {showReconPanel && (
-        <ReconciliationPanel
-          onClose={() => setShowReconPanel(false)}
-        />
       )}
 
       {/* --- Pressure Test section --- */}
